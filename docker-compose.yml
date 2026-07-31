@@ -1,0 +1,41 @@
+# SAHRA local infra (DEVELOPMENT.md §4).
+# Postgres is NOT here — it comes from Supabase (hosted dev project).
+#
+#   docker compose up -d
+#
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: sahra-redis
+    # appendonly so BullMQ delayed jobs (hold expiry) survive a restart —
+    # losing them would strand held tables until the 60s sweeper catches up.
+    command: redis-server --appendonly yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: sahra-meilisearch
+    environment:
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: 'true'
+    ports:
+      - '7700:7700'
+    volumes:
+      - meili-data:/meili_data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:7700/health']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  redis-data:
+  meili-data:

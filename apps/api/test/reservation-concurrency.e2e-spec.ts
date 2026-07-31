@@ -15,7 +15,19 @@ import { randomUUID } from 'crypto';
 import { ReservationsService } from '../src/modules/reservations/reservations.service';
 import { PrismaService } from '../src/shared/prisma/prisma.service';
 
-const prisma = new PrismaClient();
+/**
+ * Run against the SESSION pooler (DIRECT_URL, port 5432) when available.
+ *
+ * Two reasons this matters and neither is cosmetic:
+ *  - Interactive transactions are pinned per-connection; the session pooler is
+ *    the configuration Supabase documents for them.
+ *  - DATABASE_URL carries `connection_limit`. If that pool is 1, Prisma
+ *    serializes these "concurrent" calls client-side and the test passes
+ *    without a single thread ever racing — a green light that proves nothing.
+ */
+const prisma = new PrismaClient({
+  datasources: { db: { url: process.env.DIRECT_URL || process.env.DATABASE_URL } },
+});
 const service = new ReservationsService(prisma as unknown as PrismaService);
 
 /** How many diners race for the same last table. */
