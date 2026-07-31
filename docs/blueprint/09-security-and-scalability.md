@@ -9,7 +9,9 @@
 ### 1.1 Authentication & JWT
 
 - Password hashing: **argon2id**; phone OTP hashed in Redis, 5-min TTL, 5 attempts, per-phone and per-IP rate limits (blocks SMS-pumping fraud — a real cost attack in Egypt).
-- **Access JWT 15 min** (RS256, kid-rotated keys) / **refresh token 30 d, rotating with reuse detection** — a replayed old refresh token revokes the whole token family.
+- **Access JWT 15 min** (**HS256** while SAHRA is a single-service monolith — see below) / **refresh token 30 d, rotating with reuse detection** — a replayed old refresh token revokes the whole token family.
+  - **Signing algorithm — current: HS256.** RS256 exists so a party that must *verify* a token need not hold the key that *signs* it. Today exactly one service issues and verifies, so asymmetry buys nothing and would add JWKS hosting plus key rotation with no consumer. **Switch to RS256 + kid-rotated keys + a published JWKS endpoint the moment either of these becomes true:** (a) a second service verifies tokens without the signing secret, or (b) any external/third-party API consumer verifies our tokens. Migration costs one 15-minute access-token window. Rationale and full trigger list: `docs/decisions/2026-07-31-auth-token-storage.md`.
+  - **Secret handling:** the HS256 signing key must be **≥ 256 bits** and supplied by the platform secrets manager (AWS Secrets Manager / SSM Parameter Store per doc 10) injected as an environment variable at task start. A committed or file-resident secret is a deployment defect. `.env` is **local development only**; the API refuses to boot in `NODE_ENV=production` with a secret that is short, absent, or a known dev placeholder.
 - Device binding: refresh tokens tied to device records; "log out all devices" supported.
 - Step-up auth (re-OTP) for: payment method changes, owner payout details, staff-role grants.
 

@@ -55,22 +55,92 @@ The table was created empty, never written to, and dropped in
 `20260801010000_drop_otp_challenges`. **OTP endpoints are therefore blocked on
 Redis** (Docker/WSL2), and are not part of the first auth cut.
 
-### 3. HS256 instead of RS256 — DEVIATION, revisit before production
+### 3. HS256 instead of RS256 — approved deviation
 
-Doc 09 §1.1 says RS256 with kid-rotated keys. Shipped as **HS256**.
+Doc 09 §1.1 originally said RS256 with kid-rotated keys. Shipped as **HS256**,
+approved 2026-08-01. `09-security-and-scalability.md` §1.1 has been amended so
+the blueprint and the code agree — neither should be read as authoritative
+while contradicting the other.
 
-RS256 exists so that a party which must *verify* a token need not hold the key
-that *signs* it. SAHRA is a modular monolith (doc 03): exactly one service
-issues and verifies, so there is no second party and asymmetry buys nothing
-today. HS256 avoids keypair generation, JWKS hosting and rotation machinery
-that would have no consumer.
+RS256 exists so a party that must *verify* a token need not hold the key that
+*signs* it. SAHRA is a modular monolith (doc 03): exactly one service issues
+and verifies, so there is no second party. HS256 avoids keypair generation,
+JWKS hosting and rotation machinery with no consumer.
 
-**Revisit when any of these becomes true** — at which point RS256 + a JWKS
-endpoint is required, and the access-token TTL means migration costs one
-15-minute window:
-- a second service needs to verify tokens without the signing secret
-- tokens must be verified outside our infrastructure
-- the monolith is split (doc 09's scaling stages)
+#### Exact triggers that force the switch to RS256
+
+Any **one** of these is sufficient. On any of them, RS256 + kid-rotated keys +
+a published JWKS endpoint becomes mandatory before the change ships:
+
+1. **A second service verifies tokens.** Any process other than `apps/api`
+   validating an access token — a worker, a BFF, an extracted microservice, an
+   API gateway doing JWT validation at the edge. Sharing an HS256 secret with a
+   second service means every holder can also *mint* admin tokens.
+2. **Any external or third-party API consumer verifies our tokens.** A partner
+   integration, a public API, a restaurant POS vendor — anyone outside our
+   trust boundary. Handing them an HS256 secret hands them token forgery.
+3. The monolith is split, per doc 09's scaling stages (implied by 1, listed
+   separately because it is the likeliest route there).
+
+**Cost of switching:** one 15-minute access-token window. Refresh tokens are
+opaque and unaffected, so no user is signed out.
+
+**Not a trigger:** more instances of `apps/api` behind a load balancer. Same
+service, same trust boundary, same secret from the same manager.
+
+#### Secret handling requirements (enforced in code)
+
+- **≥ 256 bits.** HS256 is a symmetric MAC: the secret *is* the ability to mint
+  valid tokens for any user, and a short one is brute-forceable offline from a
+  single captured token.
+- **From the platform secrets manager** — AWS Secrets Manager / SSM Parameter
+  Store (doc 10) — injected as an environment variable at task start.
+- **`.env` is local development only.** A `.env` present in production means
+  the key is in the build artifact.
+
+Enforced by `src/shared/config/secrets.validation.ts`, called from `bootstrap()`
+before the app can serve traffic. In `NODE_ENV=production` it **throws** on a
+secret that is absent, under 256 bits, a known placeholder, or accompanied by a
+`.env` file. Outside production it warns instead, so local work is not blocked.
+Six unit tests cover it. A policy that lives only in a document is not a
+control.
+
+### 4. Password login is PERMANENT, not scaffolding
+
+Asked directly during review: is the password path temporary until Redis/OTP
+lands? **No. It is a permanent, first-class login method.** Checked against the
+blueprint rather than assumed:
+
+| Source | Says |
+|---|---|
+| `02-functional-requirements.md` **C-1.1** | "Sign up / login with email + password (verified email)" — **P0** |
+| `02-functional-requirements.md` **C-1.2** | "**Phone OTP login (SMS/WhatsApp)**" — **P0**, "Phone is the primary identity in Egypt" |
+| `02-functional-requirements.md` **C-1.4** | "Password reset via email/OTP; rate-limited" — **P0** |
+| `06-api-design.md` §2 | `/auth/login` accepts `{identifier, password}` **or** `{phone}` → OTP |
+| `04-database-design.md` | `password_hash TEXT NULLABLE (social/OTP-only)` |
+
+Both are P0. C-1.4 specifying password *reset* as P0 only makes sense if
+passwords persist. The nullable `password_hash` is the schema encoding the same
+thing: some accounts are OTP-only, others carry a password, and both are valid
+states forever.
+
+**So the shape is: three permanent login methods (password, phone OTP, social),
+with phone OTP as the primary for Egypt — not password-until-OTP-arrives.**
+
+Safe to build screens and flows on the password path. It is not going to be
+removed. What is *not* yet true:
+
+- **Phone OTP does not exist yet** (blocked on Redis) — so today an account is
+  created with `status: pending` and can log in with a password, but its phone
+  is unverified. `register` already returns `otpRequired: true` so clients can
+  be written against the final contract now.
+- **Social login (C-1.3) is not built.** `/auth/social` from doc 06 §2 is
+  unimplemented.
+
+The only genuinely temporary thing is the *gap*: verification not being
+enforced between register and first use. When OTP lands, `pending` accounts
+gain a real transition to `active`, and any flow that assumes a verified phone
+must check `status` rather than merely "has an account".
 
 ## Alternatives rejected
 

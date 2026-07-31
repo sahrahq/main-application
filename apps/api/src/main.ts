@@ -2,8 +2,13 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe, Logger } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
+import { validateSecrets } from "./shared/config/secrets.validation";
 
 async function bootstrap(): Promise<void> {
+  // Before anything can serve traffic: refuse to start on a weak or
+  // file-resident signing secret in production (doc 09 §1.1).
+  validateSecrets();
+
   const app = await NestFactory.create(AppModule);
 
   // DEVELOPMENT.md §7 — reject unknown fields outright rather than ignoring them.
