@@ -1,0 +1,336 @@
+// SAHRA — Prisma schema
+//
+// Mirrors docs/blueprint/04-database-design.md EXACTLY, including index names.
+// Do not add or drop an index without checking that doc — each one backs a
+// specific P0 query path (DEVELOPMENT.md §5).
+//
+// SCOPE: P0 tables only (users, roles, user_roles, restaurant_owners,
+// restaurants, shifts, tables, reservations, reservation_tables).
+// P1/P2 tables (payments, reviews, menus, waitlists, promotions, loyalty…)
+// are specified in doc 04 and land when their feature's turn comes.
+//
+// Three things Prisma cannot express; they live in raw SQL migrations:
+//   1. partial indexes (idx_restaurants_active, idx_tables_rest_capacity,
+//      idx_resv_active, idx_resv_hold_expiry)
+//   2. GIST index on restaurants.location, GIN on restaurants.cuisines
+//   3. the EXCLUDE USING GIST anti-double-booking constraint on
+//      reservation_tables — the hard backstop under the application lock
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [pgcrypto, citext, postgis, btree_gist]
+}
+
+// ─────────────────────────────────────────────────────────────── enums ──
+
+enum UserStatus {
+  pending
+  active
+  suspended
+  deleted
+
+  @@map("user_status")
+}
+
+enum VerificationStatus {
+  pending
+  verified
+  rejected
+
+  @@map("verification_status")
+}
+
+enum RestaurantStatus {
+  draft
+  pending_review
+  active
+  suspended
+  closed
+
+  @@map("restaurant_status")
+}
+
+enum BookingMode {
+  instant
+  request
+
+  @@map("booking_mode")
+}
+
+enum TableZone {
+  indoor
+  outdoor
+  family
+  bar
+  private
+
+  @@map("table_zone")
+}
+
+/// Live statuses (held|pending|confirmed|seated) are what availability scans.
+/// See idx_resv_active and the reservation_tables.active mirror trigger.
+enum ReservationStatus {
+  held
+  pending
+  confirmed
+  seated
+  completed
+  no_show
+  cancelled_by_user
+  cancelled_by_restaurant
+  expired
+
+  @@map("reservation_status")
+}
+
+enum ReservationSource {
+  app
+  walk_in
+  phone
+  waitlist
+  admin
+
+  @@map("reservation_source")
+}
+
+// ─────────────────────────────────────────────────────────────── users ──
+
+model User {
+  id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// CITEXT — case-insensitive uniqueness enforced by the column type.
+  email             String?    @unique @db.Citext
+  /// E.164, e.g. +201000000000
+  phone             String     @unique @db.VarChar(20)
+  passwordHash      String?    @map("password_hash")
+  fullName          String     @map("full_name") @db.VarChar(120)
+  avatarUrl         String?    @map("avatar_url")
+  locale            String     @default("ar") @db.Char(2)
+  status            UserStatus @default(pending)
+  emailVerifiedAt   DateTime?  @map("email_verified_at") @db.Timestamptz(6)
+  phoneVerifiedAt   DateTime?  @map("phone_verified_at") @db.Timestamptz(6)
+  noShowCount       Int        @default(0) @map("no_show_count") @db.SmallInt
+  referralCode      String?    @unique @map("referral_code") @db.VarChar(10)
+  referredBy        String?    @map("referred_by") @db.Uuid
+  marketingOptIn    Boolean    @default(false) @map("marketing_opt_in")
+  deletedAt         DateTime?  @map("deleted_at") @db.Timestamptz(6)
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  referrer         User?             @relation("UserReferral", fields: [referredBy], references: [id], onDelete: SetNull)
+  referees         User[]            @relation("UserReferral")
+  roles            UserRole[]        @relation("UserRoleUser")
+  grantedRoles     UserRole[]        @relation("UserRoleGrantedBy")
+  restaurantOwner  RestaurantOwner?  @relation("OwnerUser")
+  verifiedOwners   RestaurantOwner[] @relation("OwnerVerifiedBy")
+  reservations     Reservation[]
+
+  @@index([status], map: "idx_users_status")
+  @@map("users")
+}
+
+model Role {
+  id    Int        @id @default(autoincrement()) @db.SmallInt
+  name  String     @unique @db.VarChar(30)
+  users UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId    String   @map("user_id") @db.Uuid
+  roleId    Int      @map("role_id") @db.SmallInt
+  grantedBy String?  @map("granted_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user    User  @relation("UserRoleUser", fields: [userId], references: [id], onDelete: Cascade)
+  role    Role  @relation(fields: [roleId], references: [id])
+  granter User? @relation("UserRoleGrantedBy", fields: [grantedBy], references: [id], onDelete: SetNull)
+
+  @@id([userId, roleId])
+  @@index([roleId], map: "idx_user_roles_role")
+  @@map("user_roles")
+}
+
+// ────────────────────────────────────────────────────── restaurant_owners ──
+
+model RestaurantOwner {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String             @unique @map("user_id") @db.Uuid
+  businessName       String             @map("business_name") @db.VarChar(160)
+  taxId              String?            @map("tax_id") @db.VarChar(40)
+  verificationStatus VerificationStatus @default(pending) @map("verification_status")
+  verifiedAt         DateTime?          @map("verified_at") @db.Timestamptz(6)
+  verifiedBy         String?            @map("verified_by") @db.Uuid
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user        User         @relation("OwnerUser", fields: [userId], references: [id], onDelete: Cascade)
+  verifier    User?        @relation("OwnerVerifiedBy", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  restaurants Restaurant[]
+
+  @@map("restaurant_owners")
+}
+
+// ───────────────────────────────────────────────────────────── restaurants ──
+
+model Restaurant {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId         String           @map("owner_id") @db.Uuid
+  slug            String           @unique @db.VarChar(80)
+  nameEn          String           @map("name_en") @db.VarChar(160)
+  nameAr          String           @map("name_ar") @db.VarChar(160)
+  descriptionEn   String?          @map("description_en")
+  descriptionAr   String?          @map("description_ar")
+  cuisines        String[]
+  phone           String?          @db.VarChar(20)
+  email           String?          @db.VarChar(160)
+  website         String?
+  addressEn       String?          @map("address_en")
+  addressAr       String?          @map("address_ar")
+  neighborhood    String?          @db.VarChar(80)
+  city            String           @default("Cairo") @db.VarChar(80)
+  /// PostGIS GEOGRAPHY(POINT,4326). Prisma cannot type this — reads/writes go
+  /// through raw SQL in the restaurants repository.
+  location        Unsupported("geography(Point, 4326)")
+  priceBand       Int?             @map("price_band") @db.SmallInt
+  amenities       Json?            @db.JsonB
+  policies        Json?            @db.JsonB
+  bookingMode     BookingMode      @default(instant) @map("booking_mode")
+  slotIntervalMin Int              @default(30) @map("slot_interval_min") @db.SmallInt
+  pacingLimit     Int?             @map("pacing_limit") @db.SmallInt
+  ratingAvg       Decimal          @default(0) @map("rating_avg") @db.Decimal(3, 2)
+  ratingCount     Int              @default(0) @map("rating_count")
+  status          RestaurantStatus @default(draft)
+  timezone        String           @default("Africa/Cairo") @db.VarChar(40)
+  deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz(6)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner        RestaurantOwner @relation(fields: [ownerId], references: [id])
+  tables       Table[]
+  shifts       Shift[]
+  reservations Reservation[]
+
+  @@index([status, city, neighborhood], map: "idx_restaurants_status_neighborhood")
+  @@map("restaurants")
+}
+
+// ────────────────────────────────────────────────────────────────── shifts ──
+
+model Shift {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  restaurantId       String   @map("restaurant_id") @db.Uuid
+  nameEn             String   @map("name_en") @db.VarChar(60)
+  nameAr             String   @map("name_ar") @db.VarChar(60)
+  /// 0–6 for weekly rows; NULL when the row is date-specific.
+  dayOfWeek          Int?     @map("day_of_week") @db.SmallInt
+  /// Set for one-off dates; NULL for weekly rows. CHECK enforces exactly one.
+  specificDate       DateTime? @map("specific_date") @db.Date
+  opensAt            DateTime @map("opens_at") @db.Time(6)
+  closesAt           DateTime @map("closes_at") @db.Time(6)
+  spansMidnight      Boolean  @default(false) @map("spans_midnight")
+  /// {"1-2":90,"3-4":105,"5+":120} — minutes per party-size band.
+  defaultTurnMinutes Json     @map("default_turn_minutes") @db.JsonB
+  /// Iftar shifts auto-anchor to Maghrib (doc 05 §1).
+  isRamadan          Boolean  @default(false) @map("is_ramadan")
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, dayOfWeek], map: "idx_shifts_rest_dow")
+  @@index([restaurantId, specificDate], map: "idx_shifts_rest_date")
+  @@map("shifts")
+}
+
+// ────────────────────────────────────────────────────────────────── tables ──
+
+model Table {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  restaurantId   String    @map("restaurant_id") @db.Uuid
+  name           String    @db.VarChar(30)
+  minCapacity    Int       @map("min_capacity") @db.SmallInt
+  maxCapacity    Int       @map("max_capacity") @db.SmallInt
+  zone           TableZone @default(indoor)
+  /// Adjacent table ids eligible for combination (doc 05 §2 fallback).
+  combinableWith String[]  @map("combinable_with") @db.Uuid
+  /// Allocation preference — lower assigns first.
+  priority       Int       @default(0) @db.SmallInt
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  restaurant        Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  reservationTables ReservationTable[]
+
+  @@unique([restaurantId, name])
+  @@map("tables")
+}
+
+// ──────────────────────────────────────────────────── reservations (hot) ──
+
+model Reservation {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Human-readable, e.g. 'SAH-7K2M'.
+  code           String            @unique @db.VarChar(8)
+  restaurantId   String            @map("restaurant_id") @db.Uuid
+  /// NULL for walk-in / phone bookings taken by staff.
+  userId         String?           @map("user_id") @db.Uuid
+  guestName      String?           @map("guest_name") @db.VarChar(120)
+  guestPhone     String?           @map("guest_phone") @db.VarChar(20)
+  partySize      Int               @map("party_size") @db.SmallInt
+  startsAt       DateTime          @map("starts_at") @db.Timestamptz(6)
+  /// = startsAt + turn time for the party size.
+  endsAt         DateTime          @map("ends_at") @db.Timestamptz(6)
+  status         ReservationStatus @default(held)
+  source         ReservationSource @default(app)
+  specialRequests String?          @map("special_requests")
+  occasion       String?           @db.VarChar(40)
+  seatingPref    TableZone?        @map("seating_pref")
+  /// Held rows only — now() + 5 min (doc 05 §4).
+  holdExpiresAt  DateTime?         @map("hold_expires_at") @db.Timestamptz(6)
+  idempotencyKey String?           @unique @map("idempotency_key") @db.Uuid
+  cancelledAt    DateTime?         @map("cancelled_at") @db.Timestamptz(6)
+  cancelReason   String?           @map("cancel_reason")
+  /// Optimistic-lock counter.
+  version        Int               @default(0)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  restaurant Restaurant         @relation(fields: [restaurantId], references: [id])
+  user       User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tables     ReservationTable[]
+
+  @@index([restaurantId, startsAt], map: "idx_resv_rest_time")
+  @@index([userId, startsAt(sort: Desc)], map: "idx_resv_user")
+  @@map("reservations")
+}
+
+// ─────────────────────────────────────── reservation_tables (allocation) ──
+
+/// Join table supporting table combinations. `during` + `active` back the
+/// EXCLUDE USING GIST constraint that makes an overlapping allocation
+/// physically unstorable — the third and final anti-double-booking layer.
+model ReservationTable {
+  reservationId String                    @map("reservation_id") @db.Uuid
+  tableId       String                    @map("table_id") @db.Uuid
+  /// TSTZRANGE [startsAt, endsAt) — set by trigger from the parent reservation.
+  during        Unsupported("tstzrange")
+  /// Mirrors "reservation status is live" — maintained by trigger.
+  active        Boolean                   @default(true)
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  table       Table       @relation(fields: [tableId], references: [id])
+
+  @@id([reservationId, tableId])
+  @@index([tableId], map: "idx_restable_table")
+  @@map("reservation_tables")
+}

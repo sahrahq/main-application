@@ -1,0 +1,13 @@
+packages:
+  - 'apps/api'
+
+# pnpm 11 requires an explicit decision per package that ships a postinstall
+# script. Only the ones that genuinely need to build are allowed; the two
+# telemetry beacons are declined.
+allowBuilds:
+  '@prisma/client': true   # runs prisma generate
+  '@prisma/engines': true  # downloads the query engine binary
+  prisma: true             # CLI engine binaries
+  argon2: true             # native N-API build (password hashing)
+  '@nestjs/core': false    # scarf telemetry only
+  '@scarf/scarf': false    # telemetry only

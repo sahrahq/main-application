@@ -1,0 +1,19 @@
+{
+  "name": "sahra",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SAHRA — restaurant reservation platform for Egypt/MENA",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "api:dev": "pnpm --filter @sahra/api start:dev",
+    "api:build": "pnpm --filter @sahra/api build",
+    "api:test": "pnpm --filter @sahra/api test",
+    "api:test:concurrency": "pnpm --filter @sahra/api test:concurrency",
+    "db:migrate": "pnpm --filter @sahra/api prisma:migrate",
+    "db:generate": "pnpm --filter @sahra/api prisma:generate",
+    "db:studio": "pnpm --filter @sahra/api prisma:studio",
+    "generate:client": "pnpm --filter @sahra/api openapi:export"
+  }
+}
