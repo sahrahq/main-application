@@ -100,13 +100,12 @@ enum ReservationSource {
   @@map("reservation_source")
 }
 
-enum OtpPurpose {
-  phone_verify
-  login
-  password_reset
-
-  @@map("otp_purpose")
-}
+// NOTE: OTP state deliberately has NO table here.
+// docs/blueprint/09-security-and-scalability.md §1.1 specifies "phone OTP
+// hashed in Redis, 5-min TTL, 5 attempts, per-phone and per-IP rate limits".
+// A 5-minute secret belongs in a store that expires keys by itself; putting it
+// in Postgres would mean millions of dead rows and a cleanup job for nothing.
+// See docs/decisions/2026-07-31-auth-token-storage.md.
 
 // ─────────────────────────────────────────────────────────────── users ──
 
@@ -139,7 +138,6 @@ model User {
   verifiedOwners   RestaurantOwner[] @relation("OwnerVerifiedBy")
   reservations     Reservation[]
   refreshTokens    RefreshToken[]
-  otpChallenges    OtpChallenge[]
 
   @@index([status], map: "idx_users_status")
   @@map("users")
@@ -175,26 +173,6 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-/// NOT in doc 04 — backs the OTP flows in doc 06 §2 (register → verify-otp,
-/// phone login, password reset). Same decision record as RefreshToken.
-model OtpChallenge {
-  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId     String     @map("user_id") @db.Uuid
-  purpose    OtpPurpose
-  /// SHA-256 hex of the 6-digit code — never the code itself.
-  codeHash   String     @map("code_hash") @db.Char(64)
-  expiresAt  DateTime   @map("expires_at") @db.Timestamptz(6)
-  /// doc 06 §2: 5 attempts then 429.
-  attempts   Int        @default(0) @db.SmallInt
-  consumedAt DateTime?  @map("consumed_at") @db.Timestamptz(6)
-  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, purpose], map: "idx_otp_user_purpose")
-  @@index([expiresAt], map: "idx_otp_expiry")
-  @@map("otp_challenges")
-}
 
 model Role {
   id    Int        @id @default(autoincrement()) @db.SmallInt

@@ -1,63 +1,92 @@
-# 2026-07-31 — `refresh_tokens` and `otp_challenges` tables
+# 2026-07-31 — Auth token storage
 
-**Status:** accepted, implemented in the init migration
-**Affects:** `apps/api/prisma/schema.prisma`, auth module
+**Status:** accepted (revised 2026-08-01), implemented
+**Affects:** `apps/api/prisma/schema.prisma`, `apps/api/src/modules/auth/`
 
 ## Context
 
-`docs/blueprint/06-api-design.md` §2 specifies behaviour that needs persistent
-state the schema doc does not define:
+`docs/blueprint/06-api-design.md` §2 and `09-security-and-scalability.md` §1.1
+specify auth behaviour that needs state:
 
-- *"Refresh via rotating refresh tokens (30 d, revocable, reuse-detection)"*
-- *"reuse → revoke family, 401"*
-- `/auth/verify-otp` with *"5 attempts → 429"*
+- *"Access JWT 15 min (RS256, kid-rotated keys) / refresh token 30 d, rotating
+  with reuse detection — a replayed old refresh token revokes the whole token
+  family"*
+- *"Device binding: refresh tokens tied to device records; 'log out all
+  devices' supported"*
+- *"phone OTP hashed in Redis, 5-min TTL, 5 attempts, per-phone and per-IP
+  rate limits"*
 
-`docs/blueprint/04-database-design.md` defines no table for either. Rotation
-with family revocation cannot be implemented statelessly: detecting that an
-already-rotated token was replayed requires remembering that it existed and
-that it was superseded. Likewise, capping OTP attempts requires a counter that
-survives across requests.
-
-This is a gap in doc 04, not a disagreement with it — so per CLAUDE.md
-("before deviating from the committed schema… stop and ask") it is logged here
-rather than silently absorbed.
+`04-database-design.md` defines no table for refresh tokens.
 
 ## Decision
 
-Two tables, both keyed to `users` with `ON DELETE CASCADE`:
+### 1. `refresh_tokens` table — ADDED
 
-**`refresh_tokens`** — `token_hash` (SHA-256, `CHAR(64)`, unique), `family_id`,
-`expires_at`, `revoked_at`, `replaced_by`, `user_agent`, `ip`.
+Reuse detection is not implementable statelessly: recognising that an
+already-rotated token was replayed requires remembering that it existed and
+was superseded. A 30-day lifetime rules out Redis as the system of record — a
+single flush would sign out every user on the platform.
+
+Columns: `token_hash` (SHA-256, unique), `family_id`, `expires_at`,
+`revoked_at`, `replaced_by`, `user_agent`, `ip`.
 Indexes: `idx_refresh_user`, `idx_refresh_family`, `idx_refresh_expiry`.
 
-**`otp_challenges`** — `purpose` (`phone_verify | login | password_reset`),
-`code_hash` (SHA-256), `expires_at`, `attempts`, `consumed_at`.
-Indexes: `idx_otp_user_purpose`, `idx_otp_expiry`.
+**Only the SHA-256 digest is stored.** A dump of this table cannot be replayed
+against the API. Asserted by a test that greps the column for the raw token.
 
-Both store **only a SHA-256 digest**, never the raw token or code. A dump of
-either table cannot be replayed against the API — the usable secret exists only
-on the client and, briefly, in the SMS.
+`family_id` groups every token descended from one login. Presenting a revoked
+token revokes the entire family: the legitimate client and a thief cannot both
+hold a live token after a rotation, and we cannot tell which is asking — so
+both are ended. The victim re-authenticates; the attacker gets nothing.
 
-`family_id` groups every token descended from one login. On presentation of a
-token already marked revoked, the whole family is revoked: that pattern means
-either an attacker replayed a stolen token or the legitimate client did, and
-neither case should leave a working session.
+### 2. `otp_challenges` table — REJECTED
+
+**This was proposed and then withdrawn.** The first draft of this record added
+an `otp_challenges` table. Re-reading doc 09 §1.1 showed the blueprint had
+already decided the question: OTP lives in **Redis**, 5-minute TTL.
+
+Redis is right here for reasons beyond convention:
+- A 5-minute secret in Postgres accumulates dead rows and needs a cleanup job
+  to delete what Redis discards for free.
+- The per-phone and per-IP limits that block SMS-pumping fraud are sliding
+  windows — native in Redis, awkward in SQL.
+
+The table was created empty, never written to, and dropped in
+`20260801010000_drop_otp_challenges`. **OTP endpoints are therefore blocked on
+Redis** (Docker/WSL2), and are not part of the first auth cut.
+
+### 3. HS256 instead of RS256 — DEVIATION, revisit before production
+
+Doc 09 §1.1 says RS256 with kid-rotated keys. Shipped as **HS256**.
+
+RS256 exists so that a party which must *verify* a token need not hold the key
+that *signs* it. SAHRA is a modular monolith (doc 03): exactly one service
+issues and verifies, so there is no second party and asymmetry buys nothing
+today. HS256 avoids keypair generation, JWKS hosting and rotation machinery
+that would have no consumer.
+
+**Revisit when any of these becomes true** — at which point RS256 + a JWKS
+endpoint is required, and the access-token TTL means migration costs one
+15-minute window:
+- a second service needs to verify tokens without the signing secret
+- tokens must be verified outside our infrastructure
+- the monolith is split (doc 09's scaling stages)
 
 ## Alternatives rejected
 
-- **Stateless JWT refresh tokens.** No server record means no revocation and no
-  reuse detection — it contradicts doc 06 §2 outright.
-- **Redis-only storage.** Refresh tokens live 30 days; a Redis flush would sign
-  out every user on the platform. Redis is right for the OTP *rate limit*
-  window, wrong as the system of record for sessions.
-- **Reusing an existing table.** Nothing in doc 04 fits, and overloading
-  `users` with token columns breaks the one-row-per-session requirement that
-  multi-device revocation needs.
+- **Stateless JWT refresh tokens.** No revocation, no reuse detection —
+  contradicts doc 06 §2 outright.
+- **Refresh tokens in Redis.** 30-day lifetime; a flush logs out everyone.
+- **Reusing an existing table.** Nothing in doc 04 fits, and putting token
+  columns on `users` breaks the one-row-per-session that multi-device
+  revocation needs.
 
 ## Consequences
 
-- Two tables exist that doc 04 does not describe. **Doc 04 should be amended**
-  to include them so the blueprint stays the source of truth.
-- Expired rows need periodic pruning (a BullMQ job, once Redis is available).
-- A rotation bug now signs users out rather than silently granting access —
-  the correct direction to fail.
+- `refresh_tokens` exists and doc 04 does not describe it. **Doc 04 should be
+  amended.**
+- Expired rows need periodic pruning (a BullMQ job, once Redis lands).
+- A rotation bug signs users out rather than silently granting access — the
+  correct direction to fail.
+- `devices` (doc 04) is not yet wired to `refresh_tokens`; `user_agent`/`ip`
+  carry the binding for now. Full device binding lands with the devices module.
