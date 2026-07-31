@@ -193,6 +193,110 @@ export class ReservationsService {
   }
 
   /**
+   * Confirm a hold (doc 06 §3, doc 05 §4).
+   *
+   * The whole correctness question is the race between this and the expiry
+   * sweeper. Doc 05 §4: "Confirmation re-validates status='held' AND
+   * hold_expires_at > now() inside its transaction, so an expired hold can
+   * never be confirmed."
+   *
+   * That re-validation is expressed as a conditional UPDATE — `WHERE status =
+   * 'held' AND hold_expires_at > now()` — evaluated by Postgres under the row
+   * lock, not by us against a value we read a moment earlier. Reading first
+   * and then writing would leave exactly the window the doc warns about.
+   */
+  async confirmHold(input: {
+    holdId: string;
+    userId?: string | null;
+    specialRequests?: string | null;
+    occasion?: string | null;
+    idempotencyKey: string;
+  }) {
+    const existing = await this.prisma.reservation.findUnique({
+      where: { id: input.holdId },
+      select: { id: true, status: true, userId: true, holdExpiresAt: true },
+    });
+    if (!existing) throw this.reservationNotFound();
+
+    // A caller may only confirm their own hold. Guest holds (userId null) are
+    // confirmable by the session that created them, enforced at the controller.
+    if (input.userId && existing.userId && existing.userId !== input.userId) {
+      throw this.reservationNotFound();
+    }
+
+    // Idempotent replay: already confirmed by THIS key ⇒ return it unchanged.
+    if (existing.status === ReservationStatus.confirmed) {
+      const prior = await this.prisma.reservation.findFirst({
+        where: { id: input.holdId, confirmIdempotencyKey: input.idempotencyKey },
+      });
+      if (prior) return prior;
+      throw new ConflictException({
+        code: 'invalid_status_transition',
+        message: 'This reservation is already confirmed.',
+        message_ar: 'هذا الحجز مؤكّد بالفعل.',
+      });
+    }
+
+    if (existing.status !== ReservationStatus.held) {
+      throw new ConflictException({
+        code: 'invalid_status_transition',
+        message: `A reservation can only be confirmed from a hold (this one is ${existing.status}).`,
+        message_ar: 'لا يمكن تأكيد الحجز إلا وهو في حالة انتظار.',
+      });
+    }
+
+    // Postgres evaluates the guard under the row lock — this is the atomic
+    // step. If the sweeper won, count is 0 and nothing was written.
+    const claimed = await this.prisma.$executeRaw`
+      UPDATE reservations
+         SET status = 'confirmed',
+             hold_expires_at = NULL,
+             special_requests = COALESCE(${input.specialRequests ?? null}, special_requests),
+             occasion = COALESCE(${input.occasion ?? null}, occasion),
+             confirm_idempotency_key = ${input.idempotencyKey}::uuid,
+             version = version + 1,
+             updated_at = now()
+       WHERE id = ${input.holdId}::uuid
+         AND status = 'held'
+         AND hold_expires_at > now()`;
+
+    if (claimed === 0) {
+      // Distinguish "it lapsed" from "someone else moved it" for the client.
+      const now = await this.prisma.reservation.findUnique({
+        where: { id: input.holdId },
+        select: { status: true, holdExpiresAt: true },
+      });
+      const lapsed =
+        now?.status === ReservationStatus.expired ||
+        (now?.holdExpiresAt != null && now.holdExpiresAt.getTime() <= Date.now());
+
+      throw new ConflictException(
+        lapsed
+          ? {
+              code: 'hold_expired',
+              message: 'That hold expired. Please pick a time again.',
+              message_ar: 'انتهت مهلة الحجز المؤقت. اختر وقتًا من جديد.',
+            }
+          : {
+              code: 'invalid_status_transition',
+              message: 'This reservation can no longer be confirmed.',
+              message_ar: 'لم يعد من الممكن تأكيد هذا الحجز.',
+            },
+      );
+    }
+
+    return this.prisma.reservation.findUniqueOrThrow({ where: { id: input.holdId } });
+  }
+
+  private reservationNotFound(): NotFoundException {
+    return new NotFoundException({
+      code: 'reservation_not_found',
+      message: 'Reservation not found.',
+      message_ar: 'الحجز غير موجود.',
+    });
+  }
+
+  /**
    * Best-fit allocation (doc 05 §2): tightest capacity fit first, then the
    * restaurant's own priority. Falls back to a 2-table combination.
    *

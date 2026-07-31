@@ -336,7 +336,13 @@ model Reservation {
   seatingPref    TableZone?        @map("seating_pref")
   /// Held rows only — now() + 5 min (doc 05 §4).
   holdExpiresAt  DateTime?         @map("hold_expires_at") @db.Timestamptz(6)
+  /// Dedupes POST /reservations/holds.
   idempotencyKey String?           @unique @map("idempotency_key") @db.Uuid
+  /// Dedupes POST /reservations/holds/:id/confirm. doc 06 §1 requires an
+  /// Idempotency-Key on holds AND confirms; they are separate mutations with
+  /// separate keys, so one column cannot serve both. Not in doc 04 — see
+  /// docs/decisions/2026-08-01-confirm-idempotency.md.
+  confirmIdempotencyKey String?    @unique @map("confirm_idempotency_key") @db.Uuid
   cancelledAt    DateTime?         @map("cancelled_at") @db.Timestamptz(6)
   cancelReason   String?           @map("cancel_reason")
   /// Optimistic-lock counter.
