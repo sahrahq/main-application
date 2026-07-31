@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Booking flow" description="SAHRA reservation screen — date, party size, time slots, confirm. Light/dark + EN/AR." -->
+<helmet>
+<script src="../discover/ds-base.js"></script>
+</helmet>
+<div class="{{ themeClass }}" dir="{{ dir }}" style="width:375px;height:812px;margin:0 auto;border-radius:40px;overflow:hidden;border:1px solid var(--line);box-shadow:0 30px 90px rgba(0,0,0,.35);background:var(--surface-page);color:var(--text-body);position:relative">
+  <x-import component-from-global-scope="SAHRADesignSystem_5fbe17.BookingFlowScreen" lang="{{ lang }}" hint-size="375px,812px"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:415,&quot;height&quot;:852},&quot;language&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;ar&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en'|'ar'&quot;,&quot;section&quot;:&quot;Locale&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;,&quot;section&quot;:&quot;Appearance&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const lang = this.props.language === 'ar' ? 'ar' : 'en';
+    return {
+      lang,
+      dir: lang === 'ar' ? 'rtl' : 'ltr',
+      themeClass: this.props.theme === 'dark' ? 'theme-night' : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

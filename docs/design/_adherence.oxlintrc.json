@@ -1,0 +1,350 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/brand/**",
+              "components/core/**",
+              "components/navigation/**",
+              "components/social/**",
+              "components/venue/**",
+              "ui_kits/app/**",
+              "ui_kits/operator/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Poppins|IBM Plex Sans Arabic|Reem Kufi|Newsreader))/i]",
+        "message": "Font not provided by the design system. Available: Poppins, IBM Plex Sans Arabic, Reem Kufi, Newsreader."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Avatar'] > JSXAttribute > JSXIdentifier[name!=/^(?:name|src|size|style|key|ref|className|style|children)$/]",
+        "message": "<Avatar> doesn't accept that prop. Declared props: name, src, size, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='AvatarStack'] > JSXAttribute > JSXIdentifier[name!=/^(?:people|max|size|label|style|key|ref|className|style|children)$/]",
+        "message": "<AvatarStack> doesn't accept that prop. Declared props: people, max, size, label, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Badge'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|children|style|key|ref|className|style|children)$/]",
+        "message": "<Badge> doesn't accept that prop. Declared props: variant, children, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Badge'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:featured|gold|success|warning|error|neutral)$/]",
+        "message": "<Badge> variant must be one of 'featured' | 'gold' | 'success' | 'warning' | 'error' | 'neutral'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BookingWidget'] > JSXAttribute > JSXIdentifier[name!=/^(?:venue|times|defaultTime|defaultParty|onBook|width|style|key|ref|className|style|children)$/]",
+        "message": "<BookingWidget> doesn't accept that prop. Declared props: venue, times, defaultTime, defaultParty, onBook, width, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|size|pill|disabled|icon|children|onClick|style|key|ref|className|style|children)$/]",
+        "message": "<Button> doesn't accept that prop. Declared props: variant, size, pill, disabled, icon, children, onClick, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:primary|secondary|ghost|gold)$/]",
+        "message": "<Button> variant must be one of 'primary' | 'secondary' | 'ghost' | 'gold'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='size'] > Literal[value!=/^(?:sm|md|lg)$/]",
+        "message": "<Button> size must be one of 'sm' | 'md' | 'lg'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Chip'] > JSXAttribute > JSXIdentifier[name!=/^(?:active|icon|children|onClick|style|key|ref|className|style|children)$/]",
+        "message": "<Chip> doesn't accept that prop. Declared props: active, icon, children, onClick, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DiningTrail'] > JSXAttribute > JSXIdentifier[name!=/^(?:visits|style|key|ref|className|style|children)$/]",
+        "message": "<DiningTrail> doesn't accept that prop. Declared props: visits, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='EmptyState'] > JSXAttribute > JSXIdentifier[name!=/^(?:icon|title|message|actionLabel|onAction|style|key|ref|className|style|children)$/]",
+        "message": "<EmptyState> doesn't accept that prop. Declared props: icon, title, message, actionLabel, onAction, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Icon'] > JSXAttribute > JSXIdentifier[name!=/^(?:name|size|style|key|ref|className|style|children)$/]",
+        "message": "<Icon> doesn't accept that prop. Declared props: name, size, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Input'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|help|error|variant|placeholder|type|style|inputStyle|key|ref|className|style|children)$/]",
+        "message": "<Input> doesn't accept that prop. Declared props: label, help, error, variant, placeholder, type, style, inputStyle."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Input'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:box|line)$/]",
+        "message": "<Input> variant must be one of 'box' | 'line'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Mashrabiya'] > JSXAttribute > JSXIdentifier[name!=/^(?:color|opacity|tile|fade|style|children|key|ref|className|style|children)$/]",
+        "message": "<Mashrabiya> doesn't accept that prop. Declared props: color, opacity, tile, fade, style, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='RatingStars'] > JSXAttribute > JSXIdentifier[name!=/^(?:rating|reviews|size|showValue|style|key|ref|className|style|children)$/]",
+        "message": "<RatingStars> doesn't accept that prop. Declared props: rating, reviews, size, showValue, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='RestaurantCard'] > JSXAttribute > JSXIdentifier[name!=/^(?:name|rating|reviews|cuisine|price|neighbourhood|image|tone|featured|availability|saved|onSave|onClick|width|imageHeight|style|key|ref|className|style|children)$/]",
+        "message": "<RestaurantCard> doesn't accept that prop. Declared props: name, rating, reviews, cuisine, price, neighbourhood, image, tone, featured, availability, saved, onSave, onClick, width, imageHeight, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='RestaurantCard'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:terrace|dusk|garden|gold|night)$/]",
+        "message": "<RestaurantCard> tone must be one of 'terrace' | 'dusk' | 'garden' | 'gold' | 'night'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='SearchBar'] > JSXAttribute > JSXIdentifier[name!=/^(?:placeholder|location|onChange|style|inputStyle|key|ref|className|style|children)$/]",
+        "message": "<SearchBar> doesn't accept that prop. Declared props: placeholder, location, onChange, style, inputStyle."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Skeleton'] > JSXAttribute > JSXIdentifier[name!=/^(?:width|height|radius|lattice|style|key|ref|className|style|children)$/]",
+        "message": "<Skeleton> doesn't accept that prop. Declared props: width, height, radius, lattice, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TabBar'] > JSXAttribute > JSXIdentifier[name!=/^(?:items|active|onChange|style|key|ref|className|style|children)$/]",
+        "message": "<TabBar> doesn't accept that prop. Declared props: items, active, onChange, style."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "Avatar": {
+        "replaces": []
+      },
+      "AvatarStack": {
+        "replaces": []
+      },
+      "Badge": {
+        "replaces": []
+      },
+      "BookingWidget": {
+        "replaces": []
+      },
+      "Button": {
+        "replaces": []
+      },
+      "Chip": {
+        "replaces": []
+      },
+      "DiningTrail": {
+        "replaces": []
+      },
+      "EmptyState": {
+        "replaces": []
+      },
+      "Icon": {
+        "replaces": []
+      },
+      "Input": {
+        "replaces": []
+      },
+      "Mashrabiya": {
+        "replaces": []
+      },
+      "RatingStars": {
+        "replaces": []
+      },
+      "RestaurantCard": {
+        "replaces": []
+      },
+      "SearchBar": {
+        "replaces": []
+      },
+      "Skeleton": {
+        "replaces": []
+      },
+      "TabBar": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--accent",
+      "--accent-contrast",
+      "--accent-hover",
+      "--border",
+      "--cream",
+      "--cream-card",
+      "--cream-dim",
+      "--error",
+      "--font-arabic",
+      "--font-arabic-display",
+      "--font-display",
+      "--font-latin",
+      "--font-mono",
+      "--gold",
+      "--gold-dark",
+      "--gold-light",
+      "--gold-tint",
+      "--ink",
+      "--ink-faint",
+      "--ink-soft",
+      "--leading-loose",
+      "--leading-normal",
+      "--leading-tight",
+      "--line",
+      "--night",
+      "--night-border",
+      "--night-overlay",
+      "--night-raised",
+      "--night-text",
+      "--night-text-faint",
+      "--night-text-soft",
+      "--premium",
+      "--radius-lg",
+      "--radius-md",
+      "--radius-pill",
+      "--radius-sm",
+      "--radius-xl",
+      "--shadow-1",
+      "--shadow-2",
+      "--shadow-3",
+      "--space-1",
+      "--space-10",
+      "--space-12",
+      "--space-16",
+      "--space-2",
+      "--space-24",
+      "--space-3",
+      "--space-4",
+      "--space-5",
+      "--space-6",
+      "--space-8",
+      "--success",
+      "--surface-card",
+      "--surface-page",
+      "--surface-sunken",
+      "--terracotta",
+      "--terracotta-dark",
+      "--terracotta-light",
+      "--terracotta-tint",
+      "--text-body",
+      "--text-body-l",
+      "--text-body-m",
+      "--text-body-s",
+      "--text-caption",
+      "--text-display",
+      "--text-faint",
+      "--text-h1",
+      "--text-h2",
+      "--text-h3",
+      "--text-overline",
+      "--text-soft",
+      "--tracking-overline",
+      "--warning"
+    ],
+    "tokenKinds": {
+      "--terracotta": "color",
+      "--terracotta-dark": "color",
+      "--terracotta-light": "color",
+      "--terracotta-tint": "color",
+      "--gold": "color",
+      "--gold-dark": "color",
+      "--gold-light": "color",
+      "--gold-tint": "color",
+      "--cream": "color",
+      "--cream-dim": "color",
+      "--cream-card": "color",
+      "--ink": "color",
+      "--ink-soft": "color",
+      "--ink-faint": "color",
+      "--border": "color",
+      "--success": "color",
+      "--warning": "color",
+      "--error": "color",
+      "--night": "color",
+      "--night-raised": "color",
+      "--night-overlay": "color",
+      "--night-border": "color",
+      "--night-text": "font",
+      "--night-text-soft": "font",
+      "--night-text-faint": "font",
+      "--surface-page": "color",
+      "--surface-card": "color",
+      "--surface-sunken": "color",
+      "--text-body": "font",
+      "--text-soft": "font",
+      "--text-faint": "font",
+      "--accent": "color",
+      "--accent-hover": "color",
+      "--accent-contrast": "color",
+      "--premium": "color",
+      "--line": "color",
+      "--font-latin": "font",
+      "--font-arabic": "font",
+      "--font-arabic-display": "font",
+      "--font-display": "font",
+      "--font-mono": "font",
+      "--text-display": "font",
+      "--text-h1": "font",
+      "--text-h2": "font",
+      "--text-h3": "font",
+      "--text-body-l": "font",
+      "--text-body-m": "font",
+      "--text-body-s": "font",
+      "--text-caption": "font",
+      "--text-overline": "font",
+      "--leading-tight": "font",
+      "--leading-normal": "font",
+      "--leading-loose": "font",
+      "--tracking-overline": "font",
+      "--space-1": "spacing",
+      "--space-2": "spacing",
+      "--space-3": "spacing",
+      "--space-4": "spacing",
+      "--space-5": "spacing",
+      "--space-6": "spacing",
+      "--space-8": "spacing",
+      "--space-10": "spacing",
+      "--space-12": "spacing",
+      "--space-16": "spacing",
+      "--space-24": "spacing",
+      "--radius-sm": "radius",
+      "--radius-md": "radius",
+      "--radius-lg": "radius",
+      "--radius-xl": "radius",
+      "--radius-pill": "radius",
+      "--shadow-1": "shadow",
+      "--shadow-2": "shadow",
+      "--shadow-3": "shadow"
+    },
+    "fontFamilies": [
+      "IBM Plex Sans Arabic",
+      "Newsreader",
+      "Poppins",
+      "Reem Kufi"
+    ]
+  }
+}

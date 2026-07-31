@@ -1,0 +1,95 @@
+# ── Secrets ─────────────────────────────────────────────────────────────
+# Never commit real credentials. Commit .env.example instead.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.jks
+*.keystore
+key.properties
+
+# Flutter runtime config (DEVELOPMENT.md §4) — .example.json versions ARE committed
+**/env/*.json
+!**/env/*.example.json
+google-services.json
+GoogleService-Info.plist
+android/app/upload-keystore.jks
+
+# ── Node / NestJS ───────────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+coverage/
+.nest/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ── Prisma ──────────────────────────────────────────────────────────────
+# Migrations ARE committed. Only generated client output is ignored.
+apps/api/prisma/generated/
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+
+# ── Flutter / Dart ──────────────────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.iml
+# Lockfiles: committed for apps, ignored for packages (per Flutter convention)
+packages/*/pubspec.lock
+
+# Generated code (Riverpod / freezed / json_serializable / OpenAPI client)
+*.g.dart
+*.freezed.dart
+*.config.dart
+*.mocks.dart
+
+# Flutter platform build output
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Pods/
+**/ios/.symlinks/
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
+**/android/.cxx/
+**/android/app/.cxx/
+
+# ── Terraform ───────────────────────────────────────────────────────────
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
+# ── Docker ──────────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── Editors / OS ────────────────────────────────────────────────────────
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Claude Code ─────────────────────────────────────────────────────────
+# Team settings ARE committed; personal overrides are not.
+.claude/settings.local.json

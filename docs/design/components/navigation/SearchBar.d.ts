@@ -1,0 +1,2 @@
+export interface SearchBarProps{placeholder?:string;location?:string;onChange?:(e:any)=>void;style?:React.CSSProperties;inputStyle?:React.CSSProperties}
+export function SearchBar(props:SearchBarProps):JSX.Element;

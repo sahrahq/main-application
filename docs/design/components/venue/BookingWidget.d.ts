@@ -1,0 +1,2 @@
+export interface BookingWidgetProps{venue?:string;times?:string[];defaultTime?:string;defaultParty?:number;onBook?:(r:{party:number;time:string})=>void;width?:number|string;style?:React.CSSProperties}
+export function BookingWidget(props:BookingWidgetProps):JSX.Element;

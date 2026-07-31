@@ -1,0 +1,2 @@
+export interface InputProps{label?:string;help?:string;error?:string;variant?:'box'|'line';placeholder?:string;type?:string;style?:React.CSSProperties;inputStyle?:React.CSSProperties}
+export function Input(props:InputProps):JSX.Element;

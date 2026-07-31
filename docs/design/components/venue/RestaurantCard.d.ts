@@ -1,0 +1,2 @@
+export interface RestaurantCardProps{name:string;rating:number|string;reviews:number|string;cuisine:string;price?:string;neighbourhood?:string;image?:string;tone?:'terrace'|'dusk'|'garden'|'gold'|'night';featured?:boolean;availability?:string;saved?:boolean;onSave?:()=>void;onClick?:()=>void;width?:number|string;imageHeight?:number;style?:React.CSSProperties}
+export function RestaurantCard(props:RestaurantCardProps):JSX.Element;

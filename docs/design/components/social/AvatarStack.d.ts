@@ -1,0 +1,2 @@
+export interface AvatarStackProps{people:{name?:string;src?:string}[];max?:number;size?:number;label?:string;style?:React.CSSProperties}
+export function AvatarStack(props:AvatarStackProps):JSX.Element;

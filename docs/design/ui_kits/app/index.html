@@ -1,0 +1,82 @@
+<!-- @dsCard group="SAHRA App" viewport="420x940" name="Consumer app" subtitle="Onboarding → discover → book → confirm — light & dark parity" -->
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SAHRA App</title><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;background:#171009;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;box-sizing:border-box}.stack{position:absolute;inset:0;animation:slideIn .22s ease}@keyframes slideIn{from{transform:translateX(14px);opacity:0}to{transform:none;opacity:1}}.themeToggle{display:inline-flex;background:rgba(253,251,247,.08);border:1px solid rgba(253,251,247,.16);border-radius:999px;padding:4px}.themeToggle button{border:none;background:none;cursor:pointer;font-family:var(--font-latin);font-size:12px;font-weight:600;letter-spacing:.06em;color:rgba(253,251,247,.6);padding:6px 16px;border-radius:999px}.themeToggle button.on{background:var(--terracotta);color:#fff}.toggles{display:flex;gap:10px}#root ::-webkit-scrollbar{width:0;height:0;display:none}#root *{scrollbar-width:none;-ms-overflow-style:none}</style></head>
+<body><div id="root"></div>
+<script type="text/babel">
+const NS=window.SAHRADesignSystem_5fbe17;
+const {SplashScreen,Onboarding,SignInScreen,DiscoverScreen,SearchScreen,VenueDetailScreen,BookingFlowScreen,ConfirmationScreen,MyBookingsScreen,SavedScreen,ProfileScreen,OccasionScreen,TabBar}=NS;
+const hasSplash=typeof SplashScreen==='function';
+const TABLABELS={en:['Discover','Search','Saved','Account'],ar:['استكشف','بحث','المحفوظة','حسابي']};
+const TABICONS=['compass','search','heart','user'];
+const TABIDS=['discover','search','saved','account'];
+const tabs=lang=>TABIDS.map((id,i)=>({id,icon:TABICONS[i],label:(TABLABELS[lang]||TABLABELS.en)[i]}));
+
+function App(props){
+  const [phase,setPhase]=React.useState(hasSplash?'splash':'onboarding'); // splash | onboarding | signin | app
+  const [tab,setTab]=React.useState('discover');
+  const [stack,setStack]=React.useState([]); // overlays: {type,payload}
+  const [saved,setSaved]=React.useState({});
+  const [booking,setBooking]=React.useState(null);
+  const push=(type,payload)=>setStack(s=>[...s,{type,payload}]);
+  const pop=()=>setStack(s=>s.slice(0,-1));
+  const clear=()=>setStack([]);
+  const toggleSave=name=>setSaved(m=>({...m,[name]:!m[name]}));
+
+  const nav={onVenue:v=>push('venue',v),onOccasion:()=>push('occasion'),onSave:toggleSave,saved,onDiscover:()=>{clear();setTab('discover')},onBookings:()=>push('bookings')};
+
+  let main;
+  if(tab==='discover') main=<DiscoverScreen {...nav} lang={props.lang}/>;
+  else if(tab==='search') main=<SearchScreen onVenue={nav.onVenue} lang={props.lang}/>;
+  else if(tab==='saved') main=<SavedScreen {...nav} lang={props.lang}/>;
+  else main=<ProfileScreen onBookings={()=>push('bookings')} lang={props.lang}/>;
+
+  const top=stack[stack.length-1];
+  let overlay=null;
+  if(top){
+    if(top.type==='venue') overlay=<VenueDetailScreen venue={top.payload} lang={props.lang} onBack={pop} onBook={()=>push('booking',top.payload)} saved={!!saved[top.payload?.name?.en||top.payload?.name]} onSave={()=>toggleSave(top.payload?.name?.en||top.payload?.name)}/>;
+    else if(top.type==='booking') overlay=<BookingFlowScreen venue={top.payload} lang={props.lang} onBack={pop} onConfirm={b=>{setBooking(b);setStack([{type:'confirmation'}])}}/>;
+    else if(top.type==='confirmation') overlay=<ConfirmationScreen booking={booking} lang={props.lang} onDone={()=>{clear();setTab('discover')}} onBookings={()=>setStack([{type:'bookings'}])}/>;
+    else if(top.type==='bookings') overlay=<MyBookingsScreen lang={props.lang} onVenue={nav.onVenue} onDiscover={nav.onDiscover}/>;
+    else if(top.type==='occasion') overlay=<OccasionScreen lang={props.lang} onBack={pop} onVenue={nav.onVenue} onSave={toggleSave} saved={saved}/>;
+  }
+  const showTabs=phase==='app'&&(!top||top.type==='bookings');
+  const {dark,lang,flipStyle}=props;const ar=lang==='ar';
+  // All phases now follow the theme toggle. Onboarding adapts its photo scrim + text to light/dark.
+  const themed=dark?'theme-night':'';
+
+  return <div className={themed} dir={ar?'rtl':'ltr'} style={{width:375,height:812,borderRadius:40,overflow:'hidden',border:'1px solid '+(dark?'#413024':'var(--line)'),boxShadow:'0 30px 90px rgba(0,0,0,.5)',position:'relative',background:'var(--surface-page)',color:'var(--text-body)',...flipStyle}} data-screen-label={top?top.type:phase==='app'?tab:phase}>
+    {phase==='splash'&&hasSplash&&<SplashScreen dark={dark} lang={lang} onDone={()=>setPhase('onboarding')}/>}
+    {phase==='onboarding'&&<Onboarding lang={lang} dark={dark} onStart={()=>setPhase('signin')} onSignIn={()=>setPhase('signin')}/>}
+    {phase==='signin'&&<SignInScreen lang={lang} dark={dark} onContinue={()=>setPhase('app')} onClose={()=>setPhase('app')}/>}
+    {phase==='app'&&<div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column'}}>
+      <div style={{flex:1,position:'relative',overflow:'hidden'}}>
+        <div style={{position:'absolute',inset:0,isolation:'isolate'}}>{main}</div>
+        {overlay&&<div className="stack" style={{background:'var(--surface-page)',isolation:'isolate',zIndex:1}} key={stack.length}>{overlay}</div>}
+      </div>
+      {showTabs&&<TabBar items={tabs(lang)} active={tab} onChange={id=>{clear();setTab(id)}}/>}
+    </div>}
+  </div>;
+}
+function Root(){
+  const [dark,setDark]=React.useState(()=>{try{return localStorage.getItem('sahra-theme')!=='light'}catch(e){return true}});
+  const [lang,setLang]=React.useState(()=>{try{return localStorage.getItem('sahra-lang')||'en'}catch(e){return 'en'}});
+  const [flip,setFlip]=React.useState(false);
+  const setTheme=d=>{setDark(d);try{localStorage.setItem('sahra-theme',d?'dark':'light')}catch(e){}};
+  // Mirror-flip: the whole phone rotates on its vertical axis like a flipping mirror; language swaps at the
+  // edge-on midpoint, so LTR↔RTL reads as one bilingual object turning, not a menu changing a setting.
+  const switchLang=l=>{if(l===lang||flip)return;setFlip(true);setTimeout(()=>{setLang(l);try{localStorage.setItem('sahra-lang',l)}catch(e){}},250);setTimeout(()=>setFlip(false),270);};
+  const flipStyle={transformStyle:'preserve-3d',transition:'transform .27s cubic-bezier(.5,0,.2,1)',transform:'perspective(1500px) rotateY('+(flip?(lang==='ar'?'90deg':'-90deg'):'0deg')+')'};
+  return <React.Fragment>
+    <div className="toggles">
+      <div className="themeToggle"><button className={!dark?'on':''} onClick={()=>setTheme(false)}>Light</button><button className={dark?'on':''} onClick={()=>setTheme(true)}>Dark</button></div>
+      <div className="themeToggle"><button className={lang==='en'?'on':''} onClick={()=>switchLang('en')}>EN</button><button className={lang==='ar'?'on':''} style={{fontFamily:'var(--font-arabic)'}} onClick={()=>switchLang('ar')}>عربي</button></div>
+    </div>
+    <App dark={dark} lang={lang} flipStyle={flipStyle}/>
+  </React.Fragment>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Root/>);
+</script></body></html>

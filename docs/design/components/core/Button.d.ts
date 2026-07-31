@@ -1,0 +1,2 @@
+export interface ButtonProps{variant?:'primary'|'secondary'|'ghost'|'gold';size?:'sm'|'md'|'lg';pill?:boolean;disabled?:boolean;icon?:React.ReactNode;children?:React.ReactNode;onClick?:()=>void;style?:React.CSSProperties}
+export function Button(props:ButtonProps):JSX.Element;

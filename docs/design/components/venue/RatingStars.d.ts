@@ -1,0 +1,2 @@
+export interface RatingStarsProps{rating?:number|string;reviews?:number|string;size?:number;showValue?:boolean;style?:React.CSSProperties}
+export function RatingStars(props:RatingStarsProps):JSX.Element;

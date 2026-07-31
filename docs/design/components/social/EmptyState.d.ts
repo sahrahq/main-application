@@ -1,0 +1,2 @@
+export interface EmptyStateProps{icon?:string;title:string;message?:string;actionLabel?:string;onAction?:()=>void;style?:React.CSSProperties}
+export function EmptyState(props:EmptyStateProps):JSX.Element;
