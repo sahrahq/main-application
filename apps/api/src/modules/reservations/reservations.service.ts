@@ -25,6 +25,26 @@ const PG_UNIQUE_VIOLATION = '23505';
 
 export const HOLD_TTL_MINUTES = 5;
 
+/**
+ * Pull the underlying Postgres SQLSTATE out of whatever Prisma threw.
+ *
+ * This is not defensive noise — it is load-bearing. Prisma reports errors from
+ * `$executeRaw` as P2010 with the real SQLSTATE buried in `meta.code`, while
+ * ORM-level writes surface the code directly. Our layer-3 insert IS raw, so
+ * matching only on `err.code` would silently miss every single exclusion
+ * violation and leak a 500 instead of a clean 409. Caught by the e2e suite.
+ */
+export function extractPgCode(err: unknown): string | undefined {
+  const e = err as { code?: string; meta?: { code?: string; message?: string }; message?: string };
+  if (e?.meta?.code) return e.meta.code;
+  if (e?.code && e.code !== 'P2010') return e.code;
+
+  // Last resort: P2010 without structured meta still names the code in text.
+  const text = e?.meta?.message ?? e?.message ?? '';
+  const m = /\b(23[A-Z0-9]{3})\b/.exec(text);
+  return m ? m[1] : e?.code;
+}
+
 export interface CreateHoldInput {
   restaurantId: string;
   userId?: string | null;
@@ -282,18 +302,23 @@ export class ReservationsService {
     at: Date,
   ): Promise<Record<string, number>> {
     const dow = at.getUTCDay();
-    const shift = await this.prisma.shift.findFirst({
-      where: {
-        restaurantId,
-        active: true,
-        OR: [{ specificDate: new Date(at.toISOString().slice(0, 10)) }, { dayOfWeek: dow }],
-      },
-      // Date-specific rows win over the weekly pattern.
-      orderBy: { specificDate: { sort: 'desc', nulls: 'last' } },
+    const onDate = new Date(`${at.toISOString().slice(0, 10)}T00:00:00.000Z`);
+
+    // A date-specific shift (Ramadan, a holiday) overrides the weekly pattern,
+    // so look for one first rather than relying on NULLS ordering.
+    const specific = await this.prisma.shift.findFirst({
+      where: { restaurantId, active: true, specificDate: onDate },
       select: { defaultTurnMinutes: true },
     });
 
-    const cfg = shift?.defaultTurnMinutes as Record<string, number> | undefined;
+    const weekly = specific
+      ? null
+      : await this.prisma.shift.findFirst({
+          where: { restaurantId, active: true, dayOfWeek: dow },
+          select: { defaultTurnMinutes: true },
+        });
+
+    const cfg = (specific ?? weekly)?.defaultTurnMinutes as Record<string, number> | undefined;
     return cfg && Object.keys(cfg).length > 0 ? cfg : DEFAULT_TURN_MINUTES;
   }
 
@@ -305,7 +330,7 @@ export class ReservationsService {
    * log it loudly.
    */
   private translateWriteError(err: unknown, idempotencyKey: string): never {
-    const code = (err as { code?: string })?.code;
+    const code = extractPgCode(err);
 
     if (code === PG_EXCLUSION_VIOLATION) {
       this.logger.error(

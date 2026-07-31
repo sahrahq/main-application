@@ -100,6 +100,14 @@ enum ReservationSource {
   @@map("reservation_source")
 }
 
+enum OtpPurpose {
+  phone_verify
+  login
+  password_reset
+
+  @@map("otp_purpose")
+}
+
 // ─────────────────────────────────────────────────────────────── users ──
 
 model User {
@@ -130,9 +138,62 @@ model User {
   restaurantOwner  RestaurantOwner?  @relation("OwnerUser")
   verifiedOwners   RestaurantOwner[] @relation("OwnerVerifiedBy")
   reservations     Reservation[]
+  refreshTokens    RefreshToken[]
+  otpChallenges    OtpChallenge[]
 
   @@index([status], map: "idx_users_status")
   @@map("users")
+}
+
+/// NOT in docs/blueprint/04-database-design.md — added to implement the
+/// rotating refresh tokens with reuse detection that doc 06 §2 specifies.
+/// Rationale logged in docs/decisions/2026-07-31-auth-token-storage.md.
+///
+/// Only the SHA-256 of the token is stored. A database leak therefore cannot
+/// be replayed against the API — the raw token exists only on the client.
+model RefreshToken {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  /// All descendants of one login share a family. Detecting replay of any
+  /// member revokes the whole family (doc 06 §2: "reuse → revoke family").
+  familyId   String    @map("family_id") @db.Uuid
+  /// SHA-256 hex of the opaque token. Never the token itself.
+  tokenHash  String    @unique @map("token_hash") @db.Char(64)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  /// Set when this token is rotated, for audit trails.
+  replacedBy String?   @map("replaced_by") @db.Uuid
+  userAgent  String?   @map("user_agent")
+  ip         String?   @db.Inet
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_refresh_user")
+  @@index([familyId], map: "idx_refresh_family")
+  @@index([expiresAt], map: "idx_refresh_expiry")
+  @@map("refresh_tokens")
+}
+
+/// NOT in doc 04 — backs the OTP flows in doc 06 §2 (register → verify-otp,
+/// phone login, password reset). Same decision record as RefreshToken.
+model OtpChallenge {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String     @map("user_id") @db.Uuid
+  purpose    OtpPurpose
+  /// SHA-256 hex of the 6-digit code — never the code itself.
+  codeHash   String     @map("code_hash") @db.Char(64)
+  expiresAt  DateTime   @map("expires_at") @db.Timestamptz(6)
+  /// doc 06 §2: 5 attempts then 429.
+  attempts   Int        @default(0) @db.SmallInt
+  consumedAt DateTime?  @map("consumed_at") @db.Timestamptz(6)
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose], map: "idx_otp_user_purpose")
+  @@index([expiresAt], map: "idx_otp_expiry")
+  @@map("otp_challenges")
 }
 
 model Role {
