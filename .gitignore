@@ -52,6 +52,13 @@ packages/*/pubspec.lock
 *.config.dart
 *.mocks.dart
 
+# ...except the design tokens. These are NOT build_runner output — they come
+# from tool/generate_tokens.dart, which nothing in the build invokes. The file
+# has to be committed: without it a fresh clone has no theme and the package
+# does not compile, and tokens_coverage_test.dart proves it has not drifted
+# from docs/design/tokens.json by comparing against the committed copy.
+!packages/sahra_design_system/lib/src/generated/tokens.g.dart
+
 # Flutter platform build output
 **/ios/Flutter/.last_build_id
 **/ios/Flutter/App.framework
