@@ -28,10 +28,8 @@ class SahraTypography {
   static const _arabicUi = SahraTokens.fontArabic;
   static const _arabicDisplay = SahraTokens.fontArabicDisplay;
 
-  /// Latin body leading. Arabic uses [SahraTypeScale.leadingLoose] instead —
-  /// see the note on [arabic].
   static const double _latinLeading = SahraTypeScale.leadingNormal;
-  static const double _arabicLeading = SahraTypeScale.leadingLoose;
+  static const double _arabicLeading = SahraTypeScale.leadingArabic;
 
   static TextTheme latin(Color body) => _build(
         body: body,
@@ -43,12 +41,12 @@ class SahraTypography {
   /// Arabic.
   ///
   /// LEADING: `docs/design/guidelines/type-arabic.html` sets Arabic body at
-  /// `line-height: 1.7`. tokens.json has no 1.7 — its loosest value is
-  /// `leading-loose: 1.65`. Rather than hardcode 1.7 (which would put a number
-  /// in the theme that exists in no token, exactly the drift the generator
-  /// prevents) this uses `leading-loose`. The 0.05 gap is a genuine
-  /// discrepancy between the guideline HTML and tokens.json and is flagged for
-  /// a decision — see README.
+  /// `line-height: 1.7`, and DESIGN-RULES.md is explicit that the HTML wins
+  /// when it disagrees with prose. tokens.json had no 1.7, so the token was
+  /// what was missing rather than the guideline being wrong: `leading-arabic`
+  /// was added to the JSON and this reads it. Arabic needs the extra room —
+  /// dots and diacritics sit above and below the baseline where Latin has
+  /// nothing.
   static TextTheme arabic(Color body) => _build(
         body: body,
         ui: _arabicUi,
@@ -77,6 +75,12 @@ class SahraTypography {
           fontFamilyFallback: (family ?? ui).fallback,
           fontSize: size,
           fontWeight: weight,
+          // Reem Kufi and Newsreader are VARIABLE fonts, and Flutter does not
+          // drive the `wght` axis from the pubspec `weight:` key — it only
+          // selects a file. Without this the display faces render at their
+          // default weight regardless of what fontWeight says. Harmless on the
+          // static families, which ignore it.
+          fontVariations: <FontVariation>[FontVariation('wght', weight.value.toDouble())],
           height: height ?? leading,
           letterSpacing: letterSpacing,
           color: body,

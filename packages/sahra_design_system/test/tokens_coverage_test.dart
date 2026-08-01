@@ -43,9 +43,9 @@ void main() {
 
   group('tokens.json is fully implemented', () {
     test('the counts CLAUDE.md states are the counts in the file', () {
-      // CLAUDE.md: "73 light + 7 night". If this changes, CLAUDE.md is now
+      // CLAUDE.md: "74 light + 7 night". If this changes, CLAUDE.md is now
       // wrong too — fix both, deliberately.
-      expect(root.length, 73, reason: 'root token count changed');
+      expect(root.length, 74, reason: 'root token count changed');
       expect(night.length, 7, reason: 'themeNight token count changed');
     });
 

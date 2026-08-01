@@ -9,7 +9,7 @@ Nothing in this package hand-copies a design value.
 
 ```
 docs/design/tokens.json  ──▶  tool/generate_tokens.dart  ──▶  lib/src/generated/tokens.g.dart
-   (73 light + 7 night)                                        (do not edit)
+   (74 light + 7 night)                                        (do not edit)
 ```
 
 ```bash
@@ -32,7 +32,7 @@ generator cannot classify is a **hard error**, not a silent skip.
 
 Without (2), (1) could be satisfied by hand-editing the generated file — which
 is the drift the generator exists to prevent. It also asserts the counts
-CLAUDE.md states (73 + 7), so changing them forces a deliberate doc update.
+CLAUDE.md states (74 + 7), so changing them forces a deliberate doc update.
 
 Verified by mutation: adding a token to `tokens.json` without regenerating
 fails with `Tokens present in tokens.json but absent from the light theme`.
@@ -97,7 +97,7 @@ first busy afternoon.
 |        | UI                     | Display              | Leading |
 |--------|------------------------|----------------------|---------|
 | Latin  | Poppins                | Newsreader (serif)   | 1.5     |
-| Arabic | IBM Plex Sans Arabic   | Reem Kufi            | 1.65    |
+| Arabic | IBM Plex Sans Arabic   | Reem Kufi            | 1.7     |
 
 Sizes are identical across scripts, so switching language mid-session does not
 reflow the screen. Headline weight is capped at 600. Overline is the only
@@ -107,26 +107,36 @@ uppercase style, tracked out by `.14em`.
 face with tabular figures, per DESIGN-RULES.md ("Numerals stay Latin"). It
 fixes the *glyphs*; callers must still format with Latin digits.
 
-## Open items — read before building components
+## Open items
 
-1. **Three font families have no files.** Only Poppins ships in
-   `docs/design/assets/fonts/`. **IBM Plex Sans Arabic**, **Reem Kufi** and
-   **Newsreader** are named by the tokens but absent from the repo, so they
-   currently fall back to the platform default. Arabic text therefore does not
-   yet render in its intended face. Needs the font files added to `fonts/` and
-   declared in `pubspec.yaml`, or a decision to fetch them another way.
+**`SahraRules` values are not tokens.** The 44px touch target and the 150-200ms
+motion band come from DESIGN-RULES.md; `tokens.json` has no equivalent. They are
+declared once, in one place, rather than scattered as bare numbers - but they
+are outside the generator's guarantee.
 
-2. **Arabic leading: 1.7 vs 1.65.**
-   `docs/design/guidelines/type-arabic.html` specifies `line-height: 1.7` for
-   Arabic body. `tokens.json` has no 1.7 — its loosest value is
-   `leading-loose: 1.65`, which is what this package uses. Hardcoding 1.7 would
-   put a number in the theme that exists in no token, which is exactly the
-   drift the generator prevents. **This needs a decision:** add a
-   `leading-arabic: 1.7` token to `tokens.json`, or accept 1.65 and correct the
-   guideline. Flagged rather than silently resolved, per CLAUDE.md ("stop and
-   ask before deviating from a design token value").
+## Fonts
 
-3. **`SahraRules` values are not tokens.** The 44px touch target and the
-   150–200ms motion band come from DESIGN-RULES.md; `tokens.json` has no
-   equivalent. They are declared once, in one place, rather than scattered as
-   bare numbers — but they are outside the generator's guarantee.
+All four families are SIL Open Font License and ship in `fonts/` with their
+`OFL-*.txt`:
+
+| Family | Role | Form | Weights |
+|---|---|---|---|
+| Poppins | Latin UI | static | 300-700 |
+| IBM Plex Sans Arabic | Arabic UI | static | 400, 500, 600 |
+| Reem Kufi | Arabic display | variable | via `FontVariation('wght')` |
+| Newsreader | Latin display | variable | via `FontVariation('wght')` |
+
+`font-mono` is a system stack (SFMono / Consolas / Menlo) and is deliberately
+not bundled.
+
+The variable faces are declared as ONE asset each. Listing the same file under
+several `weight:` keys does not interpolate the axis - Flutter selects a file,
+it does not set `wght` - so the weight is applied with `FontVariation` in
+`SahraTypography` instead.
+
+`test/font_assets_test.dart` fails if a family named in `tokens.json` is not
+declared in `pubspec.yaml`, if a declared asset is missing or is not a real
+font file, or if a bundled family has no OFL licence. Flutter does **not** error
+on an unknown family - it silently substitutes the platform font, so an Arabic
+screen renders in Roboto, looks fine in a screenshot to anyone not reading it
+closely, and ships.

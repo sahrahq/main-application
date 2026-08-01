@@ -101,7 +101,7 @@ void main() {
       final ar = SahraTypography.arabic(const Color(0xFF000000));
       final en = SahraTypography.latin(const Color(0xFF000000));
       expect(ar.bodyMedium!.height, greaterThan(en.bodyMedium!.height!));
-      expect(ar.bodyMedium!.height, SahraTypeScale.leadingLoose);
+      expect(ar.bodyMedium!.height, SahraTypeScale.leadingArabic);
     });
 
     test('sizes are identical across scripts, so switching does not reflow', () {

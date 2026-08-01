@@ -93,6 +93,11 @@ class SahraTypeScale {
   static const double leadingNormal = SahraTokens.leadingNormal;
   static const double leadingLoose = SahraTokens.leadingLoose;
 
+  /// Arabic body leading — 1.7, per docs/design/guidelines/type-arabic.html.
+  /// Looser than [leadingLoose] on purpose: Arabic sets dots and diacritics
+  /// above and below the baseline, where Latin has nothing.
+  static const double leadingArabic = SahraTokens.leadingArabic;
+
   /// `.14em` in CSS. Flutter's letterSpacing is logical pixels, so it is
   /// applied per size rather than being a single constant.
   static const double trackingOverlineEm = SahraTokens.trackingOverline;
