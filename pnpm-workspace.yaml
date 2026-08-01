@@ -5,9 +5,13 @@ packages:
 # script. Only the ones that genuinely need to build are allowed; the two
 # telemetry beacons are declined.
 allowBuilds:
-  '@prisma/client': true   # runs prisma generate
-  '@prisma/engines': true  # downloads the query engine binary
-  prisma: true             # CLI engine binaries
-  argon2: true             # native N-API build (password hashing)
-  '@nestjs/core': false    # scarf telemetry only
-  '@scarf/scarf': false    # telemetry only
+  '@prisma/client': true # runs prisma generate
+  '@prisma/engines': true # downloads the query engine binary
+  prisma: true # CLI engine binaries
+  argon2: true # native N-API build (password hashing)
+  '@nestjs/core': false # scarf telemetry only
+  '@scarf/scarf': false # telemetry only
+  # Optional native accelerator for msgpackr (BullMQ's serializer). Declined:
+  # it falls back to the pure-JS path automatically, and a native build adds a
+  # toolchain dependency to CI for a serialization speedup we do not need.
+  msgpackr-extract: false

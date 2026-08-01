@@ -11,6 +11,7 @@ import { Prisma, ReservationStatus, ReservationSource } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { bookingWindow, DEFAULT_TURN_MINUTES } from './turn-time';
 import { generateReservationCode } from './reservation-code';
+import { HoldExpiryQueue } from './expiry/hold-expiry.queue';
 
 /** Statuses that occupy inventory (doc 05 §2). Mirrored by idx_resv_active. */
 export const LIVE_STATUSES: ReservationStatus[] = [
@@ -78,7 +79,15 @@ interface CandidateTable {
 export class ReservationsService {
   private readonly logger = new Logger(ReservationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    /**
+     * Optional so the service is constructible in tests and in environments
+     * without Redis. Expiry still happens via the 60s sweeper — the queue is
+     * the precise path, not the only one (doc 05 §4).
+     */
+    private readonly expiryQueue?: HoldExpiryQueue,
+  ) {}
 
   /**
    * Create a 5-minute hold on a table (doc 05 §3).
@@ -125,8 +134,9 @@ export class ReservationsService {
     const turnConfig = await this.turnConfigFor(input.restaurantId, input.startsAt);
     const { startsAt, endsAt } = bookingWindow(input.startsAt, input.partySize, turnConfig);
 
+    let created: string | null = null;
     try {
-      return await this.prisma.$transaction(
+      const result = await this.prisma.$transaction(
         async (tx) => {
           // ══ LAYER 1 ══ serialize this restaurant-day.
           const lockKey = `${input.restaurantId}:${startsAt.toISOString().slice(0, 10)}`;
@@ -189,6 +199,7 @@ export class ReservationsService {
               )`;
           }
 
+          created = reservation.id;
           return { ...reservation, tables: allocation.map((t) => ({ tableId: t.id })) };
         },
         // maxWait is how long a caller queues for a POOL CONNECTION before
@@ -197,6 +208,15 @@ export class ReservationsService {
         // Too tight and a healthy queue surfaces as a 500.
         { timeout: 20_000, maxWait: 15_000 },
       );
+
+      // AFTER commit, never inside: a job scheduled in the transaction could
+      // fire against a row that then rolled back. Best-effort by design — the
+      // sweeper is the guarantee (doc 05 §4).
+      if (created) {
+        await this.expiryQueue?.scheduleExpiry(created, HOLD_TTL_MINUTES * 60_000);
+      }
+
+      return result;
     } catch (err) {
       return this.translateWriteError(err, input.idempotencyKey);
     }
@@ -244,6 +264,19 @@ export class ReservationsService {
         code: 'invalid_status_transition',
         message: 'This reservation is already confirmed.',
         message_ar: 'هذا الحجز مؤكّد بالفعل.',
+      });
+    }
+
+    // An already-swept hold must report hold_expired, not a generic
+    // transition error (doc 06 §3). The distinction is the whole message to
+    // the diner: "your five minutes ran out, pick another time" is actionable;
+    // "invalid status transition" tells them nothing. Reached whenever the
+    // sweeper or the delayed job won the race before the confirm arrived.
+    if (existing.status === ReservationStatus.expired) {
+      throw new ConflictException({
+        code: 'hold_expired',
+        message: 'That hold expired. Please pick a time again.',
+        message_ar: 'انتهت مهلة الحجز المؤقت. اختر وقتًا من جديد.',
       });
     }
 

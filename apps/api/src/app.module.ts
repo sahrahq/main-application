@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
+import { BullModule } from "@nestjs/bullmq";
 import { PrismaModule } from "./shared/prisma/prisma.module";
 import { AuditModule } from "./shared/audit/audit.module";
 import { ReservationsModule } from "./modules/reservations/reservations.module";
@@ -11,6 +13,20 @@ import { AdminModule } from "./modules/admin/admin.module";
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: [".env"] }),
+    // Drives the 60s hold-expiry sweeper (doc 05 §4 backstop).
+    ScheduleModule.forRoot(),
+    // BullMQ root connection, only when Redis is configured. Absent Redis, the
+    // sweeper still runs — expiry degrades in precision, never in correctness.
+    ...(process.env.REDIS_URL
+      ? [
+          BullModule.forRoot({
+            connection: {
+              url: process.env.REDIS_URL,
+              maxRetriesPerRequest: null, // required by BullMQ workers
+            },
+          }),
+        ]
+      : []),
     PrismaModule,
     AuditModule,
     AuthModule,
