@@ -46,7 +46,7 @@ The design package build order and the technical build order compose like this:
 2. **Design foundation** (Dev B), in this exact order — same order the design system was built:
    1. **Tokens/theme** — map `docs/design/tokens.json` into `packages/sahra_design_system` (light + dark, LTR + RTL). Nothing visual is built before this.
    2. **Shared components** — build the 16 components from `docs/design/components/` (core, venue, social, navigation, brand) as reusable widgets in `sahra_design_system`. Each has a `.d.ts` declaring its exact prop contract — match it.
-   3. **Screens** — build each screen from its HTML reference, composing the components, wired to the real API via `sahra_api_client`.
+   3. **Screens** — build each screen from its `.jsx` reference in `docs/design/ui_kits/app/`, composing the components, wired to the real API via `sahra_api_client`. (The only HTML in `ui_kits/` is `index.html`, the live preview router — not a screen source.)
 
 One screen per Claude Code prompt — e.g. *"Implement the Discover screen in Flutter, matching `docs/design/ui_kits/app/DiscoverScreen.jsx` exactly, per docs/design/DESIGN-RULES.md, using tokens/components from packages/sahra_design_system."* This keeps fidelity high; "build the whole app" does not.
 
