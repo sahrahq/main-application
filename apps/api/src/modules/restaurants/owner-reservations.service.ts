@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, ReservationStatus } from '@prisma/client';
+import { Prisma, ReservationSource, ReservationStatus } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { zonedWallTimeToUtc, utcToZonedHhmm, isValidTimeZone } from '../../shared/time/timezone';
 
@@ -20,6 +20,9 @@ export interface BookRow {
   startsAt: string;
   partySize: number;
   status: ReservationStatus;
+  /// Which door the booking came through — app vs walk_in vs phone. The host
+  /// needs it on the book, and covers-by-channel is a P0-basic analytic.
+  source: ReservationSource;
   guestName: string | null;
   guestPhone: string | null;
   specialRequests: string | null;
@@ -39,6 +42,7 @@ interface RawBookRow {
   starts_at: Date;
   party_size: number;
   status: ReservationStatus;
+  source: ReservationSource;
   guest_name: string | null;
   guest_phone: string | null;
   special_requests: string | null;
@@ -89,7 +93,7 @@ export class OwnerReservationsService {
       : Prisma.empty;
 
     const rows = await this.prisma.$queryRaw<RawBookRow[]>(Prisma.sql`
-      SELECT r.id, r.code, r.starts_at, r.party_size, r.status,
+      SELECT r.id, r.code, r.starts_at, r.party_size, r.status, r.source,
              r.guest_name, r.guest_phone, r.special_requests, r.occasion,
              ARRAY_REMOVE(ARRAY_AGG(t.name ORDER BY t.name), NULL) AS tables
       FROM reservations r
@@ -112,6 +116,7 @@ export class OwnerReservationsService {
         startsAt: r.starts_at.toISOString(),
         partySize: r.party_size,
         status: r.status,
+        source: r.source,
         guestName: r.guest_name,
         guestPhone: r.guest_phone,
         specialRequests: r.special_requests,

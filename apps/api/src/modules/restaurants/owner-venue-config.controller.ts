@@ -1,15 +1,21 @@
 import {
-  Body, Controller, Delete, ForbiddenException, Get, Param, ParseUUIDPipe,
-  Patch, Post, Query, UseGuards,
+  BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Headers,
+  Param, ParseUUIDPipe, Patch, Post, Query, UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags,
+} from '@nestjs/swagger';
 import { TablesService } from './tables.service';
 import { ShiftsService } from './shifts.service';
+import { WalkInsService } from './walk-ins.service';
 import { CreateTableDto, UpdateTableDto, CreateShiftDto, UpdateShiftDto } from './dto/venue-config.dto';
+import { CreateWalkInDto } from './dto/walk-in.dto';
 import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
 import type { AuthedUser } from '../../shared/auth/jwt.strategy';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
  * Venue configuration — doc 06 §4 lines 102–103.
@@ -29,6 +35,7 @@ export class OwnerVenueConfigController {
   constructor(
     private readonly tables: TablesService,
     private readonly shifts: ShiftsService,
+    private readonly walkIns: WalkInsService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -112,6 +119,44 @@ export class OwnerVenueConfigController {
     @Param('tableId', ParseUUIDPipe) tableId: string,
   ) {
     return this.tables.remove(await this.ownerIdOf(user), restaurantId, tableId);
+  }
+
+  // ───────────────────────────────────── walk-ins and phone bookings (R-3.2) ──
+
+  /**
+   * doc 06 §4 line 106. Consumes the SAME inventory as an app booking, through
+   * the same engine path (doc 05 §7) — a party seated off-platform would
+   * otherwise be invisible and the next online booking would double-seat them.
+   *
+   * Idempotency-Key is required, as on every mutation (doc 06 §1). It matters
+   * more than usual here: a host taps "seat" on a tablet with poor signal and
+   * taps again, and two tables must not be consumed.
+   */
+  @Post('reservations')
+  @ApiOperation({ summary: 'Seat a walk-in or take a phone booking' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'Client-generated UUID v4' })
+  @ApiResponse({ status: 201 })
+  @ApiResponse({ status: 409, description: 'slot_taken — the same 409 the app gets' })
+  async createWalkIn(
+    @CurrentUser() user: AuthedUser,
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Body() dto: CreateWalkInDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    if (!idempotencyKey || !UUID_V4.test(idempotencyKey)) {
+      throw new BadRequestException({
+        code: 'invalid_idempotency_key',
+        message: 'Idempotency-Key header must be a UUID v4.',
+        message_ar: 'ترويسة Idempotency-Key لازم تكون UUID v4.',
+        details: [{ field: 'Idempotency-Key', issue: 'format' }],
+      });
+    }
+
+    return this.walkIns.create(await this.ownerIdOf(user), restaurantId, {
+      ...dto,
+      startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
+      idempotencyKey,
+    });
   }
 
   // ───────────────────────────────────────────── opening hours / shifts (R-2.4) ──

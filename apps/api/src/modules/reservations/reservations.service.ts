@@ -63,6 +63,21 @@ export interface CreateHoldInput {
   specialRequests?: string | null;
   occasion?: string | null;
   source?: ReservationSource;
+  /**
+   * Skip the hold phase and create the reservation already confirmed.
+   *
+   * For staff-entered bookings (walk-ins, phone) only. A party standing at the
+   * podium has no checkout to abandon, so there is nothing for a 5-minute hold
+   * to protect — and a crash between hold and confirm would let the sweeper
+   * expire a reservation while the guests are physically at the table, which
+   * is the exact double-seat walk-in support exists to prevent.
+   *
+   * This is a PARAMETER, not a second seating path: the advisory lock, the
+   * free-table re-check and the EXCLUDE constraint are all still the ones
+   * below (doc 05 §7 — "walk-ins consume the same inventory through the same
+   * engine path").
+   */
+  confirmImmediately?: boolean;
   idempotencyKey: string;
 }
 
@@ -176,12 +191,18 @@ export class ReservationsService {
               partySize: input.partySize,
               startsAt,
               endsAt,
-              status: ReservationStatus.held,
+              status: input.confirmImmediately
+                ? ReservationStatus.confirmed
+                : ReservationStatus.held,
               source: input.source ?? ReservationSource.app,
               seatingPref: input.seatingPref ?? null,
               specialRequests: input.specialRequests ?? null,
               occasion: input.occasion ?? null,
-              holdExpiresAt: new Date(Date.now() + HOLD_TTL_MINUTES * 60_000),
+              // A confirmed row has no expiry; leaving one set would arm the
+              // sweeper against a booking that is already seated.
+              holdExpiresAt: input.confirmImmediately
+                ? null
+                : new Date(Date.now() + HOLD_TTL_MINUTES * 60_000),
               idempotencyKey: input.idempotencyKey,
             },
           });
@@ -212,7 +233,10 @@ export class ReservationsService {
       // AFTER commit, never inside: a job scheduled in the transaction could
       // fire against a row that then rolled back. Best-effort by design — the
       // sweeper is the guarantee (doc 05 §4).
-      if (created) {
+      // Nothing to expire when the row was never held — scheduling a job for a
+      // confirmed walk-in would be a no-op at best (expireOne is guarded on
+      // status='held') and noise in the queue at worst.
+      if (created && !input.confirmImmediately) {
         await this.expiryQueue?.scheduleExpiry(created, HOLD_TTL_MINUTES * 60_000);
       }
 
