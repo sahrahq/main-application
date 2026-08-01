@@ -3,6 +3,7 @@ import { ConfigModule } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
 import { BullModule } from "@nestjs/bullmq";
 import { PrismaModule } from "./shared/prisma/prisma.module";
+import { ErrorsModule } from "./shared/errors/errors.module";
 import { AuditModule } from "./shared/audit/audit.module";
 import { ReservationsModule } from "./modules/reservations/reservations.module";
 import { AuthModule } from "./modules/auth/auth.module";
@@ -28,6 +29,8 @@ import { SearchModule } from "./modules/search/search.module";
           }),
         ]
       : []),
+    // First, so the error envelope and request id apply to everything below.
+    ErrorsModule,
     PrismaModule,
     AuditModule,
     AuthModule,

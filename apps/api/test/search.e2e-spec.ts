@@ -443,12 +443,15 @@ describeIf('GET /restaurants/search (doc 06 §3)', () => {
   it('rejects available_at without party_size rather than pretending to filter', async () => {
     const res = await request(app.getHttpServer()).get(`/restaurants/search?available_at=${DATE}`);
     expect(res.status).toBe(400);
-    expect(res.body.code ?? res.body.message?.code).toBe('invalid_availability_filter');
+    // doc 06 §1 envelope — asserted exactly, not with a fallback.
+    expect(res.body.error.code).toBe('invalid_availability_filter');
   }, 60_000);
 
   it('validates query params', async () => {
     const res = await request(app.getHttpServer()).get('/restaurants/search?price_band=9');
     expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('invalid_query_param');
+    expect(res.body.error.request_id).toMatch(/^req_/);
   }, 60_000);
 });
 

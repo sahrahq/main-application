@@ -1,5 +1,5 @@
 import { NestFactory } from "@nestjs/core";
-import { ValidationPipe, Logger } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 import { validateSecrets } from "./shared/config/secrets.validation";
@@ -11,15 +11,11 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create(AppModule);
 
-  // DEVELOPMENT.md §7 — reject unknown fields outright rather than ignoring them.
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
+  // Validation and the error envelope are registered as providers in
+  // ErrorsModule, not here — see the note in that file. Configuring them at
+  // bootstrap would mean e2e tests booting AppModule exercised a different
+  // pipeline than production, and the error contract is the last place that
+  // difference should exist.
 
   app.setGlobalPrefix("v1", { exclude: ["health"] });
 

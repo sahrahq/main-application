@@ -122,14 +122,8 @@ request carries an `AbortSignal.timeout` (default 8s).
 `search being UNCONFIGURED also fails loudly, not silently empty`,
 `does NOT hang when the server accepts the connection and never replies`.
 
-### Known deviation: the error envelope
-
-doc 06 §1 specifies `{ "error": { "code", "message", "message_ar", ... } }`.
-There is no global exception filter in the API yet, so errors currently
-serialise as a bare `{ code, message, message_ar }` with the right HTTP status.
-The status and `code` are what a client branches on, so outage is
-distinguishable today — but the envelope is **not** doc 06 shaped, and this
-affects every endpoint, not just search. Tracked as its own task.
+The 503 is delivered in the doc 06 §1 envelope like every other error — see
+`2026-08-01-error-envelope.md`.
 
 ## Supporting decisions
 
