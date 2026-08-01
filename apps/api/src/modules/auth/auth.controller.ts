@@ -2,7 +2,7 @@ import { Body, Controller, Post, HttpCode, Req, UseGuards, Get } from '@nestjs/c
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AuthService, RequestCtx } from './auth.service';
-import { RegisterDto, LoginDto, RefreshDto, LogoutDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, RefreshDto, LogoutDto, VerifyOtpDto, ResendOtpDto } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
 import type { AuthedUser } from '../../shared/auth/jwt.strategy';
@@ -25,14 +25,32 @@ export class AuthController {
   @ApiOperation({ summary: 'Create an account (phone is the primary identity)' })
   @ApiResponse({ status: 201, description: '{ userId, otpRequired: true }' })
   @ApiResponse({ status: 409, description: 'phone_exists | email_exists' })
-  register(@Body() dto: RegisterDto) {
+  register(@Body() dto: RegisterDto, @Req() req: Request) {
     return this.auth.register({
       phone: dto.phone,
       fullName: dto.fullName,
       email: dto.email ?? null,
       password: dto.password ?? null,
       locale: dto.locale,
-    });
+    }, ctxOf(req));
+  }
+
+  @Post('verify-otp')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Verify the phone code; activates the account' })
+  @ApiResponse({ status: 200, description: 'Access + refresh token pair' })
+  @ApiResponse({ status: 400, description: 'invalid_otp | otp_expired' })
+  @ApiResponse({ status: 429, description: 'too_many_attempts' })
+  verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request) {
+    return this.auth.verifyOtp(dto.userId, dto.code, ctxOf(req));
+  }
+
+  @Post('resend-otp')
+  @HttpCode(202)
+  @ApiOperation({ summary: 'Re-send the phone code (rate limited)' })
+  @ApiResponse({ status: 429, description: 'otp_rate_limited' })
+  async resendOtp(@Body() dto: ResendOtpDto, @Req() req: Request): Promise<void> {
+    await this.auth.resendOtp(dto.userId, ctxOf(req));
   }
 
   @Post('login')

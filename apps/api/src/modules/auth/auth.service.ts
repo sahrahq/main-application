@@ -2,6 +2,7 @@ import { Injectable, ConflictException, UnauthorizedException, Logger } from '@n
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { TokenService, TokenPair } from './token.service';
+import { OtpService } from './otp/otp.service';
 
 /**
  * argon2id — doc 09 §1.1. Parameters follow OWASP's 2024 guidance
@@ -35,6 +36,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tokens: TokenService,
+    private readonly otp: OtpService,
   ) {}
 
   /**
@@ -42,7 +44,7 @@ export class AuthService {
    * usable until the phone is verified, which is the Redis-backed OTP step
    * (doc 09 §1.1) landing once Redis is available.
    */
-  async register(input: RegisterInput): Promise<{ userId: string; otpRequired: true }> {
+  async register(input: RegisterInput, ctx: RequestCtx = {}): Promise<{ userId: string; otpRequired: true }> {
     const phone = normalizePhone(input.phone);
 
     const clash = await this.prisma.user.findFirst({
@@ -75,6 +77,12 @@ export class AuthService {
       },
       select: { id: true },
     });
+
+    // Fire the verification code. A send failure must not orphan the account:
+    // the user exists and can request a new code, so this is logged, not fatal.
+    await this.otp
+      .issue({ userId: user.id, phone, purpose: 'phone_verify', ip: ctx.ip })
+      .catch((e) => this.logger.error(`OTP send failed for ${user.id}: ${String(e)}`));
 
     return { userId: user.id, otpRequired: true };
   }
@@ -115,6 +123,49 @@ export class AuthService {
       user.roles.map((r) => r.role.name),
       ctx,
     );
+  }
+
+  /**
+   * doc 06 §2 — verify the phone and return the first token pair.
+   *
+   * Activation happens ONLY here: a `pending` account has an unproven phone,
+   * and phone is the primary identity in Egypt (doc 02 C-1.2).
+   */
+  async verifyOtp(userId: string, code: string, ctx: RequestCtx = {}): Promise<TokenPair> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: { roles: { include: { role: true } } },
+    });
+    if (!user) throw this.invalidCredentials();
+
+    await this.otp.verify({ userId, purpose: 'phone_verify', code });
+
+    const activated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        phoneVerifiedAt: new Date(),
+        // pending → active. Never downgrade a suspended account by verifying.
+        status: user.status === 'pending' ? 'active' : user.status,
+      },
+      select: { id: true, locale: true },
+    });
+
+    return this.tokens.issuePair(
+      activated,
+      user.roles.map((r) => r.role.name),
+      ctx,
+    );
+  }
+
+  /** Re-send a phone-verification code. Rate limits live in OtpService. */
+  async resendOtp(userId: string, ctx: RequestCtx = {}): Promise<void> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      select: { id: true, phone: true },
+    });
+    // Do not reveal whether the id exists.
+    if (!user) return;
+    await this.otp.issue({ userId: user.id, phone: user.phone, purpose: 'phone_verify', ip: ctx.ip });
   }
 
   async refresh(refreshToken: string, ctx: RequestCtx = {}): Promise<TokenPair> {

@@ -60,3 +60,19 @@ export class LogoutDto {
   @IsOptional()
   allDevices?: boolean;
 }
+export class VerifyOtpDto {
+  @ApiProperty({ format: "uuid" })
+  @IsString()
+  userId!: string;
+
+  @ApiProperty({ example: "123456", minLength: 6, maxLength: 6 })
+  @IsString()
+  @Matches(/^\d{6}$/, { message: "code must be 6 digits" })
+  code!: string;
+}
+
+export class ResendOtpDto {
+  @ApiProperty({ format: "uuid" })
+  @IsString()
+  userId!: string;
+}

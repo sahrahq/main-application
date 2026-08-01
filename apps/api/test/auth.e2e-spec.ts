@@ -11,6 +11,10 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService, normalizePhone } from '../src/modules/auth/auth.service';
 import { TokenService } from '../src/modules/auth/token.service';
+import { OtpService } from '../src/modules/auth/otp/otp.service';
+import { InMemoryOtpStore } from '../src/modules/auth/otp/stores/in-memory-otp.store';
+import { InMemoryRateLimiter } from '../src/modules/auth/otp/stores/in-memory-rate-limiter';
+import { RecordingOtpDelivery } from '../src/modules/auth/otp/delivery/recording-otp.delivery';
 import { PrismaService } from '../src/shared/prisma/prisma.service';
 
 const url = (() => {
@@ -23,7 +27,12 @@ const config = new ConfigService({
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET ?? 'test-secret-not-for-production',
 });
 const tokens = new TokenService(prisma as unknown as PrismaService, new JwtService({}), config);
-const auth = new AuthService(prisma as unknown as PrismaService, tokens);
+
+// Real OTP logic, test doubles for the ports — so the register → verify flow
+// is exercised end to end without Redis or a carrier.
+const otpDelivery = new RecordingOtpDelivery();
+const otp = new OtpService(new InMemoryOtpStore(), new InMemoryRateLimiter(), otpDelivery);
+const auth = new AuthService(prisma as unknown as PrismaService, tokens, otp);
 
 const PHONE = `010${Date.now().toString().slice(-8)}`;
 const PASSWORD = 'correct-horse-battery-staple';
@@ -188,6 +197,59 @@ describe('auth — refresh rotation (doc 09 §1.1)', () => {
     await auth.logout(rotatedB.refreshToken, true);
     const live = await prisma.refreshToken.count({ where: { userId, revokedAt: null } });
     expect(live).toBe(0);
+  }, 60_000);
+});
+
+describe('phone verification (doc 06 §2, doc 02 C-1.2)', () => {
+  const vPhone = `010${(Date.now() + 7).toString().slice(-8)}`;
+  let vUserId: string;
+
+  afterAll(async () => {
+    if (vUserId) {
+      await prisma.refreshToken.deleteMany({ where: { userId: vUserId } });
+      await prisma.userRole.deleteMany({ where: { userId: vUserId } });
+      await prisma.user.delete({ where: { id: vUserId } }).catch(() => undefined);
+    }
+  });
+
+  it('register sends a code and leaves the account pending', async () => {
+    const before = otpDelivery.sent.length;
+    const r = await auth.register({ phone: vPhone, fullName: 'Verify Me' });
+    vUserId = r.userId;
+
+    expect(otpDelivery.sent.length).toBe(before + 1);
+    expect(otpDelivery.sent.at(-1)!.code).toMatch(/^\d{6}$/);
+
+    const u = await prisma.user.findUniqueOrThrow({ where: { id: vUserId } });
+    expect(u.status).toBe('pending');
+    expect(u.phoneVerifiedAt).toBeNull();
+  }, 60_000);
+
+  it('a wrong code does not activate the account', async () => {
+    await expect(auth.verifyOtp(vUserId, '000000')).rejects.toMatchObject({
+      response: { code: 'invalid_otp' },
+    });
+    const u = await prisma.user.findUniqueOrThrow({ where: { id: vUserId } });
+    expect(u.status).toBe('pending');
+  }, 60_000);
+
+  it('the right code activates the account and returns a token pair', async () => {
+    const { code } = otpDelivery.sent.at(-1)!;
+    const pair = await auth.verifyOtp(vUserId, code);
+
+    expect(pair.accessToken.split('.')).toHaveLength(3);
+    expect(pair.refreshToken.length).toBeGreaterThan(40);
+
+    const u = await prisma.user.findUniqueOrThrow({ where: { id: vUserId } });
+    expect(u.status).toBe('active');
+    expect(u.phoneVerifiedAt).not.toBeNull();
+  }, 60_000);
+
+  it('the same code cannot be replayed', async () => {
+    const { code } = otpDelivery.sent.at(-1)!;
+    await expect(auth.verifyOtp(vUserId, code)).rejects.toMatchObject({
+      response: { code: 'invalid_otp' },
+    });
   }, 60_000);
 });
 
