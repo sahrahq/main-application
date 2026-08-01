@@ -4,6 +4,8 @@ import {
   ConflictException,
   NotFoundException,
   BadRequestException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { Prisma, ReservationStatus, ReservationSource } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
@@ -22,6 +24,10 @@ export const LIVE_STATUSES: ReservationStatus[] = [
 const PG_EXCLUSION_VIOLATION = '23P01';
 /** Postgres unique-violation — used by the idempotency race path. */
 const PG_UNIQUE_VIOLATION = '23505';
+/** Prisma: could not start an interactive transaction within maxWait. */
+const PRISMA_TX_TIMEOUT = 'P2028';
+/** doc 05 §3 — the Retry-After the client is told to honour. */
+export const RETRY_AFTER_SECONDS = 2;
 
 export const HOLD_TTL_MINUTES = 5;
 
@@ -185,7 +191,11 @@ export class ReservationsService {
 
           return { ...reservation, tables: allocation.map((t) => ({ tableId: t.id })) };
         },
-        { timeout: 10_000, maxWait: 5_000 },
+        // maxWait is how long a caller queues for a POOL CONNECTION before
+        // giving up. Bookings for one restaurant-day serialize on the advisory
+        // lock by design, so during an iftar burst the tail legitimately waits.
+        // Too tight and a healthy queue surfaces as a 500.
+        { timeout: 20_000, maxWait: 15_000 },
       );
     } catch (err) {
       return this.translateWriteError(err, input.idempotencyKey);
@@ -435,6 +445,27 @@ export class ReservationsService {
    */
   private translateWriteError(err: unknown, idempotencyKey: string): never {
     const code = extractPgCode(err);
+
+    // doc 05 §3: "Acquire lock restaurant:date, timeout 3s" → "503 retry-after".
+    // P2028 means we never got into the transaction — no reservation was
+    // written and nothing is half-done, so this is safely retryable. Returning
+    // 500 here would tell a client that succeeded-or-not is unknowable, when
+    // in fact nothing happened at all.
+    if ((err as { code?: string })?.code === PRISMA_TX_TIMEOUT) {
+      this.logger.warn(
+        `Lock/transaction wait exceeded for idempotencyKey=${idempotencyKey}; ` +
+          `advising retry. Sustained occurrences mean the pool is undersized.`,
+      );
+      throw new HttpException(
+        {
+          code: 'service_busy',
+          message: 'That restaurant is busy right now. Please try again in a moment.',
+          message_ar: 'المطعم مزحوم دلوقتي. حاول تاني بعد لحظات.',
+          retry_after: RETRY_AFTER_SECONDS,
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
 
     if (code === PG_EXCLUSION_VIOLATION) {
       this.logger.error(

@@ -166,9 +166,12 @@ describe('reservation engine — concurrency', () => {
 
     // Surface anything unexpected before asserting, so a failure names the
     // real cause instead of just "unknown".
-    const surprising = losers.filter(
-      (l) => !['slot_taken', 'pacing_limit_reached'].includes(l.code),
-    );
+    // service_busy is a CORRECT loser outcome per doc 05 §3: the caller never
+    // entered the transaction, wrote nothing, and is told to retry. It is not
+    // a double-booking risk — but it must not be the only thing we ever see,
+    // or the slot_taken path would be untested.
+    const ACCEPTABLE = ['slot_taken', 'pacing_limit_reached', 'service_busy'];
+    const surprising = losers.filter((l) => !ACCEPTABLE.includes(l.code));
     if (surprising.length) {
       console.error(
         'Unexpected loser errors:',
@@ -187,8 +190,11 @@ describe('reservation engine — concurrency', () => {
     // Losers must fail for the right reason — a 500 would also produce one
     // winner while hiding a real bug.
     for (const l of losers) {
-      expect(['slot_taken', 'pacing_limit_reached']).toContain(l.code);
+      expect(ACCEPTABLE).toContain(l.code);
     }
+    // At least one loser must have been turned away because the table was
+    // gone — otherwise this test proved only that the pool can time out.
+    expect(losers.some((l) => l.code === 'slot_taken')).toBe(true);
 
     // ── And the database agrees.
     const live = await prisma.$queryRaw<{ n: bigint }[]>`
