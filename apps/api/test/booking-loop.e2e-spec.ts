@@ -132,9 +132,16 @@ describe('owner restaurants (doc 06 §4)', () => {
 
 describe('availability (doc 06 §3)', () => {
   beforeAll(async () => {
-    // Activate it and give it a dinner shift + two tables.
+    // Activate it, and pin the venue to UTC so wall-clock == UTC here.
+    //
+    // The `at()` helper builds absolute UTC instants. Once availability became
+    // timezone-aware, a Cairo venue's "20:00" is 17:00Z — so holds placed at
+    // 20:00Z landed at 23:00 local and the grid legitimately still offered
+    // 20:00. Pinning to UTC keeps this suite about the booking loop; timezone
+    // behaviour has its own suite in availability-timezone.e2e-spec.ts.
     await prisma.$executeRaw`
-      UPDATE restaurants SET status = 'active' WHERE id = ${restaurantId}::uuid`;
+      UPDATE restaurants SET status = 'active', timezone = 'UTC'
+      WHERE id = ${restaurantId}::uuid`;
 
     await prisma.shift.create({
       data: {
