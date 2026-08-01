@@ -1,5 +1,6 @@
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { RestaurantSearchDoc } from './search.port';
+import { indexSkeletons, MIN_SKELETON_LEN } from './transliterate';
 
 /**
  * The one query that reads a restaurant for BOTH purposes: building an index
@@ -73,6 +74,13 @@ export function toSearchDoc(r: RestaurantRowForSearch): RestaurantSearchDoc {
     rating: Number(r.rating_avg ?? 0),
     ratingCount: Number(r.rating_count ?? 0),
     amenities: amenityKeys(r.amenities),
+    // Both names, because either may be the one a diner types phonetically:
+    // an Arabic name reached from franco-Arabic, and a Latin-branded name
+    // reached from Arabic. Short keys are dropped — one consonant matches
+    // half the city.
+    translit: [
+      ...new Set([...indexSkeletons(r.name_en), ...indexSkeletons(r.name_ar)]),
+    ].filter((s) => s.length >= MIN_SKELETON_LEN),
   };
   if (r.lat !== null && r.lng !== null) doc._geo = { lat: Number(r.lat), lng: Number(r.lng) };
   return doc;

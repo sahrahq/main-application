@@ -29,6 +29,13 @@ export interface RestaurantSearchDoc {
   rating: number;
   ratingCount: number;
   amenities: string[];
+  /**
+   * Consonant skeletons of both names — the cross-script matching key that
+   * lets "koshary" and "ma7shy" find كشري and محشي. See transliterate.ts.
+   * Ranked below the real names, so it widens recall without displacing an
+   * exact match.
+   */
+  translit: string[];
   /** Meilisearch's reserved geo field; absent if the venue has no point. */
   _geo?: { lat: number; lng: number };
 }

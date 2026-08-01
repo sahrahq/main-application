@@ -67,6 +67,70 @@ the client calls `/restaurants/:id/availability` for real `starts_at` values.
 
 ---
 
+## Cross-script and franco-Arabic matching
+
+Franco-Arabic ("Arabizi") — Latin letters plus digits for the Arabic sounds
+Latin has no letter for (7 = ح, 3 = ع, 5 = خ, 2 = ء) — is a **primary input
+mode** on an Egyptian phone keyboard, not a fallback.
+
+Meilisearch typo tolerance does not cover this. It operates within a script,
+and even in Latin `ma7shy` → `mahshi` is two edits on a six-character word,
+where Meilisearch allows one.
+
+Both sides are therefore reduced to a shared **consonant skeleton**
+(`transliterate.ts`). This is not a trick: Arabic script already omits short
+vowels, so كشري carries k-sh-r and every romanisation — koshary, koshari,
+kushari — carries those same consonants and differs only in the vowels nobody
+agrees on.
+
+Three things this required getting right:
+
+- **ق is genuinely two-valued.** Cairene drops it to a glottal stop (قهوة →
+  "ahwa") while the same letter is a hard k in طارق → "Tarek". Neither reading
+  can be forced, so the **index stores both** and the query commits to the one
+  its own spelling implies. A name without ق costs exactly one entry.
+- **Digraphs need single-character tokens.** خ and a literal k+h sequence
+  (قهوة) must not collide, so kh/sh/gh map to single internal characters.
+- **The skeleton pass uses `matchingStrategy: 'all'`.** Meilisearch's default
+  `last` drops query words from the end until something matches, which on a
+  lossy key is a trapdoor: "zzz no such venue" reduces to `sc fn nhr`, relaxes
+  to `sc`, and matches سوشي. A skeleton must match completely or not at all.
+
+Skeletons live in their own `translit` attribute, ranked **last** among
+searchable attributes and with typo tolerance disabled, so cross-script recall
+never displaces an exact match. Query tokens shorter than two consonants are
+dropped — one consonant matches half the city.
+
+The two passes (as typed, then phonetic) are separate queries in one
+multi-search round trip, because a skeleton is a *different string* from what
+the diner typed; no index configuration can make "koshary" match the key `kcr`.
+Literal hits are merged first.
+
+## Outage must be visible
+
+"No restaurants matched" and "search is broken" are different facts, and a
+diner shown an empty list believes the first. Both adapters throw
+**503 `search_unavailable`** on query — never `[]`.
+
+The nastier outage is not a refused connection but a server that accepts the
+socket and never answers: an un-timed `fetch` waits forever while the request
+holds a worker, and the diner sees a spinner rather than an error. Every
+request carries an `AbortSignal.timeout` (default 8s).
+
+*Tests:* `THROWS 503 search_unavailable when the server is unreachable`,
+`is distinguishable from a genuine zero-result search`,
+`search being UNCONFIGURED also fails loudly, not silently empty`,
+`does NOT hang when the server accepts the connection and never replies`.
+
+### Known deviation: the error envelope
+
+doc 06 §1 specifies `{ "error": { "code", "message", "message_ar", ... } }`.
+There is no global exception filter in the API yet, so errors currently
+serialise as a bare `{ code, message, message_ar }` with the right HTTP status.
+The status and `code` are what a client branches on, so outage is
+distinguishable today — but the envelope is **not** doc 06 shaped, and this
+affects every endpoint, not just search. Tracked as its own task.
+
 ## Supporting decisions
 
 ### The index decides WHICH; Postgres decides WHAT

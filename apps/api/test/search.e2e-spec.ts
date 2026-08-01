@@ -19,6 +19,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
+import * as net from 'net';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/shared/prisma/prisma.service';
 import { AvailabilityService } from '../src/modules/availability/availability.service';
@@ -27,6 +28,7 @@ import { AdminRestaurantsService } from '../src/modules/admin/admin-restaurants.
 import { RestaurantsService } from '../src/modules/restaurants/restaurants.service';
 import { AuditService } from '../src/shared/audit/audit.service';
 import { MeiliSearchIndex } from '../src/modules/search/meili-search.index';
+import { DisabledSearchIndex } from '../src/modules/search/disabled-search.index';
 import { RestaurantSearchService, SEARCH_PAGE_SIZE } from '../src/modules/search/restaurant-search.service';
 
 const MEILI_UP = process.env.MEILI_AVAILABLE === '1';
@@ -232,6 +234,89 @@ describeIf('search matching (doc 06 §3)', () => {
   }, 60_000);
 });
 
+// ──────────────────────────────────────── cross-script / franco-Arabic search ──
+
+/**
+ * Franco-Arabic is a primary input mode in Egypt, not a nice-to-have. Each
+ * venue below is deliberately named so that the query CANNOT match through the
+ * other language column — the only path to a hit is transliteration.
+ */
+describeIf('franco-Arabic and cross-script matching', () => {
+  let koshary: string;
+  let mahshy: string;
+  let latinOnly: string;
+  let decoy: string;
+
+  beforeAll(async () => {
+    // nameEn says nothing about koshary — "koshary" can only reach it via كشري.
+    koshary = await makeVenue({
+      nameEn: 'Abou Tarek Downtown', nameAr: 'كشري أبو طارق',
+      cuisines: ['egyptian'], neighborhood: 'Bab El Louk', priceBand: 1,
+    });
+    mahshy = await makeVenue({
+      nameEn: 'Grandma Kitchen', nameAr: 'محشي ماما',
+      cuisines: ['egyptian'], neighborhood: 'Dokki', priceBand: 2,
+    });
+    // Latin branding in BOTH columns — common for Cairo venues. An Arabic
+    // speaker typing the name phonetically must still find it.
+    latinOnly = await makeVenue({
+      nameEn: 'Flamenco Grill', nameAr: 'Flamenco Grill',
+      cuisines: ['mediterranean'], neighborhood: 'Mohandessin', priceBand: 3,
+    });
+    decoy = await makeVenue({
+      nameEn: 'Sushi Bar Tokyo', nameAr: 'سوشي بار طوكيو',
+      cuisines: ['japanese'], neighborhood: 'Dokki', priceBand: 4,
+    });
+    for (const id of [koshary, mahshy, latinOnly, decoy]) await activate(id);
+    await index.waitForIdle();
+  }, 180_000);
+
+  it('"koshary" finds a venue named only كشري', async () => {
+    const res = await search.search({ q: 'koshary' });
+    expect(res.results.map((r) => r.id)).toContain(koshary);
+  }, 60_000);
+
+  it('accepts the romanisations nobody agrees on: koshari, kushari', async () => {
+    for (const q of ['koshari', 'kushari']) {
+      const res = await search.search({ q });
+      expect(res.results.map((r) => r.id)).toContain(koshary);
+    }
+  }, 60_000);
+
+  it('"ma7shy" finds محشي — 7 is ح, which typo tolerance cannot bridge', async () => {
+    const res = await search.search({ q: 'ma7shy' });
+    expect(res.results.map((r) => r.id)).toContain(mahshy);
+  }, 60_000);
+
+  it('the plain-Latin spelling "mahshi" works too', async () => {
+    const res = await search.search({ q: 'mahshi' });
+    expect(res.results.map((r) => r.id)).toContain(mahshy);
+  }, 60_000);
+
+  it('an ARABIC query finds a venue branded only in Latin', async () => {
+    const res = await search.search({ q: 'فلامنكو' });
+    expect(res.results.map((r) => r.id)).toContain(latinOnly);
+  }, 60_000);
+
+  it('does not turn every franco query into a wildcard', async () => {
+    // The skeleton is lossy on purpose; it must not be so lossy that one
+    // query matches the whole city.
+    const res = await search.search({ q: 'koshary' });
+    expect(res.results.map((r) => r.id)).not.toContain(decoy);
+  }, 60_000);
+
+  it('an all-vowel query does not match everything', async () => {
+    const res = await search.search({ q: 'aeiou' });
+    expect(res.results.map((r) => r.id)).not.toContain(koshary);
+  }, 60_000);
+
+  it('exact matches still outrank transliteration matches', async () => {
+    // Transliteration widens recall; it must not drown the obvious answer.
+    const res = await search.search({ q: 'Sushi Bar Tokyo' });
+    expect(res.results[0]?.id).toBe(decoy);
+  }, 60_000);
+});
+
 // ───────────────────────────────────────────── the availability post-filter ──
 
 describeIf('availability post-filter (doc 06 §3)', () => {
@@ -364,6 +449,79 @@ describeIf('GET /restaurants/search (doc 06 §3)', () => {
   it('validates query params', async () => {
     const res = await request(app.getHttpServer()).get('/restaurants/search?price_band=9');
     expect(res.status).toBe(400);
+  }, 60_000);
+});
+
+// ───────────────────────────────────────────────────── outage must be visible ──
+
+/**
+ * "No restaurants matched" and "search is broken" are different facts, and a
+ * diner in Cairo who is shown an empty list believes the first one. A client
+ * cannot render a retry, a fallback, or an apology for a failure it cannot
+ * see — so an outage must never be able to look like a zero-result search.
+ *
+ * These need no fixtures and no live Meilisearch: they point the adapter at
+ * somewhere that cannot answer.
+ */
+describe('search outage is visible, never an empty list', () => {
+  const dead = () => new MeiliSearchIndex('http://127.0.0.1:1', undefined, 'nope');
+
+  it('THROWS 503 search_unavailable when the server is unreachable', async () => {
+    const svc = new RestaurantSearchService(p, dead(), availability);
+    await expect(svc.search({ q: 'anything' })).rejects.toMatchObject({
+      status: 503,
+      response: { code: 'search_unavailable' },
+    });
+  }, 60_000);
+
+  it('is distinguishable from a genuine zero-result search', async () => {
+    // The pair that matters. Same call shape, two different truths.
+    const outage = await new RestaurantSearchService(p, dead(), availability)
+      .search({ q: 'zzz' })
+      .then(() => 'resolved', (e) => ({ status: e.status, code: e.response?.code }));
+    expect(outage).toEqual({ status: 503, code: 'search_unavailable' });
+
+    if (MEILI_UP) {
+      const genuine = await search.search({ q: 'zzz-no-such-venue-anywhere' });
+      expect(genuine.results).toEqual([]); // 200 with an empty list
+    }
+  }, 60_000);
+
+  it('search being UNCONFIGURED also fails loudly, not silently empty', async () => {
+    const svc = new RestaurantSearchService(p, new DisabledSearchIndex(), availability);
+    await expect(svc.search({ q: 'anything' })).rejects.toMatchObject({
+      status: 503,
+      response: { code: 'search_unavailable' },
+    });
+  }, 60_000);
+
+  it('does NOT hang when the server accepts the connection and never replies', async () => {
+    // The nastier outage: the socket opens, so there is no connection error to
+    // catch, and an un-timed fetch waits forever while the request holds a
+    // worker. Assert we give up and surface 503 instead.
+    const sockets: net.Socket[] = [];
+    const server = net.createServer((socket) => {
+      // Accept, hold the socket open, and never write a byte.
+      sockets.push(socket);
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as net.AddressInfo).port;
+
+    try {
+      const hung = new MeiliSearchIndex(`http://127.0.0.1:${port}`, undefined, 'nope', 1_500);
+      const svc = new RestaurantSearchService(p, hung, availability);
+      const started = Date.now();
+      await expect(svc.search({ q: 'anything' })).rejects.toMatchObject({
+        status: 503,
+        response: { code: 'search_unavailable' },
+      });
+      expect(Date.now() - started).toBeLessThan(10_000);
+    } finally {
+      // close() alone waits for open sockets, and the aborted request leaves
+      // one behind — that would hang the teardown rather than the test.
+      for (const s of sockets) s.destroy();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   }, 60_000);
 });
 

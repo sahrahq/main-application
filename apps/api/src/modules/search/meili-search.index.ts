@@ -5,6 +5,7 @@ import {
   IndexQuery,
   IndexHits,
 } from './search.port';
+import { querySkeleton } from './transliterate';
 
 export const DEFAULT_INDEX_UID = 'restaurants';
 
@@ -30,7 +31,19 @@ export class MeiliSearchIndex extends RestaurantIndexPort {
   private readonly uid: string;
   private ready = false;
 
-  constructor(host: string, apiKey?: string, uid: string = DEFAULT_INDEX_UID) {
+  /**
+   * `timeoutMs` is not optional in spirit. An un-timed `fetch` waits forever,
+   * and the nastiest search outage is not a refused connection — it is a
+   * server that accepts the socket and never answers. Without a deadline that
+   * request holds a worker until the client gives up, and the diner sees a
+   * spinner rather than an error.
+   */
+  constructor(
+    host: string,
+    apiKey?: string,
+    uid: string = DEFAULT_INDEX_UID,
+    private readonly timeoutMs: number = 8_000,
+  ) {
     super();
     this.base = host.replace(/\/+$/, '');
     this.apiKey = apiKey || undefined;
@@ -53,11 +66,19 @@ export class MeiliSearchIndex extends RestaurantIndexPort {
       'PATCH',
       `/indexes/${this.uid}/settings`,
       {
-        searchableAttributes: ['nameEn', 'nameAr', 'cuisines', 'neighborhood', 'city'],
+        // Order is significant: Meilisearch's `attribute` ranking rule favours
+      // earlier entries, so `translit` sits LAST and can only break ties that
+      // the real names did not already win.
+      searchableAttributes: [
+        'nameEn', 'nameAr', 'cuisines', 'neighborhood', 'city', 'translit',
+      ],
         filterableAttributes: [
           'cuisines', 'neighborhood', 'city', 'priceBand', 'rating', 'amenities', '_geo',
         ],
         sortableAttributes: ['rating', 'ratingCount', '_geo'],
+        // A skeleton is already a lossy key; letting typo tolerance stretch it
+        // further would match names that share nothing but a consonant or two.
+        typoTolerance: { disableOnAttributes: ['translit'] },
         // Arabic and English tokenise differently; naming both stops Meili
         // guessing per document and mis-stemming short Arabic names.
         localizedAttributes: [
@@ -80,25 +101,86 @@ export class MeiliSearchIndex extends RestaurantIndexPort {
     await this.request('POST', `/indexes/${this.uid}/documents/delete-batch`, ids);
   }
 
+  /**
+   * Two passes, merged: the query as typed, then its consonant skeleton.
+   *
+   * They are separate queries rather than one, because a skeleton is a
+   * DIFFERENT STRING from what the diner typed — "koshary" can never match the
+   * indexed key "kcr" no matter how the index is configured. Meilisearch is
+   * asked both questions in a single multi-search round trip.
+   *
+   * Order is the point: literal hits come first, transliteration hits fill in
+   * behind them. Cross-script recall must never push the obvious answer down
+   * the page.
+   */
   async query(q: IndexQuery): Promise<IndexHits> {
     const filter = this.buildFilter(q);
     const sort = this.buildSort(q);
+    const typed = q.q?.trim() || '';
+    // '' when nothing survives (an all-vowel query), which skips the pass
+    // rather than running it as a wildcard.
+    const phonetic = typed ? querySkeleton(typed) : '';
+
+    // Merging happens here, so paging cannot be delegated to Meilisearch:
+    // fetch through the current page from both passes and slice the merge.
+    const depth = q.offset + q.limit;
+    const base = {
+      ...(filter.length ? { filter } : {}),
+      ...(sort ? { sort } : {}),
+      attributesToRetrieve: ['id'],
+      limit: depth,
+      offset: 0,
+    };
+
     try {
-      const res = await this.request<{
-        hits: { id: string }[];
-        estimatedTotalHits?: number;
-      }>('POST', `/indexes/${this.uid}/search`, {
-        q: q.q?.trim() || '',
-        limit: q.limit,
-        offset: q.offset,
-        ...(filter.length ? { filter } : {}),
-        ...(sort ? { sort } : {}),
-        // Only the key. Everything else is hydrated from Postgres.
-        attributesToRetrieve: ['id'],
+      if (!phonetic || phonetic === typed) {
+        const res = await this.request<{
+          hits: { id: string }[];
+          estimatedTotalHits?: number;
+        }>('POST', `/indexes/${this.uid}/search`, {
+          ...base,
+          q: typed,
+          limit: q.limit,
+          offset: q.offset,
+        });
+        return {
+          ids: res.hits.map((h) => h.id),
+          estimatedTotal: res.estimatedTotalHits ?? res.hits.length,
+        };
+      }
+
+      const multi = await this.request<{
+        results: { hits: { id: string }[]; estimatedTotalHits?: number }[];
+      }>('POST', '/multi-search', {
+        queries: [
+          { indexUid: this.uid, ...base, q: typed },
+          // `all`, not Meilisearch's default `last`. The default drops query
+          // words from the end until something matches, which on a lossy
+          // skeleton key is a trapdoor: "zzz no such venue" reduces to
+          // "sc fn nhr", relaxes to "sc", and matches سوشي. A skeleton must
+          // match completely or not at all.
+          { indexUid: this.uid, ...base, q: phonetic, matchingStrategy: 'all' },
+        ],
       });
+
+      const [literal, translit] = multi.results;
+      const merged: string[] = [];
+      const seen = new Set<string>();
+      for (const hit of [...(literal?.hits ?? []), ...(translit?.hits ?? [])]) {
+        if (seen.has(hit.id)) continue;
+        seen.add(hit.id);
+        merged.push(hit.id);
+      }
+
       return {
-        ids: res.hits.map((h) => h.id),
-        estimatedTotal: res.estimatedTotalHits ?? res.hits.length,
+        ids: merged.slice(q.offset, q.offset + q.limit),
+        // An estimate, and named as one: the two passes overlap by an unknown
+        // amount, so the merged count is the only figure we actually know.
+        estimatedTotal: Math.max(
+          merged.length,
+          literal?.estimatedTotalHits ?? 0,
+          translit?.estimatedTotalHits ?? 0,
+        ),
       };
     } catch (err) {
       // A search outage must read as an outage. Returning [] would tell the
@@ -183,6 +265,7 @@ export class MeiliSearchIndex extends RestaurantIndexPort {
         ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(this.timeoutMs),
     });
 
     if (!res.ok && !tolerate.includes(res.status)) {
