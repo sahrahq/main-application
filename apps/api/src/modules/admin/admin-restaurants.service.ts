@@ -1,6 +1,7 @@
 import { Injectable, ForbiddenException, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { RestaurantStatus } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { AuditService } from '../../shared/audit/audit.service';
 
 /**
  * doc 06 §5 — `/admin/...`, roles admin/support/moderator.
@@ -16,6 +17,9 @@ const CAN_DECIDE = ['admin'];
 export interface AdminActor {
   actorId?: string;
   actorRoles: string[];
+  /** Recorded on the audit row — where the decision came from. */
+  ip?: string | null;
+  userAgent?: string | null;
 }
 
 export interface AdminRestaurantRow {
@@ -37,7 +41,10 @@ const SELECT = {
 export class AdminRestaurantsService {
   private readonly logger = new Logger(AdminRestaurantsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async listPendingReview(actor: AdminActor): Promise<AdminRestaurantRow[]> {
     this.assertRole(actor.actorRoles, CAN_READ_QUEUE);
@@ -51,21 +58,7 @@ export class AdminRestaurantsService {
   /** pending_review → active. The moment a venue can take real bookings. */
   async approve(input: AdminActor & { restaurantId: string }): Promise<AdminRestaurantRow> {
     this.assertRole(input.actorRoles, CAN_DECIDE);
-    await this.assertPending(input.restaurantId);
-
-    const out = await this.prisma.restaurant.update({
-      where: { id: input.restaurantId },
-      data: { status: RestaurantStatus.active },
-      select: SELECT,
-    });
-
-    // TODO(audit): doc 06 §5 requires every admin call to be audit-logged.
-    // The audit_logs table (doc 04 §2) is not in the P0 schema yet, so this
-    // is an application log only — NOT the append-only record the doc means.
-    this.logger.log(
-      `admin.restaurant.approve restaurant=${input.restaurantId} actor=${input.actorId ?? 'unknown'}`,
-    );
-    return out;
+    return this.decide(input, RestaurantStatus.active, 'restaurant.approve');
   }
 
   /**
@@ -79,41 +72,72 @@ export class AdminRestaurantsService {
     input: AdminActor & { restaurantId: string; reason?: string },
   ): Promise<AdminRestaurantRow> {
     this.assertRole(input.actorRoles, CAN_DECIDE);
-    await this.assertPending(input.restaurantId);
-
-    const out = await this.prisma.restaurant.update({
-      where: { id: input.restaurantId },
-      data: { status: RestaurantStatus.draft },
-      select: SELECT,
-    });
-
-    // TODO(audit): as above — the reason belongs in audit_logs, not a log line.
-    this.logger.log(
-      `admin.restaurant.reject restaurant=${input.restaurantId} ` +
-        `actor=${input.actorId ?? 'unknown'} reason=${JSON.stringify(input.reason ?? '')}`,
-    );
-    return out;
+    return this.decide(input, RestaurantStatus.draft, 'restaurant.reject', input.reason);
   }
 
-  private async assertPending(restaurantId: string): Promise<void> {
-    const r = await this.prisma.restaurant.findFirst({
-      where: { id: restaurantId, deletedAt: null },
-      select: { status: true },
+  /**
+   * The state change and its audit row, in ONE transaction.
+   *
+   * doc 06 §5 requires every admin call to be audit-logged. Writing the audit
+   * row outside the transaction would allow an approval to commit while its
+   * record was lost — the exact scenario that makes a decision impossible to
+   * reconstruct later. Here neither can happen without the other.
+   */
+  private async decide(
+    input: AdminActor & { restaurantId: string },
+    next: RestaurantStatus,
+    action: string,
+    reason?: string,
+  ): Promise<AdminRestaurantRow> {
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.restaurant.findFirst({
+        where: { id: input.restaurantId, deletedAt: null },
+        select: { status: true },
+      });
+      if (!current) {
+        throw new NotFoundException({
+          code: 'restaurant_not_found',
+          message: 'Restaurant not found.',
+          message_ar: 'المطعم غير موجود.',
+        });
+      }
+      if (current.status !== RestaurantStatus.pending_review) {
+        throw new ConflictException({
+          code: 'invalid_status_transition',
+          message: `Only a restaurant awaiting review can be decided (this one is ${current.status}).`,
+          message_ar: 'لا يمكن اتخاذ قرار إلا لمطعم في انتظار المراجعة.',
+        });
+      }
+
+      const out = await tx.restaurant.update({
+        where: { id: input.restaurantId },
+        data: { status: next },
+        select: SELECT,
+      });
+
+      await this.audit.record(
+        {
+          actorId: input.actorId ?? null,
+          // The role the decision was made UNDER, not every role held.
+          actorRole: this.decidingRole(input.actorRoles),
+          action,
+          entityType: 'restaurant',
+          entityId: input.restaurantId,
+          before: { status: current.status },
+          after: reason === undefined ? { status: next } : { status: next, reason },
+          ip: input.ip ?? null,
+          userAgent: input.userAgent ?? null,
+        },
+        tx,
+      );
+
+      return out;
     });
-    if (!r) {
-      throw new NotFoundException({
-        code: 'restaurant_not_found',
-        message: 'Restaurant not found.',
-        message_ar: 'المطعم غير موجود.',
-      });
-    }
-    if (r.status !== RestaurantStatus.pending_review) {
-      throw new ConflictException({
-        code: 'invalid_status_transition',
-        message: `Only a restaurant awaiting review can be decided (this one is ${r.status}).`,
-        message_ar: 'لا يمكن اتخاذ قرار إلا لمطعم في انتظار المراجعة.',
-      });
-    }
+  }
+
+  /** Which of the caller's roles actually authorised this. */
+  private decidingRole(actorRoles: string[]): string | null {
+    return actorRoles?.find((r) => CAN_DECIDE.includes(r)) ?? null;
   }
 
   private assertRole(actorRoles: string[], allowed: string[]): void {

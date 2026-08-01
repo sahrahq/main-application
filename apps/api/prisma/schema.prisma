@@ -138,9 +138,43 @@ model User {
   verifiedOwners   RestaurantOwner[] @relation("OwnerVerifiedBy")
   reservations     Reservation[]
   refreshTokens    RefreshToken[]
+  auditLogs        AuditLog[]
 
   @@index([status], map: "idx_users_status")
   @@map("users")
+}
+
+/// doc 04 §2 — append-only. Every admin decision must be reconstructable
+/// later: who did it, under which role, what changed, and from where.
+///
+/// The append-only guarantee is NOT expressible in Prisma. A trigger in the
+/// migration rejects UPDATE, DELETE and TRUNCATE. A trigger rather than
+/// GRANTs because the API connects as the table owner, and an owner is not
+/// bound by its own GRANTs — an audit trail the operator can quietly edit is
+/// not an audit trail.
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  actorId    String?  @map("actor_id") @db.Uuid
+  /// WHICH role authorised it. 'admin' and 'support' are not interchangeable
+  /// when reconstructing a decision months later.
+  actorRole  String?  @map("actor_role") @db.VarChar(30)
+  action     String   @db.VarChar(60)
+  entityType String   @map("entity_type") @db.VarChar(40)
+  entityId   String   @map("entity_id") @db.Uuid
+  before     Json?    @db.JsonB
+  after      Json?    @db.JsonB
+  ip         String?  @db.Inet
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  /// SetNull, never Cascade: erasing a user must not erase the record that
+  /// they approved something. PDPL erasure anonymises PII, it does not
+  /// rewrite history (doc 04 §2 users).
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId], map: "idx_audit_entity")
+  @@index([actorId, createdAt(sort: Desc)], map: "idx_audit_actor_created")
+  @@map("audit_logs")
 }
 
 /// NOT in docs/blueprint/04-database-design.md — added to implement the

@@ -15,6 +15,7 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../src/shared/prisma/prisma.service';
 import { OwnerReservationsService } from '../src/modules/restaurants/owner-reservations.service';
 import { AdminRestaurantsService } from '../src/modules/admin/admin-restaurants.service';
+import { AuditService } from '../src/shared/audit/audit.service';
 import { RestaurantsService } from '../src/modules/restaurants/restaurants.service';
 
 const url = (() => {
@@ -26,7 +27,7 @@ const prisma = new PrismaClient({ datasources: { db: { url } } });
 const p = prisma as unknown as PrismaService;
 
 const book = new OwnerReservationsService(p);
-const admin = new AdminRestaurantsService(p);
+const admin = new AdminRestaurantsService(p, new AuditService(p));
 const restaurants = new RestaurantsService(p);
 
 /** August ⇒ Cairo is UTC+3 (EEST). */

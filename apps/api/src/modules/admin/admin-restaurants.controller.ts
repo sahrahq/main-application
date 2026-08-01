@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards, ParseUUIDPipe } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Req, UseGuards, ParseUUIDPipe } from "@nestjs/common";
+import type { Request } from "express";
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { IsOptional, IsString, MaxLength } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
@@ -33,8 +34,11 @@ export class AdminRestaurantsController {
   @Roles("admin")
   @ApiOperation({ summary: "pending_review to active" })
   @ApiResponse({ status: 409, description: "invalid_status_transition" })
-  approve(@CurrentUser() user: AuthedUser, @Param("id", ParseUUIDPipe) id: string) {
-    return this.admin.approve({ actorId: user.id, actorRoles: user.roles, restaurantId: id });
+  approve(@CurrentUser() user: AuthedUser, @Param("id", ParseUUIDPipe) id: string, @Req() req: Request) {
+    return this.admin.approve({
+      actorId: user.id, actorRoles: user.roles, restaurantId: id,
+      ip: req.ip ?? null, userAgent: req.get("user-agent") ?? null,
+    });
   }
 
   @Post(":id/reject")
@@ -44,12 +48,15 @@ export class AdminRestaurantsController {
     @CurrentUser() user: AuthedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: RejectRestaurantDto,
+    @Req() req: Request,
   ) {
     return this.admin.reject({
       actorId: user.id,
       actorRoles: user.roles,
       restaurantId: id,
       reason: dto.reason,
+      ip: req.ip ?? null,
+      userAgent: req.get("user-agent") ?? null,
     });
   }
 }

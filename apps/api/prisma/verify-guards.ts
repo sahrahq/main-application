@@ -18,7 +18,7 @@ const prisma = new PrismaClient({
 const REQUIRED_TABLES = [
   'users', 'roles', 'user_roles', 'restaurant_owners', 'restaurants',
   'shifts', 'tables', 'reservations', 'reservation_tables',
-  'refresh_tokens', 'otp_challenges',
+  'refresh_tokens', 'audit_logs',
 ];
 
 const REQUIRED_INDEXES = [
@@ -26,7 +26,7 @@ const REQUIRED_INDEXES = [
   'idx_restaurants_active', 'idx_restaurants_location', 'idx_restaurants_cuisines',
   'idx_shifts_rest_dow', 'idx_shifts_rest_date', 'idx_tables_rest_capacity',
   'idx_resv_rest_time', 'idx_resv_user', 'idx_resv_active', 'idx_resv_hold_expiry',
-  'idx_restable_table',
+  'idx_restable_table', 'idx_audit_entity', 'idx_audit_actor_created',
 ];
 
 async function main(): Promise<void> {
