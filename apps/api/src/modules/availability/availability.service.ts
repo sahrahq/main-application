@@ -67,45 +67,61 @@ export class AvailabilityService {
     }
 
     const dayStart = new Date(`${q.date}T00:00:00.000Z`);
-    const shift = await this.shiftFor(q.restaurantId, dayStart);
-    if (!shift) return { date: q.date, partySize: q.partySize, timezone: 'Africa/Cairo', slots: [] };
-
-    const turnCfg =
-      (shift.defaultTurnMinutes as Record<string, number> | null) ?? DEFAULT_TURN_MINUTES;
-    const duration = turnMinutes(q.partySize, turnCfg) * 60_000;
+    const shifts = await this.shiftsFor(q.restaurantId, dayStart);
 
     // Fall back to Cairo rather than the server's zone: a bad timezone value
     // must not silently become "wherever this container happens to run".
     const tz = isValidTimeZone(restaurant.timezone) ? restaurant.timezone : 'Africa/Cairo';
 
-    // The shift's wall-clock bounds, resolved to real instants on this date.
-    const open = wallToInstant(q.date, shift.opensAt, tz);
-    let close = wallToInstant(q.date, shift.closesAt, tz);
-    // A shift that closes "before" it opens runs past midnight (doc 04 shifts).
-    if (shift.spansMidnight || close <= open) {
-      const [y, m, d] = q.date.split('-').map(Number);
-      const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
-      close = wallToInstant(next, shift.closesAt, tz);
+    if (shifts.length === 0) {
+      return { date: q.date, partySize: q.partySize, timezone: tz, slots: [] };
     }
 
     const stepMs = Math.max(5, restaurant.slotIntervalMin) * 60_000;
     const slots: Slot[] = [];
+    const seen = new Set<string>();
 
-    for (let t = open.getTime(); t + duration <= close.getTime(); t += stepMs) {
-      const startsAt = new Date(t);
-      const endsAt = new Date(t + duration);
-      const free = await this.freeTables(q.restaurantId, q.partySize, startsAt, endsAt);
-      if (free.length === 0) continue;
+    // EVERY shift on this day, not just the first. Lunch and dinner with a
+    // closed afternoon between them is the normal Cairo pattern (R-2.4,
+    // "multiple shifts"), and reading only one would silently drop half a
+    // restaurant's trading hours — the owner would add lunch and see nothing.
+    for (const shift of shifts) {
+      // Turn time is per-shift: a 90-minute lunch and a 120-minute dinner are
+      // different products, so the grid is stepped per shift, not globally.
+      const turnCfg =
+        (shift.defaultTurnMinutes as Record<string, number> | null) ?? DEFAULT_TURN_MINUTES;
+      const duration = turnMinutes(q.partySize, turnCfg) * 60_000;
 
-      slots.push({
-        // What the diner reads…
-        time: utcToZonedHhmm(startsAt, tz),
-        // …and what the client posts back. Never let these disagree.
-        startsAt: startsAt.toISOString(),
-        zones: [...new Set(free.map((f) => f.zone))].sort(),
-      });
+      const open = wallToInstant(q.date, shift.opensAt, tz);
+      let close = wallToInstant(q.date, shift.closesAt, tz);
+      // A shift that closes "before" it opens runs past midnight (doc 04).
+      if (shift.spansMidnight || close <= open) {
+        const [y, m, d] = q.date.split('-').map(Number);
+        const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+        close = wallToInstant(next, shift.closesAt, tz);
+      }
+
+      for (let t = open.getTime(); t + duration <= close.getTime(); t += stepMs) {
+        const startsAt = new Date(t);
+        const endsAt = new Date(t + duration);
+        const free = await this.freeTables(q.restaurantId, q.partySize, startsAt, endsAt);
+        if (free.length === 0) continue;
+
+        const iso = startsAt.toISOString();
+        if (seen.has(iso)) continue; // adjacent shifts can meet at a boundary
+        seen.add(iso);
+
+        slots.push({
+          // What the diner reads…
+          time: utcToZonedHhmm(startsAt, tz),
+          // …and what the client posts back. Never let these disagree.
+          startsAt: iso,
+          zones: [...new Set(free.map((f) => f.zone))].sort(),
+        });
+      }
     }
 
+    slots.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
     return { date: q.date, partySize: q.partySize, timezone: tz, slots };
   }
 
@@ -136,17 +152,34 @@ export class AvailabilityService {
         )`;
   }
 
-  /** Date-specific shift wins over the weekly pattern (doc 04 §2 shifts). */
-  private async shiftFor(restaurantId: string, dayStart: Date) {
-    const specific = await this.prisma.shift.findFirst({
-      where: { restaurantId, active: true, specificDate: dayStart },
-      select: { opensAt: true, closesAt: true, spansMidnight: true, defaultTurnMinutes: true },
-    });
-    if (specific) return specific;
+  /**
+   * ALL shifts governing this day (doc 04 §2 shifts, R-2.4 "multiple shifts").
+   *
+   * Date-specific rows win over the weekly pattern — if an owner has set
+   * special hours for a holiday, the weekly schedule for that weekday does not
+   * also apply, or the holiday would open the restaurant twice.
+   */
+  private async shiftsFor(restaurantId: string, dayStart: Date) {
+    const select = {
+      opensAt: true, closesAt: true, spansMidnight: true, defaultTurnMinutes: true,
+    };
 
-    return this.prisma.shift.findFirst({
-      where: { restaurantId, active: true, dayOfWeek: dayStart.getUTCDay() },
-      select: { opensAt: true, closesAt: true, spansMidnight: true, defaultTurnMinutes: true },
+    const specific = await this.prisma.shift.findMany({
+      where: { restaurantId, active: true, specificDate: dayStart },
+      select,
+      orderBy: { opensAt: 'asc' },
+    });
+    if (specific.length) return specific;
+
+    return this.prisma.shift.findMany({
+      where: {
+        restaurantId,
+        active: true,
+        dayOfWeek: dayStart.getUTCDay(),
+        specificDate: null,
+      },
+      select,
+      orderBy: { opensAt: 'asc' },
     });
   }
 }
