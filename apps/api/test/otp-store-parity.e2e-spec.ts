@@ -38,8 +38,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (redis) {
-    const keys = await redis.keys('otp:*parity*');
-    if (keys.length) await redis.del(...keys);
+    // Cover both shapes: otp:<purpose>:<user> and otp:send:{phone,ip}:<id>.
+    const keys = [...(await redis.keys('otp:*parity*')), ...(await redis.keys('otp:send:*'))];
+    if (keys.length) await redis.del(...new Set(keys));
     await redis.quit();
   }
 });
@@ -52,6 +53,14 @@ function contract(
   name: string,
   enabled: boolean,
   make: () => { store: OtpStore; limiter: RateLimiter },
+  /**
+   * Non-null ONLY for the Redis variant. Previously these assertions were
+   * guarded by `if (redis)`, which means "a Redis server exists" — not "this
+   * run is using Redis". Once Redis was actually up, the in-memory run started
+   * inspecting keys it had never written and failed. The introspection has to
+   * follow the adapter under test, not the environment.
+   */
+  introspect: () => Redis | null = () => null,
 ) {
   // describe.skip, not a runtime early-return: a skipped adapter must show as
   // SKIPPED in the report, never as a pass.
@@ -61,14 +70,32 @@ function contract(
     const build = () => {
       const parts = make();
       const delivery = new RecordingOtpDelivery();
-      return { service: new OtpService(parts.store, parts.limiter, delivery), delivery };
+      return {
+        service: new OtpService(parts.store, parts.limiter, delivery),
+        delivery,
+        parts,
+      };
     };
+
+    /**
+     * Fresh identifiers per test.
+     *
+     * The in-memory adapters are reconstructed by build() and are therefore
+     * isolated for free. Redis is one shared keyspace — which is precisely the
+     * production semantic — so reusing a phone number leaked the per-phone
+     * send cap from one test into the next and failed the following three.
+     * The contract must not assume a clean slate.
+     */
+    const freshUser = () => `parity-u-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const freshPhone = () =>
+      `+2010${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
 
     it('issues, verifies once, and refuses the replay', async () => {
       const b = build();
-      const user = `parity-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const parts = b.parts;
+      const user = freshUser();
 
-      await b.service.issue({ userId: user, phone: '+201000000000', purpose: 'phone_verify' });
+      await b.service.issue({ userId: user, phone: freshPhone(), purpose: 'phone_verify' });
       const { code } = b.delivery.sent[0];
 
       await expect(b.service.verify({ userId: user, purpose: 'phone_verify', code })).resolves.toBe(true);
@@ -79,9 +106,10 @@ function contract(
 
     it(`locks after ${MAX_ATTEMPTS} wrong codes`, async () => {
       const b = build();
-      const user = `parity-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const parts = b.parts;
+      const user = freshUser();
 
-      await b.service.issue({ userId: user, phone: '+201000000000', purpose: 'phone_verify' });
+      await b.service.issue({ userId: user, phone: freshPhone(), purpose: 'phone_verify' });
       const { code } = b.delivery.sent[0];
 
       for (let i = 0; i < MAX_ATTEMPTS; i++) {
@@ -98,21 +126,28 @@ function contract(
 
     it('never persists the plaintext code', async () => {
       const b = build();
-      const user = `parity-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const parts = b.parts;
+      const user = freshUser();
 
-      await b.service.issue({ userId: user, phone: '+201000000000', purpose: 'phone_verify' });
+      await b.service.issue({ userId: user, phone: freshPhone(), purpose: 'phone_verify' });
       const { code } = b.delivery.sent[0];
 
-      if (redis) {
-        const stored = await redis.hgetall(`otp:phone_verify:${user}`);
+      const r = introspect();
+      if (r) {
+        // Redis variant: prove the plaintext is absent from what was persisted.
+        const stored = await r.hgetall(`otp:phone_verify:${user}`);
         expect(JSON.stringify(stored)).not.toContain(code);
         expect(stored.codeHash).toBeDefined();
+      } else {
+        // In-memory variant: same property, read from the store itself.
+        expect(JSON.stringify((parts.store as InMemoryOtpStore).dump())).not.toContain(code);
       }
     }, 30_000);
 
     it('enforces the per-phone send cap', async () => {
       const b = build();
-      const phone = `+2010${Date.now().toString().slice(-8)}`;
+      const parts = b.parts;
+      const phone = freshPhone();
 
       for (let i = 0; i < 3; i++) {
         await b.service.issue({ userId: `parity-u${i}`, phone, purpose: 'phone_verify' });
@@ -124,21 +159,24 @@ function contract(
 
     it('a blocked caller cannot extend their own lockout by retrying', async () => {
       const b = build();
-      const phone = `+2011${Date.now().toString().slice(-8)}`;
+      const parts = b.parts;
+      const phone = freshPhone();
+      const rUser = freshUser();
 
       for (let i = 0; i < 3; i++) {
-        await b.service.issue({ userId: 'parity-r', phone, purpose: 'phone_verify' });
+        await b.service.issue({ userId: rUser, phone, purpose: 'phone_verify' });
       }
       // Hammering while blocked must not push the window forward — otherwise a
       // retry loop locks the real user out indefinitely.
       for (let i = 0; i < 5; i++) {
         await expect(
-          b.service.issue({ userId: 'parity-r', phone, purpose: 'phone_verify' }),
+          b.service.issue({ userId: rUser, phone, purpose: 'phone_verify' }),
         ).rejects.toMatchObject({ response: { code: 'otp_rate_limited' } });
       }
 
-      if (redis) {
-        const count = await redis.zcard(`otp:send:phone:${phone}`);
+      const r = introspect();
+      if (r) {
+        const count = await r.zcard(`otp:send:phone:${phone}`);
         expect(count).toBe(3); // still 3, not 8
       }
     }, 30_000);
@@ -152,10 +190,12 @@ contract('InMemory', true, () => ({
 }));
 
 // Runs ONLY when Redis is actually reachable; otherwise reported as skipped.
-contract('Redis', REDIS_UP, () => ({
-  store: new RedisOtpStore(redis!),
-  limiter: new RedisRateLimiter(redis!),
-}));
+contract(
+  'Redis',
+  REDIS_UP,
+  () => ({ store: new RedisOtpStore(redis!), limiter: new RedisRateLimiter(redis!) }),
+  () => redis,
+);
 
 describe('Redis availability', () => {
   it('states plainly whether the Redis half ran', () => {
