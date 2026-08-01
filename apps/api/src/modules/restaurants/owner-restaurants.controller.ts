@@ -1,8 +1,10 @@
 import {
-  Body, Controller, Get, Param, Patch, Post, UseGuards, ParseUUIDPipe, ForbiddenException,
+  Body, Controller, Get, Param, Patch, Post, Query, UseGuards, ParseUUIDPipe,
+  ForbiddenException, BadRequestException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RestaurantsService } from './restaurants.service';
+import { OwnerReservationsService } from './owner-reservations.service';
 import { CreateRestaurantDto, UpdateRestaurantDto } from './dto/restaurant.dto';
 import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
@@ -17,6 +19,7 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 export class OwnerRestaurantsController {
   constructor(
     private readonly restaurants: RestaurantsService,
+    private readonly book: OwnerReservationsService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -69,6 +72,34 @@ export class OwnerRestaurantsController {
     @Body() dto: UpdateRestaurantDto,
   ) {
     return this.restaurants.update(await this.ownerIdOf(user), id, dto);
+  }
+
+  /**
+   * The book (doc 06 §4). `date` is the venue's LOCAL calendar day — a Cairo
+   * restaurant's 01:00 covers belong to that night's service, not to the
+   * previous UTC date.
+   */
+  @Get(':id/reservations')
+  @ApiOperation({ summary: "Tonight's book, in the restaurant's local time" })
+  async reservations(
+    @CurrentUser() user: AuthedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('date') date: string,
+    @Query('status') status?: string,
+  ) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '')) {
+      throw new BadRequestException({
+        code: 'invalid_date',
+        message: 'date must be YYYY-MM-DD.',
+        message_ar: 'التاريخ لازم يكون بصيغة YYYY-MM-DD.',
+      });
+    }
+    return this.book.listForDate({
+      ownerId: await this.ownerIdOf(user),
+      restaurantId: id,
+      date,
+      status,
+    });
   }
 
   @Post(':id/submit')
