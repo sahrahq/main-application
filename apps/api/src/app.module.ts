@@ -9,6 +9,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { RestaurantsModule } from "./modules/restaurants/restaurants.module";
 import { AvailabilityModule } from "./modules/availability/availability.module";
 import { AdminModule } from "./modules/admin/admin.module";
+import { SearchModule } from "./modules/search/search.module";
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AdminModule } from "./modules/admin/admin.module";
     AuthModule,
     RestaurantsModule,
     AvailabilityModule,
+    SearchModule,
     AdminModule,
     ReservationsModule,
   ],

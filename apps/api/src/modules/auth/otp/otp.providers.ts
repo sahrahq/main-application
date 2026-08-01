@@ -1,4 +1,4 @@
-import { Logger, Provider } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationShutdown, Provider } from '@nestjs/common';
 import Redis from 'ioredis';
 import { OTP_STORE, RATE_LIMITER, OTP_DELIVERY, OTP_CLOCK } from './otp.ports';
 import { RedisOtpStore } from './stores/redis-otp.store';
@@ -72,12 +72,40 @@ function resolveRedis(): Promise<Redis | null> {
   return cached;
 }
 
+/**
+ * Close the boot-time connection and forget it.
+ *
+ * The client lives in a module-level cache rather than in the DI container, so
+ * `app.close()` has nothing to call on it — it would sit open and keep the
+ * process alive after shutdown. OtpRedisLifecycle wires this into the Nest
+ * shutdown sequence; without it, anything that boots the app (tests, a CLI
+ * script, a graceful restart) hangs on an idle socket.
+ */
+export async function closeOtpRedis(): Promise<void> {
+  const pending = cached;
+  cached = null;
+  if (!pending) return;
+  const client = await pending.catch(() => null);
+  if (!client) return;
+  // quit() drains in-flight commands; disconnect() is the hard fallback for a
+  // connection that is already broken and would otherwise hang the close.
+  await client.quit().catch(() => client.disconnect());
+}
+
 /** Never log credentials embedded in a connection string. */
 function redact(url: string): string {
   return url.replace(/\/\/[^@]*@/, '//***@');
 }
 
+@Injectable()
+export class OtpRedisLifecycle implements OnApplicationShutdown {
+  async onApplicationShutdown(): Promise<void> {
+    await closeOtpRedis();
+  }
+}
+
 export const otpProviders: Provider[] = [
+  OtpRedisLifecycle,
   {
     provide: OTP_STORE,
     useFactory: async () => {

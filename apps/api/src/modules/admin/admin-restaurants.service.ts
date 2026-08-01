@@ -2,6 +2,8 @@ import { Injectable, ForbiddenException, NotFoundException, ConflictException, L
 import { RestaurantStatus } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { AuditService } from '../../shared/audit/audit.service';
+import { RestaurantIndexPort } from '../search/search.port';
+import { loadLiveRows, toSearchDoc } from '../search/search-doc';
 
 /**
  * doc 06 §5 — `/admin/...`, roles admin/support/moderator.
@@ -44,6 +46,12 @@ export class AdminRestaurantsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    /**
+     * Optional so this service can be constructed without the search stack —
+     * and so that when it IS present, indexing stays a consequence of the
+     * decision rather than a condition of it (see syncIndex).
+     */
+    private readonly index?: RestaurantIndexPort,
   ) {}
 
   async listPendingReview(actor: AdminActor): Promise<AdminRestaurantRow[]> {
@@ -58,7 +66,9 @@ export class AdminRestaurantsService {
   /** pending_review → active. The moment a venue can take real bookings. */
   async approve(input: AdminActor & { restaurantId: string }): Promise<AdminRestaurantRow> {
     this.assertRole(input.actorRoles, CAN_DECIDE);
-    return this.decide(input, RestaurantStatus.active, 'restaurant.approve');
+    const out = await this.decide(input, RestaurantStatus.active, 'restaurant.approve');
+    await this.syncIndex(input.restaurantId);
+    return out;
   }
 
   /**
@@ -72,7 +82,37 @@ export class AdminRestaurantsService {
     input: AdminActor & { restaurantId: string; reason?: string },
   ): Promise<AdminRestaurantRow> {
     this.assertRole(input.actorRoles, CAN_DECIDE);
-    return this.decide(input, RestaurantStatus.draft, 'restaurant.reject', input.reason);
+    const out = await this.decide(input, RestaurantStatus.draft, 'restaurant.reject', input.reason);
+    await this.syncIndex(input.restaurantId);
+    return out;
+  }
+
+  /**
+   * Bring the search index in line with what Postgres now says — active goes
+   * in, anything else comes out.
+   *
+   * Deliberately AFTER the transaction and inside a catch. Two reasons:
+   *
+   *  - Indexing inside the transaction would hold a database transaction open
+   *    across a network call to another service.
+   *  - A search server being down must never stop an admin approving a venue.
+   *    Postgres is the source of truth; the index is a derived copy. The cost
+   *    of failure here is a venue that is live but not yet discoverable, which
+   *    `pnpm reindex` fixes and which the logged warning names explicitly.
+   */
+  private async syncIndex(restaurantId: string): Promise<void> {
+    if (!this.index) return;
+    try {
+      const rows = await loadLiveRows(this.prisma, [restaurantId]);
+      const row = rows.get(restaurantId);
+      if (row) await this.index.upsert([toSearchDoc(row)]);
+      else await this.index.remove([restaurantId]);
+    } catch (err) {
+      this.logger.error(
+        `Search index sync failed for ${restaurantId}: ${(err as Error).message}. ` +
+          'The decision is committed; run `pnpm reindex` to reconcile.',
+      );
+    }
   }
 
   /**

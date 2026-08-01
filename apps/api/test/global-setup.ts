@@ -47,6 +47,27 @@ export default async function globalSetup(): Promise<void> {
   const up = await probe(host, port);
   process.env.REDIS_AVAILABLE = up ? "1" : "0";
 
+  // Same treatment for Meilisearch: decide before describes register, so an
+  // absent server yields `skipped`, never a green tick.
+  const meili = process.env.MEILISEARCH_HOST ?? "http://localhost:7700";
+  let mHost = "localhost";
+  let mPort = 7700;
+  try {
+    const mu = new URL(meili);
+    mHost = mu.hostname || mHost;
+    mPort = Number(mu.port || 7700);
+  } catch {
+    /* keep defaults */
+  }
+  const meiliUp = await probe(mHost, mPort);
+  process.env.MEILI_AVAILABLE = meiliUp ? "1" : "0";
+  // eslint-disable-next-line no-console
+  console.log(
+    meiliUp
+      ? `[meili] reachable at ${mHost}:${mPort} — search suites WILL run.`
+      : `[meili] unreachable at ${mHost}:${mPort} — search suites will be SKIPPED (not passed).`,
+  );
+
   // eslint-disable-next-line no-console
   console.log(
     up
