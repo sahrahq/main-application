@@ -86,35 +86,42 @@ class _SahraButtonState extends State<SahraButton> {
         enabled: widget._enabled,
         label: widget.semanticLabel ?? widget.label,
         child: GestureDetector(
+          // Opaque so the whole 48dp box below is tappable, including the
+          // transparent margin around a small button.
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onPressed,
           onTapDown: widget._enabled ? (_) => setState(() => _pressed = true) : null,
           onTapUp: widget._enabled ? (_) => setState(() => _pressed = false) : null,
           onTapCancel: widget._enabled ? () => setState(() => _pressed = false) : null,
-          child: AnimatedScale(
-            // DESIGN-RULES.md: "press scale .98; no bounces."
-            scale: _pressed ? SahraRules.pressScale : 1.0,
-            duration: SahraRules.motionFast,
-            curve: SahraRules.motionCurve,
-            child: Material(
-              color: palette.background,
-              shape: RoundedRectangleBorder(
-                borderRadius: SahraRadius.allOf(
-                  widget.pill ? SahraRadius.pill : SahraRadius.md,
-                ),
-                side: palette.border == null
-                    ? BorderSide.none
-                    : BorderSide(color: palette.border!, width: 1.5),
-              ),
-              child: InkWell(
-                onTap: widget.onPressed,
-                borderRadius: SahraRadius.allOf(
-                  widget.pill ? SahraRadius.pill : SahraRadius.md,
-                ),
-                child: ConstrainedBox(
-                  // Every button clears 44pt whatever its padding says
-                  // (DESIGN-RULES.md / CLAUDE.md design rule 4).
-                  constraints: const BoxConstraints(
-                    minHeight: SahraRules.minTouchTarget,
-                    minWidth: SahraRules.minTouchTarget,
+          child: ConstrainedBox(
+            // The TOUCH TARGET is 48dp — not the button.
+            //
+            // Constraining the painted box instead made all three sizes render
+            // at the same height, so `sm` was not small and the size scale did
+            // nothing. Caught by looking at the goldens, which is the entire
+            // reason they exist. The hit area grows; the visual stays the size
+            // the reference asks for.
+            constraints: const BoxConstraints(
+              minHeight: SahraRules.minTouchTarget,
+              minWidth: SahraRules.minTouchTarget,
+            ),
+            child: Center(
+              widthFactor: 1,
+              heightFactor: 1,
+              child: AnimatedScale(
+                // DESIGN-RULES.md: "press scale .98; no bounces."
+                scale: _pressed ? SahraRules.pressScale : 1.0,
+                duration: SahraRules.motionFast,
+                curve: SahraRules.motionCurve,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: palette.background,
+                    borderRadius: SahraRadius.allOf(
+                      widget.pill ? SahraRadius.pill : SahraRadius.md,
+                    ),
+                    border: palette.border == null
+                        ? null
+                        : Border.all(color: palette.border!, width: 1.5),
                   ),
                   child: Padding(
                     padding: SahraSpace.symmetric(
@@ -127,7 +134,10 @@ class _SahraButtonState extends State<SahraButton> {
                       children: <Widget>[
                         if (widget.icon != null) ...<Widget>[
                           IconTheme.merge(
-                            data: IconThemeData(color: palette.foreground, size: metrics.fontSize),
+                            data: IconThemeData(
+                              color: palette.foreground,
+                              size: metrics.fontSize,
+                            ),
                             child: widget.icon!,
                           ),
                           SizedBox(width: SahraSpace.s2),
@@ -206,19 +216,19 @@ class _Metrics {
   final double fontSize;
 }
 
-/// PROVISIONAL — see the open question in the setup-day report.
-///
 /// `Button.jsx` specifies `sm: 8px 14px / 13px`, `md: 12px 20px / 14px`,
-/// `lg: 15px 26px / 15px`. `md` lands exactly on the token scale
-/// (space-3 / space-5 / text-body-m). `sm` and `lg` do not: 14, 15 and 26 are
-/// off a 4px scale and 15px is not in the type ramp.
+/// `lg: 15px 26px / 15px`. `md` lands exactly on the token scale; `sm` and
+/// `lg` do not — 14, 15 and 26 are off the 4px scale and 15px is not in the
+/// type ramp.
 ///
-/// DESIGN-RULES.md says the reference wins when it disagrees with prose, which
-/// would mean adding tokens — the precedent set by `leading-arabic`. But
-/// inventing three tokens to satisfy one component's padding is how a scale
-/// stops being a scale, so this uses the nearest on-scale neighbours and the
-/// question is raised rather than settled unilaterally. Goldens for this
-/// component are cheap to regenerate once it is decided.
+/// DECIDED 2026-08-02: round to the nearest on-scale neighbour. Those are
+/// incidental CSS values with no intent behind them, unlike `leading-arabic`
+/// where 1.7 was a deliberate typographic choice about how Arabic reads.
+/// Adding off-scale tokens to preserve a rounding error would break the 4px
+/// system permanently, and a scale with exceptions is not a scale.
+///
+/// Checked by eye against the goldens afterwards: the three sizes read as
+/// distinct and correctly proportioned.
 _Metrics _metrics(SahraButtonSize size) => switch (size) {
       SahraButtonSize.sm => const _Metrics(SahraSpace.s3, SahraSpace.s2, SahraTypeScale.bodyS),
       SahraButtonSize.md => const _Metrics(SahraSpace.s5, SahraSpace.s3, SahraTypeScale.bodyM),

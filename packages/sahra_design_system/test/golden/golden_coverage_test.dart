@@ -34,6 +34,18 @@ void main() {
   final root = _packageRoot();
   final goldenDir = Directory('${root.path}/test/golden/goldens');
 
+  // THE CENSUS. Everything below iterates `componentGoldens`; an empty
+  // registry would make all of it pass while nothing was pictured at all.
+  test('the registry is populated', () {
+    expect(componentGoldens, isNotEmpty);
+    expect(exportedComponents, isNotEmpty);
+    expect(
+      componentGoldens.length,
+      greaterThanOrEqualTo(exportedComponents.length),
+      reason: 'Fewer registered variants than exported components',
+    );
+  });
+
   group('every component is pictured four times', () {
     test('each registered variant has all four cells on disk', () {
       final missing = <String>[];
@@ -81,6 +93,8 @@ void main() {
 
   group('fonts actually loaded — otherwise every golden is boxes', () {
     testWidgets('the bundled families all exist on disk', (tester) async {
+      // Census again: an empty font map would make the loop below a no-op.
+      expect(sahraFontAssets.length, 4, reason: 'Expected four bundled families');
       for (final entry in sahraFontAssets.entries) {
         for (final asset in entry.value) {
           expect(File('${root.path}/$asset').existsSync(), isTrue,

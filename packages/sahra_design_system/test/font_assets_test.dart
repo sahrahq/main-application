@@ -72,6 +72,13 @@ void main() {
     'font-mono': SahraTokens.fontMono,
   };
 
+  test('the pubspec parser actually found the font declarations', () {
+    // Census: if the pubspec parse returned nothing, every assertion about
+    // declared assets below would pass by having nothing to check.
+    expect(declared.length, 4, reason: 'Parsed ${declared.length} families from pubspec');
+    expect(declared.values.expand((a) => a).length, greaterThanOrEqualTo(10));
+  });
+
   group('every family named in tokens.json ships', () {
     test('the token list here covers every font token in the theme', () {
       // Guards this test against going stale: a new font-* token in

@@ -99,6 +99,23 @@ int _commentStart(String line) {
   return -1;
 }
 
+/// How many lines the scanners actually PARSED.
+///
+/// Every scanner in this file has the shape "find things, assert none are
+/// bad" — and a scanner that finds nothing satisfies that trivially. If a
+/// comment-stripping change or a path bug made `_scannableLines` return
+/// empty, every rule would report clean on a codebase full of violations.
+///
+/// Calling tests assert this is non-zero, so "no violations" always means
+/// "looked, found none" and never "did not look".
+int scannedLineCount(Directory dir, {List<String> excludePathContains = const <String>[]}) {
+  var n = 0;
+  for (final file in dartSources(dir, excludePathContains: excludePathContains)) {
+    n += _scannableLines(file, '__none__').length;
+  }
+  return n;
+}
+
 int countExemptions(List<File> files, String exemptTag) {
   var n = 0;
   for (final f in files) {

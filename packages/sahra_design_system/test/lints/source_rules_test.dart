@@ -23,8 +23,12 @@ Directory _lib() {
 void main() {
   final lib = _lib();
 
-  test('there is something to scan', () {
-    expect(dartSources(lib), isNotEmpty);
+  // THE CENSUS. Every test below has the shape "find things, assert none are
+  // bad", which a scanner that finds NOTHING satisfies trivially. Assert we
+  // actually looked before believing any of them.
+  test('the scanner found files and parsed lines', () {
+    expect(dartSources(lib).length, greaterThanOrEqualTo(5));
+    expect(scannedLineCount(lib), greaterThan(200));
   });
 
   test('no hardcoded colours, spacing, radii or fonts', () {

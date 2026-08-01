@@ -55,6 +55,13 @@ void main() {
   final enKeys = _messageKeys(en);
   final arKeys = _messageKeys(ar);
 
+  test('the ARB files actually parsed', () {
+    // Census: every parity assertion below compares two sets. Two EMPTY sets
+    // are equal, so a parse failure would report perfect parity over nothing.
+    expect(enKeys.length, greaterThanOrEqualTo(45));
+    expect(arKeys.length, greaterThanOrEqualTo(45));
+  });
+
   group('ARB parity', () {
     test('every English key exists in Arabic', () {
       expect(enKeys.difference(arKeys), isEmpty,

@@ -1,6 +1,6 @@
 // GENERATED — DO NOT EDIT BY HAND.
 //
-// Source: docs/design/tokens.json (74 light + 7 night)
+// Source: docs/design/tokens.json (75 light + 10 night)
 // Regenerate: dart run tool/generate_tokens.dart
 //
 // Editing this file instead of the JSON is the one way to make the design
@@ -46,12 +46,14 @@ class SahraTokens {
   static const Color inkSoft = Color(0xFF4A4640);
   /// `ink-faint`: `#8A8479`
   static const Color inkFaint = Color(0xFF8A8479);
+  /// `ink-faint-legible`: `#706B62`
+  static const Color inkFaintLegible = Color(0xFF706B62);
   /// `border`: `#E4D9C7`
   static const Color border = Color(0xFFE4D9C7);
-  /// `success`: `#4C7A4F`
-  static const Color success = Color(0xFF4C7A4F);
-  /// `warning`: `#C48A4B`
-  static const Color warning = Color(0xFFC48A4B);
+  /// `success`: `#49754C`
+  static const Color success = Color(0xFF49754C);
+  /// `warning`: `#8F612F`
+  static const Color warning = Color(0xFF8F612F);
   /// `error`: `#B3412A`
   static const Color error = Color(0xFFB3412A);
   /// `night`: `#1A1310`
@@ -78,8 +80,8 @@ class SahraTokens {
   static const Color textBody = ink;
   /// `text-soft` → `var(--ink-soft)`
   static const Color textSoft = inkSoft;
-  /// `text-faint` → `var(--ink-faint)`
-  static const Color textFaint = inkFaint;
+  /// `text-faint` → `var(--ink-faint-legible)`
+  static const Color textFaint = inkFaintLegible;
   /// `accent` → `var(--terracotta)`
   static const Color accent = terracotta;
   /// `accent-hover` → `var(--terracotta-dark)`
@@ -193,6 +195,7 @@ class SahraTokens {
     'ink': ink,
     'ink-soft': inkSoft,
     'ink-faint': inkFaint,
+    'ink-faint-legible': inkFaintLegible,
     'border': border,
     'success': success,
     'warning': warning,
@@ -256,7 +259,7 @@ class SahraTokens {
   };
 }
 
-/// The `themeNight` overrides. Dark mode changes ONLY these 7
+/// The `themeNight` overrides. Dark mode changes ONLY these 10
 /// tokens; everything else — terracotta above all — is shared, which is
 /// why the brand does not shift between themes (DESIGN-RULES.md).
 class SahraNightTokens {
@@ -276,6 +279,12 @@ class SahraNightTokens {
   static const Color textFaint = SahraTokens.nightTextFaint;
   /// `line` → `var(--night-border)`
   static const Color line = SahraTokens.nightBorder;
+  /// `success` → `#619B64`
+  static const Color success = Color(0xFF619B64);
+  /// `warning` → `var(--gold-dark)`
+  static const Color warning = SahraTokens.goldDark;
+  /// `error` → `#D9705B`
+  static const Color error = Color(0xFFD9705B);
 
   static const Map<String, Object> byToken = <String, Object>{
     'surface-page': surfacePage,
@@ -285,5 +294,8 @@ class SahraNightTokens {
     'text-soft': textSoft,
     'text-faint': textFaint,
     'line': line,
+    'success': success,
+    'warning': warning,
+    'error': error,
   };
 }

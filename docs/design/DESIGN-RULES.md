@@ -21,6 +21,23 @@ Everything under `docs/design/` (this design package) is a **high-fidelity HTML/
 2. **Components** — port `components/` (core → venue → social → navigation → brand), matching the `.d.ts` APIs.
 3. **Screens** — each screen from its file in `ui_kits/app/`, composed only from ported components + tokens.
 
+## Standing rule: accessibility outranks this document
+
+**Where a reference file and WCAG 2.1 AA disagree, AA wins. Every time, without
+asking.** This overrides "the HTML wins" below, and it is not a per-component
+judgement call.
+
+The reference files were drawn, not measured. Applying that rule once found
+**13 failing colour pairs** in the palette, including `text-faint` on every
+light surface (3.16–3.48:1) and `warning` — the value this document recommends
+*as* the readable gold — at 2.52–2.78:1. Tokens were adjusted; see
+`docs/decisions/2026-08-02-accessibility-outranks-the-reference.md` for the
+measured before/after.
+
+Enforced by `packages/sahra_design_system/test/a11y/palette_contrast_test.dart`,
+which fails on any text/surface pair below 4.5:1 in either theme — so this is
+checked across the whole palette, not component by component.
+
 ## Hard rules (never violate)
 - **Colors come from tokens only.** Never hardcode a hex in screen/widget code. Semantic aliases (`surface-page`, `text-body`, `accent`, `line`…) — not raw brand values — so dark theme works free.
 - **Gold `#E0A96D` is accent/celebration only** — never a background wash, never a second primary, never body text on light (use `gold-dark` for text).

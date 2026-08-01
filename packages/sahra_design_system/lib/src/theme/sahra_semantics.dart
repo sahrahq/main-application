@@ -5,10 +5,11 @@ import '../generated/tokens.g.dart';
 /// The theme-varying half of the design tokens, reachable from any widget as
 /// `Theme.of(context).extension<SahraSemantics>()!`.
 ///
-/// Dark mode overrides exactly SEVEN tokens (`themeNight` in tokens.json).
-/// Everything else — terracotta above all — is shared, which is why the brand
-/// does not shift between themes (DESIGN-RULES.md: "Terracotta #C64A2B is used
-/// unmodified in both themes").
+/// Dark mode overrides TEN tokens (`themeNight` in tokens.json) — the seven
+/// surface/text values plus success/warning/error, which need per-theme values
+/// to stay legible. Everything else — terracotta above all — is shared, which
+/// is why the brand does not shift between themes (DESIGN-RULES.md:
+/// "Terracotta #C64A2B is used unmodified in both themes").
 ///
 /// Widgets reference the SEMANTIC names here (`surfaceCard`, `textBody`,
 /// `line`), never the brand values (`cream-card`, `ink`, `border`). That is
@@ -72,9 +73,12 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
         accentOnSurface: SahraTokens.terracottaLight,
         premium: SahraTokens.premium,
         line: SahraNightTokens.line,
-        success: SahraTokens.success,
-        warning: SahraTokens.warning,
-        error: SahraTokens.error,
+        // success and error are tuned per theme: the light values measured
+        // 3.67 and 3.24 against the night surfaces. warning is the reverse —
+        // gold-dark reads on night but not on cream.
+        success: SahraNightTokens.success,
+        warning: SahraNightTokens.warning,
+        error: SahraNightTokens.error,
         brightness: Brightness.dark,
       );
 
