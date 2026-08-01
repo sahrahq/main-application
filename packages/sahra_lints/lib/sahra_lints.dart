@@ -73,10 +73,16 @@ List<_Line> _scannableLines(File file, String exemptTag) {
     final code = commentAt == -1 ? line : line.substring(0, commentAt);
     if (code.trim().isEmpty) continue;
 
-    final previous = i > 0 ? lines[i - 1] : '';
-    if (previous.contains('$exemptTag-exempt:') || line.contains('$exemptTag-exempt:')) {
-      continue;
+    // Look back through a CONTIGUOUS comment block, not just one line. A
+    // one-line lookback silently ignored every exemption whose justification
+    // ran to a second sentence — which is most of the ones worth writing.
+    var exempt = line.contains('$exemptTag-exempt:');
+    for (var j = i - 1; j >= 0 && !exempt; j--) {
+      final above = lines[j].trim();
+      if (!above.startsWith('//')) break;
+      if (above.contains('$exemptTag-exempt:')) exempt = true;
     }
+    if (exempt) continue;
     out.add(_Line(i + 1, code));
   }
   return out;

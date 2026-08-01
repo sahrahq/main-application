@@ -517,6 +517,33 @@ produced.
 
 ---
 
+# Standing rule: LOOK at the goldens at the end of every wave
+
+Testing has now twice found nothing while looking found a real defect. So this
+is a step, not a habit:
+
+**At the end of each wave, open that wave's goldens — all four cells — before
+reporting the wave done. Say what looking found that testing did not. If it
+found nothing, say that too.**
+
+Also standing, from the same reasoning: **break at least one guard deliberately
+per wave** and report the result. A guard nobody has watched fail is not known
+to work.
+
+## What looking has found so far
+
+| Wave | Found by looking, not by any assertion |
+|---|---|
+| setup | All three Button sizes rendered at the same height — the 48dp minimum was constraining the painted box, not the hit area, so `sm` was not small |
+| 1 | `★` (U+2605) rendered as tofu — Poppins has no such glyph. The rating star is now drawn, not typed |
+| 1 | The drawn star was OUTLINED, which reads as an unearned rating, and gold where the reference says terracotta |
+
+None of these could fail a test: a missing glyph still has width, an outlined
+star still renders, and a button of the wrong height still passes every
+guideline.
+
+---
+
 # Component build order
 
 16 components (matching CLAUDE.md), across five groups:

@@ -36,6 +36,11 @@ void main() {
 
   // THE CENSUS. Everything below iterates `componentGoldens`; an empty
   // registry would make all of it pass while nothing was pictured at all.
+  test('every wave-1 component is registered', () {
+    // The wave is not done until each component has a picture in four cells.
+    expect(exportedComponents.length, 8, reason: 'Wave 1 is Button + 7 roots');
+  });
+
   test('the registry is populated', () {
     expect(componentGoldens, isNotEmpty);
     expect(exportedComponents, isNotEmpty);
@@ -76,6 +81,9 @@ void main() {
               .whereType<File>()
               .where((f) => f.path.endsWith('.png'))
               .map((f) => f.uri.pathSegments.last)
+              // `Review_*` are review artefacts (the contrast audit page), not
+              // components. They have no registry entry by design.
+              .where((n) => !n.startsWith('Review_'))
               .toSet()
           : <String>{};
 

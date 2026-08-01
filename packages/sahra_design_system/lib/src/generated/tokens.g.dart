@@ -46,16 +46,16 @@ class SahraTokens {
   static const Color inkSoft = Color(0xFF4A4640);
   /// `ink-faint`: `#8A8479`
   static const Color inkFaint = Color(0xFF8A8479);
-  /// `ink-faint-legible`: `#706B62`
-  static const Color inkFaintLegible = Color(0xFF706B62);
+  /// `ink-faint-legible`: `#646057`
+  static const Color inkFaintLegible = Color(0xFF646057);
   /// `border`: `#E4D9C7`
   static const Color border = Color(0xFFE4D9C7);
-  /// `success`: `#49754C`
-  static const Color success = Color(0xFF49754C);
-  /// `warning`: `#8F612F`
-  static const Color warning = Color(0xFF8F612F);
-  /// `error`: `#B3412A`
-  static const Color error = Color(0xFFB3412A);
+  /// `success`: `#416844`
+  static const Color success = Color(0xFF416844);
+  /// `warning`: `#81572A`
+  static const Color warning = Color(0xFF81572A);
+  /// `error`: `#A73D27`
+  static const Color error = Color(0xFFA73D27);
   /// `night`: `#1A1310`
   static const Color night = Color(0xFF1A1310);
   /// `night-raised`: `#251B15`
@@ -279,12 +279,12 @@ class SahraNightTokens {
   static const Color textFaint = SahraTokens.nightTextFaint;
   /// `line` → `var(--night-border)`
   static const Color line = SahraTokens.nightBorder;
-  /// `success` → `#619B64`
-  static const Color success = Color(0xFF619B64);
-  /// `warning` → `var(--gold-dark)`
-  static const Color warning = SahraTokens.goldDark;
-  /// `error` → `#D9705B`
-  static const Color error = Color(0xFFD9705B);
+  /// `success` → `#71A775`
+  static const Color success = Color(0xFF71A775);
+  /// `warning` → `#C79054`
+  static const Color warning = Color(0xFFC79054);
+  /// `error` → `#DD8270`
+  static const Color error = Color(0xFFDD8270);
 
   static const Map<String, Object> byToken = <String, Object>{
     'surface-page': surfacePage,

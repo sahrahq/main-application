@@ -31,8 +31,7 @@ class SahraSpace {
   }) =>
       EdgeInsetsDirectional.only(start: start, top: top, end: end, bottom: bottom);
 
-  static EdgeInsetsDirectional all(double v) =>
-      EdgeInsetsDirectional.fromSTEB(v, v, v, v);
+  static EdgeInsetsDirectional all(double v) => EdgeInsetsDirectional.fromSTEB(v, v, v, v);
 
   static EdgeInsetsDirectional symmetric({double horizontal = 0, double vertical = 0}) =>
       EdgeInsetsDirectional.fromSTEB(horizontal, vertical, horizontal, vertical);
