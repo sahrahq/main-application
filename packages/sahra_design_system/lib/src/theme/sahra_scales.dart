@@ -114,9 +114,18 @@ class SahraTypeScale {
 class SahraRules {
   const SahraRules._();
 
-  /// "44px minimum hit targets on mobile" — DESIGN-RULES.md, and CLAUDE.md
-  /// non-negotiable design rule 4.
-  static const double minTouchTarget = 44.0;
+  /// DESIGN-RULES.md and CLAUDE.md design rule 4 say "44px minimum hit
+  /// targets on mobile". 44 is the iOS figure; Android's Material guideline is
+  /// **48dp**, and `androidTapTargetGuideline` fails at 44.
+  ///
+  /// 48 is used because it satisfies both — the design rule states a MINIMUM,
+  /// and exceeding it is not a deviation. Android matters more than the
+  /// difference suggests here: management_app is Android-first (CLAUDE.md) and
+  /// most Egyptian users are on mid-range Androids.
+  ///
+  /// Found by `androidTapTargetGuideline` on day one, once a semantics bug was
+  /// fixed that had been making that guideline skip the button entirely.
+  static const double minTouchTarget = 48.0;
 
   /// "Motion: 150–200ms ease-out; press scale .98; no bounces."
   static const Duration motionFast = Duration(milliseconds: 150);

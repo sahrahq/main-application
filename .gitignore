@@ -100,3 +100,8 @@ desktop.ini
 # ── Claude Code ─────────────────────────────────────────────────────────
 # Team settings ARE committed; personal overrides are not.
 .claude/settings.local.json
+
+# Golden diff artifacts. Written by flutter_test on a failure so the diff can
+# be looked at locally; CI uploads them as a build artifact instead. Never
+# committed — they are the output of a failure, not a baseline.
+**/test/**/failures/

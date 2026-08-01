@@ -6,6 +6,17 @@
 Everything under `docs/design/` (this design package) is a **high-fidelity HTML/JSX reference** — recreate it pixel-faithfully in the app's stack (Flutter). Do not ship the HTML. When this doc and the HTML disagree, the HTML wins; read the actual file.
 
 ## Build order
+
+> **Component order OVERRIDDEN — see `docs/flutter/ENGINEERING-STANDARDS.md`.**
+> The `core → venue → social → navigation → brand` grouping below is
+> THEMATIC, not buildable. Reading the actual `.jsx` imports: `Mashrabiya`
+> lives in `brand` — the group listed last — and `Skeleton`, `EmptyState` and
+> `RestaurantCard` all depend on it, so building strictly by group stalls on
+> the second component. `Icon` is a dependency of six others. Components are
+> therefore built in three dependency waves, roots first. The grouping below
+> stays correct as a way to *think* about the system; it is not a build
+> sequence.
+
 1. **Tokens first** — port `docs/tokens.json` into the app theme layer (light = root, dark = `themeNight` overrides). No screen work before this exists.
 2. **Components** — port `components/` (core → venue → social → navigation → brand), matching the `.d.ts` APIs.
 3. **Screens** — each screen from its file in `ui_kits/app/`, composed only from ported components + tokens.

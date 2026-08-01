@@ -20,6 +20,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  sahra_lints:
+    path: ../sahra_lints
   flutter_lints: ^5.0.0
 
 flutter:

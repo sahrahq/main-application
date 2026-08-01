@@ -407,6 +407,116 @@ Stated plainly, because these are where the defects will be:
 
 ---
 
+# Setup-day results — what breaking the guards proved
+
+The harness was built and then deliberately broken, once per guard. **Three
+real defects surfaced on day one**, all in the first component. Recording them
+here because each is a standing risk for the remaining fifteen.
+
+## The guards were not all working
+
+**`labeledTapTargetGuideline`, `iOSTapTargetGuideline` and
+`androidTapTargetGuideline` all SKIP a semantics node that has no tap action.**
+
+`SahraButton` used `Semantics(excludeSemantics: true)`, which stripped the
+InkWell's tap action along with the child's label. Consequences, in order of
+severity:
+
+1. A screen reader would announce the button and **be unable to activate it**.
+2. All three guidelines skipped it and reported green. The a11y harness was
+   passing on checks that never ran.
+
+Removing the semantic label — the deliberate break — still passed, which is
+how this was found rather than shipped.
+
+**The standard now has a guard on the guards.** `a11yMatrix` walks the
+semantics tree and asserts a tappable node exists BEFORE asserting anything
+about it, so a vacuous pass is impossible. Components that legitimately have no
+tap action are listed explicitly in `nonInteractiveGoldens` — listed, not
+inferred, because "this one has no tap action" is exactly the excuse a broken
+component would offer.
+
+Merging matters too: the label sat on one node and the tap action on another.
+`MergeSemantics` puts both on the node a screen reader actually reads.
+
+## 44 is not enough on Android
+
+Once the guideline was really running, `androidTapTargetGuideline` failed.
+DESIGN-RULES.md says "44px minimum" — that is the **iOS** figure. Material
+requires **48dp**.
+
+`SahraRules.minTouchTarget` is now **48**. It satisfies both, the design rule
+states a minimum so exceeding it is not a deviation, and Android is where most
+Egyptian users are — `management_app` is Android-first per CLAUDE.md.
+
+## The terracotta accent fails WCAG AA as text
+
+`textContrastGuideline` measured the secondary button's label at **4.45:1** on
+cream, against AA's 4.5. On the night surface it is **3.86:1**.
+
+| pair | ratio | |
+|---|---|---|
+| terracotta on cream | 4.45 | ✗ |
+| terracotta on night | 3.86 | ✗ |
+| terracotta-dark on cream | 6.14 | ✓ |
+| terracotta-light on night | 5.69 | ✓ |
+| white on terracotta (primary fill) | 4.76 | ✓ |
+| ink on gold | 8.98 | ✓ |
+
+The accent is correct as a FILL behind white. It is not correct as text. A new
+semantic, `accentOnSurface`, resolves to `terracotta-dark` on light and
+`terracotta-light` on dark — composing existing tokens, not inventing values,
+and following the precedent DESIGN-RULES.md already sets for gold ("never body
+text on light — use gold-dark for text").
+
+**This affects every component that puts accent-coloured text on a surface**,
+which is most of them. Applying it is not optional.
+
+## Two open questions for the product owner
+
+1. **`Button.jsx` padding is off the token scale.** `sm: 8px 14px / 13px` and
+   `lg: 15px 26px / 15px` — 14, 15 and 26 are not on the 4px scale and 15px is
+   not in the type ramp. `md` is exact. The component currently uses the
+   nearest on-scale neighbours, marked PROVISIONAL. Either add the tokens (the
+   `leading-arabic` precedent) or accept the rounding — but inventing three
+   tokens for one component's padding is how a scale stops being a scale.
+   Goldens are cheap to regenerate once decided.
+
+2. **`accentOnSurface` is a deviation from the reference**, which specifies
+   plain `--terracotta` for secondary button text. The reference fails AA. I
+   treated accessibility as the higher authority; confirm that reading.
+
+## What the day produced
+
+| | |
+|---|---|
+| `packages/sahra_lints` | shared source scanners, run by every package |
+| `packages/sahra_localization` | ARB ar/en, 43 backend codes mapped, **flagged UNREVIEWED** |
+| `flutter_test_config.dart` | loads all four families before any test |
+| `goldenMatrix` / `a11yMatrix` / `textScaleMatrix` | one call → four cells |
+| golden coverage + font guard | unpictured components and blank-box goldens both fail |
+| `SahraButton` | the harness proof — 7 variants × 4 cells = 28 goldens |
+| `.github/workflows/ci.yml` | analyze, format, tests, goldens, plus the API suite |
+
+**136 design-system tests, 12 localization tests, analyze clean on all three
+packages.**
+
+### Every guard, broken on purpose
+
+| Break | Result |
+|---|---|
+| Hardcoded `Color(0xFFFF00FF)` | ✗ 2 violations, `color-literal` + `color-hex-literal` |
+| Removed the semantic label | ✗ "Tappable widgets should have a semantic label" |
+| Tap target shrunk to 20 | ✗ "Tappable objects should be at least Size(44.0, 44.0)" |
+| Deleted `errSlotTaken` from `app_ar.arb` | ✗ "slot_taken → missing ar copy" |
+| Renamed a backend code to `kitchen_on_fire` | ✗ "Backend codes with no client mapping" |
+
+The second and third only failed **after** the semantics bug was fixed. Before
+that they passed — which is the single most useful thing this exercise
+produced.
+
+---
+
 # Component build order
 
 16 components (matching CLAUDE.md), across five groups:

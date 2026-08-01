@@ -26,6 +26,7 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
     required this.accent,
     required this.accentHover,
     required this.accentContrast,
+    required this.accentOnSurface,
     required this.premium,
     required this.line,
     required this.success,
@@ -45,6 +46,8 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
         accent: SahraTokens.accent,
         accentHover: SahraTokens.accentHover,
         accentContrast: SahraTokens.accentContrast,
+        // Terracotta itself measures 4.45:1 on cream — just under WCAG AA.
+        accentOnSurface: SahraTokens.terracottaDark,
         premium: SahraTokens.premium,
         line: SahraTokens.line,
         success: SahraTokens.success,
@@ -65,6 +68,8 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
         accent: SahraTokens.accent,
         accentHover: SahraTokens.accentHover,
         accentContrast: SahraTokens.accentContrast,
+        // …and 3.86:1 on the night surface. Lighter, not darker, on dark.
+        accentOnSurface: SahraTokens.terracottaLight,
         premium: SahraTokens.premium,
         line: SahraNightTokens.line,
         success: SahraTokens.success,
@@ -82,6 +87,18 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
   final Color accent;
   final Color accentHover;
   final Color accentContrast;
+
+  /// Terracotta as READABLE TEXT on a page or card.
+  ///
+  /// [accent] is the brand fill and is correct behind white (4.76:1). As text
+  /// it is not: #C64A2B measures 4.45:1 on cream and 3.86:1 on the night
+  /// surface, both under WCAG AA's 4.5. Found by `textContrastGuideline` on
+  /// the first component built, not by inspection.
+  ///
+  /// This follows the precedent DESIGN-RULES.md already sets for gold —
+  /// "never body text on light (use gold-dark for text)" — applied to the
+  /// accent, and it composes existing tokens rather than inventing a value.
+  final Color accentOnSurface;
   final Color premium;
   final Color line;
   final Color success;
@@ -116,6 +133,7 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
     Color? accent,
     Color? accentHover,
     Color? accentContrast,
+    Color? accentOnSurface,
     Color? premium,
     Color? line,
     Color? success,
@@ -133,6 +151,7 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
         accent: accent ?? this.accent,
         accentHover: accentHover ?? this.accentHover,
         accentContrast: accentContrast ?? this.accentContrast,
+        accentOnSurface: accentOnSurface ?? this.accentOnSurface,
         premium: premium ?? this.premium,
         line: line ?? this.line,
         success: success ?? this.success,
@@ -154,6 +173,7 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
       accent: Color.lerp(accent, other.accent, t)!,
       accentHover: Color.lerp(accentHover, other.accentHover, t)!,
       accentContrast: Color.lerp(accentContrast, other.accentContrast, t)!,
+      accentOnSurface: Color.lerp(accentOnSurface, other.accentOnSurface, t)!,
       premium: Color.lerp(premium, other.premium, t)!,
       line: Color.lerp(line, other.line, t)!,
       success: Color.lerp(success, other.success, t)!,

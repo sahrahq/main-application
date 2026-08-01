@@ -1,0 +1,6 @@
+# `golden` is declared so CI can run goldens as their own step, on the Linux
+# container only — font rasterization differs across platforms and a
+# macOS-generated golden fails on Linux for reasons unrelated to the design.
+tags:
+  golden:
+    description: Screenshot comparisons — Linux CI only.

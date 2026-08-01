@@ -1,0 +1,107 @@
+name: CI
+
+# ENGINEERING-STANDARDS.md §8. If this is not required to merge, none of the
+# standards in that document are real.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    # Linux ONLY, and deliberately. Font rasterization differs across
+    # platforms, so a golden generated on macOS or Windows fails here for
+    # reasons that have nothing to do with the design. One OS owns the goldens.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Design tokens are current
+        working-directory: packages/sahra_design_system
+        run: dart run tool/generate_tokens.dart --check
+
+      - name: Shared lint scanners
+        working-directory: packages/sahra_lints
+        run: dart pub get && dart analyze --fatal-infos
+
+      - name: Shared copy — ARB parity and backend error coverage
+        working-directory: packages/sahra_localization
+        run: dart pub get && dart test
+
+      - name: Design system
+        working-directory: packages/sahra_design_system
+        run: |
+          flutter pub get
+          flutter analyze --fatal-infos --fatal-warnings
+          dart format --set-exit-if-changed --line-length 100 lib test tool
+          flutter test
+          flutter test --tags golden
+
+      # Uploaded only on failure, so a golden diff can be LOOKED AT rather than
+      # guessed at. A pixel diff nobody can see is a dead end.
+      - name: Upload golden failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-failures
+          path: packages/**/test/**/failures/**
+          if-no-files-found: ignore
+
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:17-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sahra_test
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+        ports: ['5432:5432']
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 10s
+          --health-timeout 5s --health-retries 5
+        ports: ['6379:6379']
+      meilisearch:
+        image: getmeili/meilisearch:v1.11
+        env:
+          MEILI_ENV: development
+        ports: ['7700:7700']
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sahra_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/sahra_test
+      REDIS_URL: redis://localhost:6379
+      MEILISEARCH_HOST: http://localhost:7700
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - working-directory: apps/api
+        run: pnpm install --frozen-lockfile
+
+      - name: Schema and guards
+        working-directory: apps/api
+        run: |
+          pnpm prisma migrate deploy
+          psql "$DATABASE_URL" -f prisma/sql/01_guards.sql
+
+      - name: Build, unit, e2e
+        working-directory: apps/api
+        run: |
+          pnpm exec tsc -p tsconfig.json --noEmit
+          pnpm exec nest build
+          pnpm exec jest
+          pnpm exec jest --config ./test/jest-e2e.json --runInBand

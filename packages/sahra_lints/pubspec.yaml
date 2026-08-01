@@ -1,0 +1,13 @@
+name: sahra_lints
+description: >
+  Source scanners that enforce the SAHRA engineering standards. Plain Dart, no
+  dependencies — invoked from every package's test suite so all three Flutter
+  surfaces share one definition of each rule.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dev_dependencies:
+  test: ^1.25.0

@@ -1,0 +1,14 @@
+name: sahra_localization
+description: >
+  Shared bilingual copy for SAHRA — the error vocabulary both Flutter apps
+  need. App-specific strings stay in each app's own lib/localization (doc 07
+  §2); this package exists because the 43 backend error codes are shared and
+  duplicating them across two apps guarantees they drift.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dev_dependencies:
+  test: ^1.25.0
