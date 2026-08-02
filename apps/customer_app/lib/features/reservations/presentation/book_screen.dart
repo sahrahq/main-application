@@ -9,6 +9,7 @@ import '../../../shared/widgets/failure_copy.dart';
 import '../../../shared/widgets/sahra_async_view.dart';
 import '../domain/booking.dart';
 import 'booking_notifier.dart';
+import 'pending_booking.dart';
 
 /// `docs/design/ui_kits/app/BookingFlowScreen.jsx`.
 ///
@@ -50,6 +51,7 @@ class BookScreen extends ConsumerWidget {
           next.booking.partySize,
         ).go(context);
       }
+      if (next is BookingNeedsSignIn) _signInRoundTrip(context, ref, next.selection);
     });
 
     return Scaffold(
@@ -117,12 +119,71 @@ class BookScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            _Footer(restaurantId: restaurantId, progress: progress),
+            _Footer(restaurantId: restaurantId, venueName: venueName, progress: progress),
           ],
         ),
         ),
       ),
     );
+  }
+
+  /// The C-1.6 detour: park the selection, go and sign in, come back to it.
+  ///
+  /// FIVE THINGS THIS HAS TO GET RIGHT, and each of them has a test:
+  ///
+  ///   1. A guest tapping a slot is sent to sign-in with the selection parked,
+  ///      not shown a 401.
+  ///   2. Coming back, the same slot on the same date for the same party is
+  ///      still selected. The restore below is explicit rather than trusting
+  ///      the providers to have survived underneath a pushed route.
+  ///   3. The hold is re-attempted automatically. If the table went in the
+  ///      meantime the diner lands on a REFRESHED grid with the conflict
+  ///      banner — the existing `BookingSlotTaken` path, reached the ordinary
+  ///      way, not a second dead-end error.
+  ///   4. Backing out of sign-in leaves the selection on screen and attempts
+  ///      NOTHING. `push` returning anything other than `true` is the whole
+  ///      test — no flag, no timer, no "did they maybe sign in" heuristic.
+  ///   5. An app restart loses the selection, and because nothing here runs on
+  ///      build, a restart cannot re-attempt anything.
+  ///
+  /// The ORDER of the restore matters: `ChosenSlot` clears itself whenever the
+  /// date or party size changes, so the slot has to be chosen last or it is
+  /// wiped by the two lines above it.
+  Future<void> _signInRoundTrip(
+    BuildContext context,
+    WidgetRef ref,
+    PendingSelection selection,
+  ) async {
+    ref.read(pendingBookingProvider(restaurantId).notifier).remember(selection);
+
+    final signedIn = await SignInRoute(restaurantId).push(context);
+    if (!context.mounted) return;
+
+    final pending = ref.read(pendingBookingProvider(restaurantId));
+    if (pending == null) return;
+
+    ref.read(bookingSelectionProvider(restaurantId).notifier).setDate(pending.date);
+    ref.read(bookingSelectionProvider(restaurantId).notifier).setPartySize(pending.partySize);
+    ref.read(chosenSlotProvider(restaurantId).notifier).choose(pending.startsAt);
+
+    if (signedIn != true) {
+      // Backed out. The selection stays on screen — they may sign in on the
+      // second try — but the flow returns to idle so the sign-in sheet does not
+      // reopen the moment this widget rebuilds.
+      ref.read(bookingFlowProvider(restaurantId).notifier).reset();
+      return;
+    }
+
+    // Cleared BEFORE the re-attempt, not after. If the re-attempt itself 401s
+    // (a token that expired between the two calls) it produces a fresh
+    // `BookingNeedsSignIn` carrying the same selection, and leaving the old one
+    // parked would make that indistinguishable from a stale one.
+    ref.read(pendingBookingProvider(restaurantId).notifier).clear();
+    await ref.read(bookingFlowProvider(restaurantId).notifier).book(
+          startsAt: pending.startsAt,
+          partySize: pending.partySize,
+          selection: pending,
+        );
   }
 
   /// Seven days from today. The first reads "Tonight" rather than a weekday,
@@ -271,9 +332,18 @@ class _ConflictBanner extends StatelessWidget {
 }
 
 class _Footer extends ConsumerWidget {
-  const _Footer({required this.restaurantId, required this.progress});
+  const _Footer({
+    required this.restaurantId,
+    required this.venueName,
+    required this.progress,
+  });
 
   final String restaurantId;
+
+  /// Only so a parked selection can name the venue on the sign-in screen. The
+  /// footer itself never shows it.
+  final String venueName;
+
   final BookingProgress progress;
 
   @override
@@ -323,6 +393,21 @@ class _Footer extends ConsumerWidget {
                     : () => ref.read(bookingFlowProvider(restaurantId).notifier).book(
                           startsAt: slot.startsAt,
                           partySize: criteria.partySize,
+                          // Built HERE, at the tap, not reconstructed later
+                          // from whatever the providers hold after a detour.
+                          // `slotLabel` in particular exists nowhere else: the
+                          // board that produced it is refetched on return and
+                          // may not contain this time any more, which is
+                          // exactly the case where the sign-in screen still has
+                          // to be able to say which table is waiting.
+                          selection: PendingSelection(
+                            restaurantId: restaurantId,
+                            venueName: venueName,
+                            startsAt: slot.startsAt,
+                            slotLabel: slot.label,
+                            date: criteria.date,
+                            partySize: criteria.partySize,
+                          ),
                         ),
               ),
               const SizedBox(height: SahraSpace.s3),

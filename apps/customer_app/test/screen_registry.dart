@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sahra_customer_app/core/auth/session.dart';
+import 'package:sahra_customer_app/core/error/failure.dart';
+import 'package:sahra_customer_app/features/auth/domain/auth_repository.dart';
+import 'package:sahra_customer_app/features/auth/presentation/sign_in_notifier.dart';
+import 'package:sahra_customer_app/features/auth/presentation/sign_in_screen.dart';
 import 'package:sahra_customer_app/features/reservations/presentation/book_screen.dart';
+import 'package:sahra_customer_app/features/reservations/presentation/my_bookings_screen.dart';
+import 'package:sahra_customer_app/features/reservations/presentation/my_reservations_notifier.dart';
+import 'package:sahra_customer_app/features/reservations/presentation/pending_booking.dart';
+import 'package:sahra_customer_app/features/reservations/presentation/reservation_screen.dart';
 import 'package:sahra_customer_app/features/reservations/presentation/confirmed_screen.dart';
 import 'package:sahra_customer_app/features/restaurants/presentation/search_notifier.dart';
 import 'package:sahra_customer_app/features/restaurants/presentation/search_screen.dart';
 import 'package:sahra_customer_app/features/restaurants/presentation/venue_screen.dart';
 import 'package:sahra_customer_app/shared/providers/app_providers.dart';
+import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 
 import 'support/fakes.dart';
 import 'support/screen_harness.dart';
@@ -86,6 +96,104 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
     ),
     overrides: (_) => _transport((_, __, ___) => throw offline),
   ),
+
+  // ── Sign in ─────────────────────────────────────────────────────────────
+  'SignIn/phone': ScreenCase(
+    build: (_) => SignInScreen(onClose: () {}),
+    overrides: (_) => _transport((_, __, ___) => throw offline),
+  ),
+  // The state that carries the C-1.6 decision: a diner interrupted mid-booking,
+  // being told what is waiting for them. If this picture is not persuasive the
+  // decision is not survivable, so it gets its own cell in all four.
+  'SignIn/pending-slot': ScreenCase(
+    build: (_) => SignInScreen(pendingRestaurantId: _venueId, onClose: () {}),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => throw offline),
+      pendingBookingProvider(_venueId).overrideWith(() => _ParkedSlot()),
+    ],
+  ),
+  'SignIn/code': ScreenCase(
+    build: (_) => SignInScreen(onClose: () {}),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => throw offline),
+      signInProvider.overrideWith(() => _AwaitingCode()),
+    ],
+  ),
+  // A locked-out diner. The one sign-in state where the copy has to do real
+  // work — it must say that asking for another code will not help, without
+  // blaming the person for having tried.
+  'SignIn/locked-out': ScreenCase(
+    build: (_) => SignInScreen(onClose: () {}),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => throw offline),
+      signInProvider.overrideWith(_LockedOut.new),
+    ],
+  ),
+
+  // ── My bookings ─────────────────────────────────────────────────────────
+  'Bookings/signed-out': ScreenCase(
+    build: (_) => const MyBookingsScreen(),
+    overrides: (_) => _transport((_, __, ___) => throw offline),
+  ),
+  'Bookings/upcoming': ScreenCase(
+    build: (_) => const MyBookingsScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => <Object>[_confirmed, _pending]),
+      ..._signedIn,
+    ],
+  ),
+  // `needs_acknowledgement`. The only signal a diner gets that a table they
+  // believe they hold is gone — pictured deliberately, because it is the state
+  // most likely to be built once and never looked at.
+  'Bookings/venue-cancelled': ScreenCase(
+    build: (_) => const MyBookingsScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => <Object>[_venueCancelled, _confirmed]),
+      ..._signedIn,
+    ],
+  ),
+  'Bookings/empty': ScreenCase(
+    build: (_) => const MyBookingsScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => <Object>[]),
+      ..._signedIn,
+    ],
+  ),
+  'Bookings/past': ScreenCase(
+    build: (_) => const MyBookingsScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => <Object>[_completed]),
+      ..._signedIn,
+      bookingsViewProvider.overrideWith(() => _PastTab()),
+    ],
+  ),
+
+  // ── Reservation detail ──────────────────────────────────────────────────
+  'Reservation/confirmed': ScreenCase(
+    build: (_) => const ReservationScreen(id: _reservationId),
+    overrides: (_) => <Override>[
+      ..._transport(
+        (_, path, __) => path.contains('/restaurants/') ? _profile : _confirmed,
+      ),
+      ..._signedIn,
+    ],
+  ),
+  'Reservation/venue-cancelled': ScreenCase(
+    build: (_) => const ReservationScreen(id: _reservationId),
+    overrides: (_) => <Override>[
+      ..._transport(
+        (_, path, __) => path.contains('/restaurants/') ? _profile : _venueCancelled,
+      ),
+      ..._signedIn,
+    ],
+  ),
+  'Reservation/not-found': ScreenCase(
+    build: (_) => const ReservationScreen(id: _reservationId),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => throw envelope(404, 'reservation_not_found')),
+      ..._signedIn,
+    ],
+  ),
 };
 
 class ScreenCase {
@@ -102,6 +210,67 @@ class ScreenCase {
 }
 
 const String _venueId = '11111111-1111-4111-8111-111111111111';
+const String _reservationId = '22222222-2222-4222-8222-222222222222';
+
+/// A session, so the bookings screens render their signed-in half.
+///
+/// The store is overridden too: a golden must never reach a keystore, and on
+/// the test host `flutter_secure_storage` has no platform channel at all.
+final List<Override> _signedIn = <Override>[
+  sessionStoreProvider.overrideWithValue(InMemorySessionStore()),
+  currentSessionProvider.overrideWith(_SignedInSession.new),
+];
+
+class _SignedInSession extends CurrentSession {
+  @override
+  Session? build() => const Session(
+        accessToken: 'golden',
+        refreshToken: 'golden',
+        userId: '99999999-9999-4999-8999-999999999999',
+        fullName: 'Nour',
+        phone: '+201000000000',
+      );
+}
+
+class _PastTab extends BookingsView {
+  @override
+  String build() => 'past';
+}
+
+class _ParkedSlot extends PendingBooking {
+  @override
+  PendingSelection build(String restaurantId) => const PendingSelection(
+        restaurantId: _venueId,
+        venueName: 'Layali Lounge',
+        startsAt: '2026-08-05T18:00:00.000Z',
+        slotLabel: '21:00',
+        date: '2026-08-05',
+        partySize: 2,
+      );
+}
+
+class _AwaitingCode extends SignIn {
+  @override
+  SignInState build() => const SignInCode(
+        challenge: OtpChallenge(
+          userId: '99999999-9999-4999-8999-999999999999',
+          phone: '+20 100 000 0000',
+          isNewAccount: false,
+        ),
+      );
+}
+
+class _LockedOut extends SignIn {
+  @override
+  SignInState build() => const SignInCode(
+        challenge: OtpChallenge(
+          userId: '99999999-9999-4999-8999-999999999999',
+          phone: '+20 100 000 0000',
+          isNewAccount: false,
+        ),
+        failure: ConflictFailure(code: 'too_many_attempts', requestId: 'req_golden'),
+      );
+}
 
 List<Override> _transport(
   Object? Function(String, String, Map<String, String>?) handler,
@@ -192,6 +361,62 @@ final Map<String, Object?> _profile = <String, Object?>{
       },
   ],
 };
+
+Map<String, Object?> _reservation({
+  required String status,
+  bool needsAcknowledgement = false,
+  String? cancelledBy,
+  String? cancelReason,
+  String date = '2026-08-05',
+  String? occasion,
+  String? specialRequests,
+}) =>
+    <String, Object?>{
+      'id': _reservationId,
+      'code': 'SAH-7K2M',
+      'status': status,
+      'source': 'app',
+      'starts_at': '${date}T18:00:00.000Z',
+      'ends_at': '${date}T19:30:00.000Z',
+      // The venue's wall clock, as the server computes it — NOT derived here
+      // from starts_at, which would quietly rebuild the timezone bug these
+      // fields exist to prevent.
+      'date': date,
+      'time': '21:00',
+      'party_size': 2,
+      'needs_acknowledgement': needsAcknowledgement,
+      'cancelled_by': cancelledBy,
+      'cancelled_at': cancelledBy == null ? null : '${date}T09:00:00.000Z',
+      'cancel_reason': cancelReason,
+      'occasion': occasion,
+      'special_requests': specialRequests,
+      'restaurant': <String, Object?>{
+        'id': _venueId,
+        'slug': 'layali-lounge-zamalek',
+        'name_en': 'Layali Lounge',
+        'name_ar': 'ليالي لاونج',
+        'neighborhood': 'Zamalek',
+        'city': 'Cairo',
+        'timezone': 'Africa/Cairo',
+      },
+    };
+
+final Map<String, Object?> _confirmed = _reservation(
+  status: 'confirmed',
+  occasion: 'Anniversary',
+  specialRequests: 'A quiet table away from the speakers, please.',
+);
+
+final Map<String, Object?> _pending = _reservation(status: 'pending', date: '2026-08-09');
+
+final Map<String, Object?> _completed = _reservation(status: 'completed', date: '2026-07-18');
+
+final Map<String, Object?> _venueCancelled = _reservation(
+  status: 'cancelled_by_restaurant',
+  needsAcknowledgement: true,
+  cancelledBy: 'restaurant',
+  cancelReason: 'A burst pipe in the kitchen — we are closed tonight.',
+);
 
 final Map<String, Object?> _slots = <String, Object?>{
   'date': '2026-08-05',

@@ -25,6 +25,21 @@ class Env {
   /// C-4.5, P2.
   static const bool enableLoyalty = bool.fromEnvironment('ENABLE_LOYALTY');
 
+  /// The API is running `LoggingOtpDelivery` — codes go to its log, not to a
+  /// phone (OPS-1).
+  ///
+  /// DEFAULTS TO TRUE, which is the uncomfortable direction on purpose. No SMS
+  /// provider is wired anywhere yet, so true is simply the truth today; and if
+  /// it is ever wrong, being wrong this way shows a line of dev guidance to a
+  /// diner who does not need it, while being wrong the other way asks them for
+  /// a code and gives them no way to find out where it went.
+  ///
+  /// Flip it in the same breath as the provider:
+  ///
+  ///     --dart-define=OTP_DELIVERY_STUBBED=false
+  static const bool otpDeliveryIsStubbed =
+      bool.fromEnvironment('OTP_DELIVERY_STUBBED', defaultValue: true);
+
   /// Draw the app inside a phone-sized frame, centred on the page.
   ///
   /// ON BY DEFAULT, and only meaningful on web: `flutter run -d chrome` is a

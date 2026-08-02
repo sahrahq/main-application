@@ -453,4 +453,192 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cuisineCafe => 'Cafe';
+
+  @override
+  String get signInTitle => 'Sign in to book';
+
+  @override
+  String get signInWhy =>
+      'We hold your table under your name, and tell you if anything changes.';
+
+  @override
+  String get signInPhoneLabel => 'Phone number';
+
+  @override
+  String get signInPhoneHint => '01x xxx xxxx';
+
+  @override
+  String get signInNameLabel => 'Your name';
+
+  @override
+  String get signInNameHint => 'So the restaurant knows who to expect';
+
+  @override
+  String get signInContinue => 'Send me a code';
+
+  @override
+  String get signInSending => 'Sending…';
+
+  @override
+  String get signInCodeTitle => 'Enter the code';
+
+  @override
+  String signInCodeSentTo(String phone) {
+    return 'We sent a 6-digit code to $phone.';
+  }
+
+  @override
+  String get signInCodeLabel => '6-digit code';
+
+  @override
+  String get signInVerify => 'Verify';
+
+  @override
+  String get signInVerifying => 'Checking…';
+
+  @override
+  String get signInResend => 'Send another code';
+
+  @override
+  String get signInResending => 'Sending…';
+
+  @override
+  String get signInChangePhone => 'Use a different number';
+
+  @override
+  String signInDevHint(String marker) {
+    return 'In development the code is written to the API log — look for $marker.';
+  }
+
+  @override
+  String signInSlotHeld(String venue, String date, String time, String party) {
+    return 'Your table: $venue, $date at $time, $party';
+  }
+
+  @override
+  String get signInSlotNote =>
+      'We\'ll finish this booking as soon as you\'re in.';
+
+  @override
+  String get signInCancel => 'Not now';
+
+  @override
+  String get bookingsTitle => 'My bookings';
+
+  @override
+  String get bookingsUpcoming => 'Upcoming';
+
+  @override
+  String get bookingsPast => 'Past';
+
+  @override
+  String get bookingsEmptyUpcomingTitle => 'Nothing booked yet';
+
+  @override
+  String get bookingsEmptyUpcomingMessage =>
+      'When you book a table it will be here, with everything you need at the door.';
+
+  @override
+  String get bookingsEmptyUpcomingAction => 'Find somewhere';
+
+  @override
+  String get bookingsEmptyPastTitle => 'No visits yet';
+
+  @override
+  String get bookingsEmptyPastMessage =>
+      'Tables you have been to will be kept here.';
+
+  @override
+  String get bookingsSignedOutTitle => 'Sign in to see your bookings';
+
+  @override
+  String get bookingsSignedOutMessage =>
+      'Your reservations are kept under your phone number.';
+
+  @override
+  String get bookingsSignedOutAction => 'Sign in';
+
+  @override
+  String get bookingsCancelledByVenue => 'The restaurant cancelled';
+
+  @override
+  String get bookingsCancelledByYou => 'You cancelled';
+
+  @override
+  String bookingsPartyOf(int party) {
+    return 'Table for $party';
+  }
+
+  @override
+  String get bookingsAcknowledge => 'Got it';
+
+  @override
+  String get reservationTitle => 'Your booking';
+
+  @override
+  String get reservationReference => 'Confirmation';
+
+  @override
+  String get reservationWhen => 'When';
+
+  @override
+  String get reservationParty => 'Party';
+
+  @override
+  String get reservationStatus => 'Status';
+
+  @override
+  String get reservationSpecialRequests => 'You asked for';
+
+  @override
+  String get reservationOccasion => 'Occasion';
+
+  @override
+  String get reservationModify => 'Change time or party';
+
+  @override
+  String get reservationCancel => 'Cancel booking';
+
+  @override
+  String get reservationNotYetAvailable =>
+      'Not available yet — call the restaurant to change or cancel.';
+
+  @override
+  String get reservationVenuePhone => 'Call the restaurant';
+
+  @override
+  String reservationCancelledNotice(String venue, String reason) {
+    return '$venue cancelled this booking: $reason';
+  }
+
+  @override
+  String get reservationNotFoundTitle => 'We lost that booking';
+
+  @override
+  String get reservationNotFoundMessage =>
+      'It may have been cancelled, or it belongs to another account.';
+
+  @override
+  String get statusPending => 'Awaiting confirmation';
+
+  @override
+  String get statusConfirmed => 'Confirmed';
+
+  @override
+  String get statusSeated => 'Seated';
+
+  @override
+  String get statusCompleted => 'Visited';
+
+  @override
+  String get statusNoShow => 'Missed';
+
+  @override
+  String get statusCancelledByUser => 'Cancelled by you';
+
+  @override
+  String get statusCancelledByRestaurant => 'Cancelled by the restaurant';
+
+  @override
+  String get signOut => 'Sign out';
 }

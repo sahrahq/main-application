@@ -22,7 +22,10 @@ import '../../core/network/dio_transport.dart';
 import '../../features/reservations/data/reservation_repository_impl.dart';
 import '../../features/reservations/domain/reservation_repository.dart';
 import '../../features/restaurants/data/restaurant_repository_impl.dart';
+import '../../features/auth/data/auth_repository_impl.dart';
+import '../../features/auth/domain/auth_repository.dart';
 import '../../features/restaurants/domain/restaurant_repository.dart';
+import 'session_providers.dart';
 
 part 'app_providers.g.dart';
 
@@ -45,6 +48,10 @@ class LocaleCode extends _$LocaleCode {
 SahraTransport transport(Ref ref) => DioTransport(
       baseUrl: Env.apiBaseUrl,
       localeCode: () => ref.read(localeCodeProvider),
+      // `read`, not `watch`: watching would rebuild the transport — and every
+      // repository above it — on sign-in, discarding in-flight requests. The
+      // closure sees the current value either way.
+      accessToken: () => ref.read(currentSessionProvider)?.accessToken,
     );
 
 @Riverpod(keepAlive: true)
@@ -59,6 +66,12 @@ RestaurantRepository restaurantRepository(Ref ref) => RestaurantRepositoryImpl(
 @Riverpod(keepAlive: true)
 ReservationRepository reservationRepository(Ref ref) =>
     ReservationRepositoryImpl(ref.watch(apiProvider));
+
+@Riverpod(keepAlive: true)
+AuthRepository authRepository(Ref ref) => AuthRepositoryImpl(
+      ref.watch(apiProvider),
+      () => ref.read(localeCodeProvider),
+    );
 
 /// Keeps [LocaleCode] in step with the widget tree's `Localizations`.
 class LocaleSync extends ConsumerWidget {

@@ -226,6 +226,49 @@ Three applications so far; AUTH-3 is the one still failing, and it is recorded
 rather than quietly fixed at one door because closing it at `register` alone
 would move the oracle to `request-otp`.
 
+## A default that substitutes rather than fails hides the hole it fills
+
+Found on 2026-08-02, by looking at an Arabic golden.
+
+`SahraTypography._build` returned a `TextTheme` with **10 of Material's 15
+slots filled**. `displayMedium`, `displaySmall`, `titleLarge`, `titleMedium`
+and `titleSmall` were left out — not deliberately, just unused at the time.
+
+Then the bookings list wrote `textTheme.titleMedium` for a venue name and
+every Arabic name on the screen rendered as **empty boxes**.
+
+The mechanism is the lesson. `ThemeData` does not leave an unset slot null; it
+fills it from its own typography, which inherits `ThemeData.fontFamily` —
+Poppins, the Latin UI face, which has no Arabic glyphs. So:
+
+- `flutter analyze` saw a valid nullable getter.
+- Reading the style back and null-checking it found a style **present**. The
+  substitution had already happened.
+- `textContrastGuideline`, both tap-target guidelines and every layout check
+  passed — a box has a size and a colour like any glyph.
+- The app's own font-loading check passed, because it measures the DEFAULT
+  style, which was never one of the five.
+- Every English golden was perfect.
+
+**Every guard in the repo was pointed at it and none of them could see it.**
+
+Two rules come out of this:
+
+1. **Fill every slot of any framework-provided table you partially populate.**
+   A partially-filled `TextTheme`, `ColorScheme` or `IconThemeData` is a trap
+   whose sprung state looks like a working screen.
+2. **A guard for "the right font" must assert the FAMILY BY NAME.** The
+   obvious check — render two Arabic strings of different length and assert
+   the longer one is wider — does not work. `flutter_test` draws a missing
+   glyph as a fixed-width box, so nineteen boxes are still wider than three
+   and the check passes on pure tofu. That check detects "no font loaded at
+   all"; it cannot detect "the wrong font". It was written that way here first
+   and the deliberate break passed it.
+
+`packages/sahra_design_system/test/typography_arabic_coverage_test.dart`
+enumerates all fifteen slots in both locales and both brightnesses and asserts
+the resolved `fontFamily` is a SAHRA family.
+
 ## A second door to an existing room must be checked against the first
 
 Distinct from the vacuous-pass class above, and it fails the other way round:

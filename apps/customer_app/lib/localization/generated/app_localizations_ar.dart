@@ -444,4 +444,188 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get cuisineCafe => 'قهوة';
+
+  @override
+  String get signInTitle => 'سجّل دخولك عشان تحجز';
+
+  @override
+  String get signInWhy => 'بنحجز الطاولة باسمك، وبنبلّغك لو حصل أي تغيير.';
+
+  @override
+  String get signInPhoneLabel => 'رقم التليفون';
+
+  @override
+  String get signInPhoneHint => '01x xxx xxxx';
+
+  @override
+  String get signInNameLabel => 'اسمك';
+
+  @override
+  String get signInNameHint => 'عشان المطعم يعرف مين اللي جاي';
+
+  @override
+  String get signInContinue => 'ابعتلي كود';
+
+  @override
+  String get signInSending => 'بنبعت…';
+
+  @override
+  String get signInCodeTitle => 'اكتب الكود';
+
+  @override
+  String signInCodeSentTo(String phone) {
+    return 'بعتنا كود من ٦ أرقام على $phone.';
+  }
+
+  @override
+  String get signInCodeLabel => 'كود من ٦ أرقام';
+
+  @override
+  String get signInVerify => 'تأكيد';
+
+  @override
+  String get signInVerifying => 'بنتأكد…';
+
+  @override
+  String get signInResend => 'ابعت كود تاني';
+
+  @override
+  String get signInResending => 'بنبعت…';
+
+  @override
+  String get signInChangePhone => 'استخدم رقم تاني';
+
+  @override
+  String signInDevHint(String marker) {
+    return 'في وضع التطوير الكود بيتكتب في لوج الـ API — دوّر على $marker.';
+  }
+
+  @override
+  String signInSlotHeld(String venue, String date, String time, String party) {
+    return 'طاولتك: $venue، $date الساعة $time، $party';
+  }
+
+  @override
+  String get signInSlotNote => 'هنكمّل الحجز أول ما تدخل.';
+
+  @override
+  String get signInCancel => 'مش دلوقتي';
+
+  @override
+  String get bookingsTitle => 'حجوزاتي';
+
+  @override
+  String get bookingsUpcoming => 'الجاي';
+
+  @override
+  String get bookingsPast => 'اللي فات';
+
+  @override
+  String get bookingsEmptyUpcomingTitle => 'لسه مافيش حجوزات';
+
+  @override
+  String get bookingsEmptyUpcomingMessage =>
+      'أول ما تحجز طاولة هتلاقيها هنا، بكل اللي محتاجه على الباب.';
+
+  @override
+  String get bookingsEmptyUpcomingAction => 'دوّر على مكان';
+
+  @override
+  String get bookingsEmptyPastTitle => 'لسه مارحتش حتة';
+
+  @override
+  String get bookingsEmptyPastMessage => 'الطاولات اللي رحتلها هتتحفظ هنا.';
+
+  @override
+  String get bookingsSignedOutTitle => 'سجّل دخولك تشوف حجوزاتك';
+
+  @override
+  String get bookingsSignedOutMessage => 'حجوزاتك محفوظة برقم تليفونك.';
+
+  @override
+  String get bookingsSignedOutAction => 'تسجيل الدخول';
+
+  @override
+  String get bookingsCancelledByVenue => 'المطعم ألغى';
+
+  @override
+  String get bookingsCancelledByYou => 'إنت ألغيت';
+
+  @override
+  String bookingsPartyOf(int party) {
+    return 'طاولة لـ $party';
+  }
+
+  @override
+  String get bookingsAcknowledge => 'تمام، فهمت';
+
+  @override
+  String get reservationTitle => 'حجزك';
+
+  @override
+  String get reservationReference => 'رقم الحجز';
+
+  @override
+  String get reservationWhen => 'الميعاد';
+
+  @override
+  String get reservationParty => 'الأفراد';
+
+  @override
+  String get reservationStatus => 'الحالة';
+
+  @override
+  String get reservationSpecialRequests => 'طلبت';
+
+  @override
+  String get reservationOccasion => 'المناسبة';
+
+  @override
+  String get reservationModify => 'غيّر الميعاد أو العدد';
+
+  @override
+  String get reservationCancel => 'إلغاء الحجز';
+
+  @override
+  String get reservationNotYetAvailable =>
+      'لسه مش متاح — كلّم المطعم عشان تغيّر أو تلغي.';
+
+  @override
+  String get reservationVenuePhone => 'اتصل بالمطعم';
+
+  @override
+  String reservationCancelledNotice(String venue, String reason) {
+    return '$venue ألغى الحجز ده: $reason';
+  }
+
+  @override
+  String get reservationNotFoundTitle => 'مش لاقيين الحجز ده';
+
+  @override
+  String get reservationNotFoundMessage =>
+      'يمكن يكون اتلغى، أو بيخص حساب تاني.';
+
+  @override
+  String get statusPending => 'في انتظار التأكيد';
+
+  @override
+  String get statusConfirmed => 'مؤكد';
+
+  @override
+  String get statusSeated => 'قاعد';
+
+  @override
+  String get statusCompleted => 'زيارة تمت';
+
+  @override
+  String get statusNoShow => 'مجاش';
+
+  @override
+  String get statusCancelledByUser => 'إنت ألغيته';
+
+  @override
+  String get statusCancelledByRestaurant => 'المطعم ألغاه';
+
+  @override
+  String get signOut => 'تسجيل الخروج';
 }

@@ -3,6 +3,7 @@ import 'package:sahra_api_client/sahra_api_client.dart';
 import '../../../core/error/guarded.dart';
 import '../../../core/utils/idempotency_key.dart';
 import '../domain/booking.dart';
+import '../domain/my_reservation.dart';
 import '../domain/reservation_repository.dart';
 
 class ReservationRepositoryImpl implements ReservationRepository {
@@ -94,6 +95,63 @@ class ReservationRepositoryImpl implements ReservationRepository {
 
     return _booking(r);
   }
+
+  @override
+  Future<List<MyReservation>> myReservations({required String view}) async {
+    final r = await guarded(() => _api.list2(status: view));
+    return r.map(_mine).toList();
+  }
+
+  @override
+  Future<MyReservation> reservation(String id) async {
+    final r = await guarded(() => _api.one(id: id));
+    return _mine(r);
+  }
+
+  @override
+  Future<void> acknowledgeCancellation(String id) =>
+      // NO IDEMPOTENCY KEY, and the generated signature is why: the header is
+      // in the client only where the spec declares it, and this endpoint does
+      // not. It is idempotent by construction anyway — a conditional UPDATE
+      // that writes the timestamp once. See
+      // `apps/api/src/shared/api/idempotency-contract.spec.ts` for the full
+      // census of which mutations carry a key and which do not.
+      guarded(() => _api.acknowledge(id: id));
+
+  MyReservation _mine(MyReservationResponse r) => MyReservation(
+        id: r.id,
+        code: r.code,
+        status: r.status,
+        source: r.source,
+        startsAt: r.startsAt,
+        endsAt: r.endsAt,
+        date: r.date,
+        time: r.time,
+        partySize: r.partySize,
+        needsAcknowledgement: r.needsAcknowledgement,
+        // Parsed to an enum HERE, once, rather than compared to a string in
+        // three widgets. An unrecognised value becomes null, which the screens
+        // already handle as "cancelled, actor unknown" — a server that gains a
+        // third actor must not blank the whole screen on an unknown enum.
+        cancelledBy: switch (r.cancelledBy) {
+          'user' => CancelledBy.user,
+          'restaurant' => CancelledBy.restaurant,
+          _ => null,
+        },
+        cancelledAt: r.cancelledAt,
+        cancelReason: r.cancelReason,
+        specialRequests: r.specialRequests,
+        occasion: r.occasion,
+        venue: ReservationVenue(
+          id: r.restaurant.id,
+          slug: r.restaurant.slug,
+          nameEn: r.restaurant.nameEn,
+          nameAr: r.restaurant.nameAr,
+          city: r.restaurant.city,
+          timezone: r.restaurant.timezone,
+          neighborhood: r.restaurant.neighborhood,
+        ),
+      );
 
   Booking _booking(ReservationResponse r) => Booking(
         id: r.id,

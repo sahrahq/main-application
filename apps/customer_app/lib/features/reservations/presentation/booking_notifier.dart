@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/error/failure.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../domain/booking.dart';
+import 'pending_booking.dart';
 
 part 'booking_notifier.g.dart';
 
@@ -91,6 +92,23 @@ class BookingFailed extends BookingProgress {
   final Failure failure;
 }
 
+/// The diner is not signed in, and booking requires an account (C-1.6).
+///
+/// A STATE, not an error, for the same reason [BookingSlotTaken] is one: the
+/// diner did nothing wrong and there is somewhere for them to go. It carries
+/// the whole selection so the screen can hand it to [PendingBooking] and get
+/// it back afterwards.
+///
+/// NOT DERIVED FROM `isSignedIn` BEFORE CALLING. The 401 comes from the server,
+/// which is the only party that knows whether this token is still good — a
+/// client-side check would also have to guess about expiry, revocation and
+/// suspension, and would guess wrong in exactly the cases that matter. The
+/// token being absent is just the cheapest way to fail that check.
+class BookingNeedsSignIn extends BookingProgress {
+  const BookingNeedsSignIn(this.selection);
+  final PendingSelection selection;
+}
+
 /// The hold → confirm sequence, the highest-risk logic in the product.
 ///
 /// It lives in a notifier and not in a widget, so it can be unit-tested
@@ -111,6 +129,7 @@ class BookingFlow extends _$BookingFlow {
     required int partySize,
     String? specialRequests,
     String? occasion,
+    PendingSelection? selection,
   }) async {
     state = const BookingInFlight();
     final repo = ref.read(reservationRepositoryProvider);
@@ -141,6 +160,14 @@ class BookingFlow extends _$BookingFlow {
       // BEFORE the diner looks, so the alternatives they are offered are real
       // ones rather than the same stale list that just failed.
       ref.invalidate(availableSlotsProvider(restaurantId));
+    } on AuthFailure {
+      // C-1.6. Only reachable with a selection to carry — a re-attempt after
+      // sign-in always passes one, so a second 401 (a token that expired
+      // between signing in and confirming) still lands here with something to
+      // come back to rather than dropping the diner into a generic error.
+      state = selection == null
+          ? const BookingFailed(AuthFailure())
+          : BookingNeedsSignIn(selection);
     } on Failure catch (f) {
       state = BookingFailed(f);
     }

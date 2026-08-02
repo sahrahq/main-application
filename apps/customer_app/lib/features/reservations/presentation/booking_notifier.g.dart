@@ -317,7 +317,7 @@ class _BookingSelectionProviderElement
   String get restaurantId => (origin as BookingSelectionProvider).restaurantId;
 }
 
-String _$bookingFlowHash() => r'b36e7c28f1aa53b3393fda9b306156db744b5a60';
+String _$bookingFlowHash() => r'c694329f4ceec3c6a872014cb9bff88e090e1736';
 
 abstract class _$BookingFlow
     extends BuildlessAutoDisposeNotifier<BookingProgress> {

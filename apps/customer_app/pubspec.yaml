@@ -42,6 +42,11 @@ dependencies:
   # SahraTransport port and this app supplies the Dio-backed implementation.
   dio: ^5.7.0
 
+  # doc 07 §3, Security: "flutter_secure_storage for tokens". On the approved
+  # list; added now because an in-memory session signs the diner out on every
+  # page refresh, which makes "my reservations" unusable to review.
+  flutter_secure_storage: ^9.2.2
+
   sahra_design_system:
     path: ../../packages/sahra_design_system
   sahra_api_client:

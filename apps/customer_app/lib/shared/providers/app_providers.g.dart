@@ -6,7 +6,7 @@ part of 'app_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$transportHash() => r'3468f1942c5e6bd28d70babb8aa92883a4c7c6ed';
+String _$transportHash() => r'742439b3285e2d199aed3cdac621afc97802d6a6';
 
 /// See also [transport].
 @ProviderFor(transport)
@@ -74,6 +74,23 @@ final reservationRepositoryProvider = Provider<ReservationRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ReservationRepositoryRef = ProviderRef<ReservationRepository>;
+String _$authRepositoryHash() => r'e6f240d03549047f8f0b9cb1bab6b84f53e8d57e';
+
+/// See also [authRepository].
+@ProviderFor(authRepository)
+final authRepositoryProvider = Provider<AuthRepository>.internal(
+  authRepository,
+  name: r'authRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$authRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AuthRepositoryRef = ProviderRef<AuthRepository>;
 String _$localeCodeHash() => r'9d9845147b7afe5c7f5ad2ae0545e0a69164a680';
 
 /// The active locale, as a language code.

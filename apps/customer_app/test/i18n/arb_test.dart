@@ -37,6 +37,11 @@ void main() {
       // Arabic form of a dash between two times, and the times themselves stay
       // in Latin digits (DESIGN-RULES.md).
       'venueHoursRange',
+      // "01x xxx xxxx" — an Egyptian mobile number MASK, not a sentence. The
+      // digits stay Latin (DESIGN-RULES.md) and the `x` is a placeholder
+      // character a diner reads positionally. Translating it to «٠١خ خخخ خخخخ»
+      // would show a shape that does not match what their keypad produces.
+      'signInPhoneHint',
     };
 
     final untranslated = <String>[];

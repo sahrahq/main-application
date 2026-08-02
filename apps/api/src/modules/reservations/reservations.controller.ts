@@ -56,6 +56,11 @@ export class ReservationsController {
   @ApiOkResponse({ type: ReservationResponse })
   @HttpCode(201)
   @ApiOperation({ summary: `Hold a table for ${HOLD_TTL_MINUTES} minutes` })
+  // `@ApiHeader` adds only the DESCRIPTION. The header parameter itself is in
+  // the spec because `@Headers('idempotency-key')` is in the signature below —
+  // @nestjs/swagger reads route argument metadata directly. Deleting this
+  // decorator leaves the contract intact; deleting the parameter is what
+  // changes it. That is the right way round: the spec follows the handler.
   @ApiHeader({ name: 'idempotency-key', required: true, description: 'Client-generated UUID v4' })
   @ApiResponse({ status: 201, description: 'Hold created' })
   @ApiResponse({ status: 409, description: 'slot_taken | pacing_limit_reached' })

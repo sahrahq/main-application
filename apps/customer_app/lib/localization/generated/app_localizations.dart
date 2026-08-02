@@ -853,6 +853,348 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cafe'**
   String get cuisineCafe;
+
+  /// No description provided for @signInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to book'**
+  String get signInTitle;
+
+  /// C-1.6 asks the diner to sign up at the booking action. This is the ONE sentence that has to make thirty seconds feel worth it, so it states what they get — the table under their name, and being told if it changes — not what we need.
+  ///
+  /// In en, this message translates to:
+  /// **'We hold your table under your name, and tell you if anything changes.'**
+  String get signInWhy;
+
+  /// No description provided for @signInPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get signInPhoneLabel;
+
+  /// No description provided for @signInPhoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'01x xxx xxxx'**
+  String get signInPhoneHint;
+
+  /// No description provided for @signInNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name'**
+  String get signInNameLabel;
+
+  /// No description provided for @signInNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'So the restaurant knows who to expect'**
+  String get signInNameHint;
+
+  /// No description provided for @signInContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Send me a code'**
+  String get signInContinue;
+
+  /// No description provided for @signInSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get signInSending;
+
+  /// No description provided for @signInCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code'**
+  String get signInCodeTitle;
+
+  /// No description provided for @signInCodeSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {phone}.'**
+  String signInCodeSentTo(String phone);
+
+  /// No description provided for @signInCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'6-digit code'**
+  String get signInCodeLabel;
+
+  /// No description provided for @signInVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get signInVerify;
+
+  /// No description provided for @signInVerifying.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get signInVerifying;
+
+  /// No description provided for @signInResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send another code'**
+  String get signInResend;
+
+  /// No description provided for @signInResending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get signInResending;
+
+  /// No description provided for @signInChangePhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a different number'**
+  String get signInChangePhone;
+
+  /// Shown only when the OTP delivery stub is in use. The marker is a PLACEHOLDER rather than part of the sentence so the screen can wrap it in a bidi isolate — 'STUB DELIVERY' inside Arabic prose broke across a line with its full stop leading, which the Arabic golden showed and no assertion did.
+  ///
+  /// In en, this message translates to:
+  /// **'In development the code is written to the API log — look for {marker}.'**
+  String signInDevHint(String marker);
+
+  /// No description provided for @signInSlotHeld.
+  ///
+  /// In en, this message translates to:
+  /// **'Your table: {venue}, {date} at {time}, {party}'**
+  String signInSlotHeld(String venue, String date, String time, String party);
+
+  /// No description provided for @signInSlotNote.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll finish this booking as soon as you\'re in.'**
+  String get signInSlotNote;
+
+  /// No description provided for @signInCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get signInCancel;
+
+  /// No description provided for @bookingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My bookings'**
+  String get bookingsTitle;
+
+  /// No description provided for @bookingsUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming'**
+  String get bookingsUpcoming;
+
+  /// No description provided for @bookingsPast.
+  ///
+  /// In en, this message translates to:
+  /// **'Past'**
+  String get bookingsPast;
+
+  /// No description provided for @bookingsEmptyUpcomingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing booked yet'**
+  String get bookingsEmptyUpcomingTitle;
+
+  /// No description provided for @bookingsEmptyUpcomingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'When you book a table it will be here, with everything you need at the door.'**
+  String get bookingsEmptyUpcomingMessage;
+
+  /// No description provided for @bookingsEmptyUpcomingAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Find somewhere'**
+  String get bookingsEmptyUpcomingAction;
+
+  /// No description provided for @bookingsEmptyPastTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No visits yet'**
+  String get bookingsEmptyPastTitle;
+
+  /// No description provided for @bookingsEmptyPastMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Tables you have been to will be kept here.'**
+  String get bookingsEmptyPastMessage;
+
+  /// No description provided for @bookingsSignedOutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to see your bookings'**
+  String get bookingsSignedOutTitle;
+
+  /// No description provided for @bookingsSignedOutMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reservations are kept under your phone number.'**
+  String get bookingsSignedOutMessage;
+
+  /// No description provided for @bookingsSignedOutAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get bookingsSignedOutAction;
+
+  /// No description provided for @bookingsCancelledByVenue.
+  ///
+  /// In en, this message translates to:
+  /// **'The restaurant cancelled'**
+  String get bookingsCancelledByVenue;
+
+  /// No description provided for @bookingsCancelledByYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You cancelled'**
+  String get bookingsCancelledByYou;
+
+  /// No description provided for @bookingsPartyOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Table for {party}'**
+  String bookingsPartyOf(int party);
+
+  /// No description provided for @bookingsAcknowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get bookingsAcknowledge;
+
+  /// No description provided for @reservationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your booking'**
+  String get reservationTitle;
+
+  /// No description provided for @reservationReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmation'**
+  String get reservationReference;
+
+  /// No description provided for @reservationWhen.
+  ///
+  /// In en, this message translates to:
+  /// **'When'**
+  String get reservationWhen;
+
+  /// No description provided for @reservationParty.
+  ///
+  /// In en, this message translates to:
+  /// **'Party'**
+  String get reservationParty;
+
+  /// No description provided for @reservationStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get reservationStatus;
+
+  /// No description provided for @reservationSpecialRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'You asked for'**
+  String get reservationSpecialRequests;
+
+  /// No description provided for @reservationOccasion.
+  ///
+  /// In en, this message translates to:
+  /// **'Occasion'**
+  String get reservationOccasion;
+
+  /// No description provided for @reservationModify.
+  ///
+  /// In en, this message translates to:
+  /// **'Change time or party'**
+  String get reservationModify;
+
+  /// No description provided for @reservationCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel booking'**
+  String get reservationCancel;
+
+  /// No description provided for @reservationNotYetAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available yet — call the restaurant to change or cancel.'**
+  String get reservationNotYetAvailable;
+
+  /// No description provided for @reservationVenuePhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Call the restaurant'**
+  String get reservationVenuePhone;
+
+  /// No description provided for @reservationCancelledNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'{venue} cancelled this booking: {reason}'**
+  String reservationCancelledNotice(String venue, String reason);
+
+  /// No description provided for @reservationNotFoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We lost that booking'**
+  String get reservationNotFoundTitle;
+
+  /// No description provided for @reservationNotFoundMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'It may have been cancelled, or it belongs to another account.'**
+  String get reservationNotFoundMessage;
+
+  /// No description provided for @statusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting confirmation'**
+  String get statusPending;
+
+  /// No description provided for @statusConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get statusConfirmed;
+
+  /// No description provided for @statusSeated.
+  ///
+  /// In en, this message translates to:
+  /// **'Seated'**
+  String get statusSeated;
+
+  /// No description provided for @statusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Visited'**
+  String get statusCompleted;
+
+  /// No description provided for @statusNoShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get statusNoShow;
+
+  /// No description provided for @statusCancelledByUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled by you'**
+  String get statusCancelledByUser;
+
+  /// No description provided for @statusCancelledByRestaurant.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled by the restaurant'**
+  String get statusCancelledByRestaurant;
+
+  /// No description provided for @signOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get signOut;
 }
 
 class _AppLocalizationsDelegate

@@ -11,8 +11,11 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/presentation/sign_in_screen.dart';
 import '../features/reservations/presentation/book_screen.dart';
 import '../features/reservations/presentation/confirmed_screen.dart';
+import '../features/reservations/presentation/my_bookings_screen.dart';
+import '../features/reservations/presentation/reservation_screen.dart';
 import '../features/restaurants/presentation/search_screen.dart';
 import '../features/restaurants/presentation/venue_screen.dart';
 
@@ -43,6 +46,44 @@ class BookRoute {
   /// with — the name is display only.
   void go(BuildContext context) =>
       context.push('/r/$restaurantId/book?name=${Uri.encodeComponent(venueName)}');
+}
+
+/// Sign-in, pushed OVER whatever the diner was doing.
+///
+/// `push`, never `go`, and it returns `true` when the diner got in. The book
+/// screen awaits that answer to decide whether to re-attempt the hold — which
+/// is what makes "cancelled sign-in leaves the selection alone" a property of
+/// the navigation rather than a flag somebody has to remember to check.
+///
+/// [venueId] IS in the URL; the SLOT is not, and the difference is the whole
+/// argument in [PendingSelection]. A venue id is a place, and a refresh landing
+/// on "sign in, you were booking at Layali" is harmless. A slot is a claim on
+/// availability that expires, and a refresh landing on one re-attempts a hold
+/// that has since become somebody else's table.
+class SignInRoute {
+  const SignInRoute([this.venueId]);
+  final String? venueId;
+  static const String path = '/sign-in';
+
+  Future<bool?> push(BuildContext context) => context.push<bool>(
+        venueId == null ? path : '$path?venue=$venueId',
+      );
+
+  /// For entry points with nothing underneath — the signed-out bookings tab.
+  void go(BuildContext context) => context.go(path);
+}
+
+class BookingsRoute {
+  const BookingsRoute();
+  static const String path = '/bookings';
+  void go(BuildContext context) => context.go(path);
+}
+
+class ReservationRoute {
+  const ReservationRoute(this.id);
+  final String id;
+  static const String path = '/bookings/:id';
+  void go(BuildContext context) => context.push('/bookings/$id');
 }
 
 class ConfirmedRoute {
@@ -82,6 +123,31 @@ GoRouter buildRouter() => GoRouter(
                 restaurantId: state.pathParameters['idOrSlug']!,
                 venueName: state.uri.queryParameters['name'] ?? '',
               ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: SignInRoute.path,
+          builder: (context, state) => SignInScreen(
+            pendingRestaurantId: state.uri.queryParameters['venue'],
+            // Both callbacks come from the ROUTE, not from inside the screen,
+            // because both answers depend on how the diner arrived. Pushed over
+            // a booking there is something to pop back to and something to tell
+            // it; opened from the bookings tab there is neither.
+            onClose: context.canPop() ? () => context.pop(false) : null,
+            onSignedIn: () => context.canPop()
+                ? context.pop(true)
+                : const BookingsRoute().go(context),
+          ),
+        ),
+        GoRoute(
+          path: BookingsRoute.path,
+          builder: (_, __) => const MyBookingsScreen(),
+          routes: <RouteBase>[
+            GoRoute(
+              path: ':id',
+              builder: (_, state) =>
+                  ReservationScreen(id: state.pathParameters['id']!),
             ),
           ],
         ),

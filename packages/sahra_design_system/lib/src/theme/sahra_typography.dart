@@ -86,11 +86,43 @@ class SahraTypography {
           color: body,
         );
 
+    // ALL FIFTEEN MATERIAL SLOTS ARE FILLED, and the five that were not are
+    // why this note exists.
+    //
+    // `displayMedium`, `displaySmall`, `titleLarge`, `titleMedium` and
+    // `titleSmall` were left null. Reaching for one of them did not fail and
+    // did not even read as empty: `ThemeData` fills an unset slot from its own
+    // typography, which inherits `ThemeData.fontFamily` — POPPINS, the Latin
+    // UI face, which has NO ARABIC GLYPHS. So the first screen to write
+    // `textTheme.titleMedium` rendered every venue name in the bookings list
+    // as a row of empty boxes, in Arabic only.
+    //
+    // Every test passed. `flutter analyze` sees a valid nullable getter; a
+    // null-check from outside reads back the substituted style and finds it
+    // present; the contrast and tap-target guidelines do not look at glyph
+    // shapes. It was found by looking at a golden.
+    //
+    // Nothing below is a new value. Each of the five gets an existing token
+    // size and one of the two existing families — the fix is a mapping, not a
+    // new type scale — and `typography_arabic_coverage_test.dart` asserts the
+    // resolved family of all fifteen by name.
     return TextTheme(
       // Display and headlines use the serif face — Newsreader in Latin,
       // Reem Kufi in Arabic — per DESIGN-RULES.md.
       displayLarge: s(
         SahraTypeScale.display,
+        semibold,
+        family: display,
+        height: SahraTypeScale.leadingTight,
+      ),
+      displayMedium: s(
+        SahraTypeScale.h1,
+        semibold,
+        family: display,
+        height: SahraTypeScale.leadingTight,
+      ),
+      displaySmall: s(
+        SahraTypeScale.h2,
         semibold,
         family: display,
         height: SahraTypeScale.leadingTight,
@@ -108,6 +140,27 @@ class SahraTypography {
         height: SahraTypeScale.leadingTight,
       ),
       headlineSmall: s(SahraTypeScale.h3, semibold, height: SahraTypeScale.leadingTight),
+
+      // Titles are the display face at body sizes — which is exactly what the
+      // references draw: `MyBookingsScreen.jsx` sets each card's venue name in
+      // `font-display` / `font-arabic-display` at 17px, between text-h3 (18)
+      // and text-body-l (16). 16 is the token that exists.
+      titleLarge: s(
+        SahraTypeScale.h3,
+        semibold,
+        family: display,
+        height: SahraTypeScale.leadingTight,
+      ),
+      titleMedium: s(
+        SahraTypeScale.bodyL,
+        semibold,
+        family: display,
+        height: SahraTypeScale.leadingTight,
+      ),
+      // Small titles stay in the UI face. Below body size the serif's
+      // distinguishing features stop being legible and it just reads as a
+      // slightly wrong body style.
+      titleSmall: s(SahraTypeScale.bodyM, semibold, height: SahraTypeScale.leadingTight),
 
       bodyLarge: s(SahraTypeScale.bodyL, regular),
       bodyMedium: s(SahraTypeScale.bodyM, regular),

@@ -30,6 +30,27 @@ void main() {
   late RestaurantRepositoryImpl restaurants;
   late ReservationRepositoryImpl reservations;
 
+  /// A real token for a real account, obtained the way a real client would.
+  ///
+  /// C-1.6 — booking requires an account — turned every hold below into a 401
+  /// the moment it shipped, which is the enforcement working. The test could
+  /// have been narrowed to "an anonymous hold is refused", and that would have
+  /// been true and useless: the thing worth proving over a real socket is that
+  /// a signed-in diner can still book.
+  ///
+  /// So this registers a fresh account WITH A PASSWORD and logs in. Both are
+  /// real endpoints doing real work — `register` writes the user, `login`
+  /// verifies an argon2id hash and mints a real JWT. Nothing is stubbed and no
+  /// token is hand-forged.
+  ///
+  /// It does NOT use the OTP flow, and that is a limitation worth naming: the
+  /// code goes to the API's log (OPS-1, `LoggingOtpDelivery`) and a Flutter
+  /// test cannot read it. The OTP path is covered in-process by the API's own
+  /// e2e suite, which can reach the store. When real delivery lands, this
+  /// stays as it is — a password account is a legitimate account, not a
+  /// shortcut around the auth the endpoint enforces.
+  late String accessToken;
+
   setUpAll(() {
     // `TestWidgetsFlutterBinding` INSTALLS AN HttpOverrides THAT ANSWERS 400
     // TO EVERYTHING and never opens a socket. Nothing announces this except a
@@ -45,8 +66,36 @@ void main() {
     HttpOverrides.global = null;
   });
 
-  setUp(() {
-    final transport = DioTransport(baseUrl: base, localeCode: () => 'en');
+  setUp(() async {
+    // Anonymous first, to register and log in.
+    final anon = SahraApi(DioTransport(baseUrl: base, localeCode: () => 'en'));
+
+    // A phone nobody else in this database has. Reusing a fixed number would
+    // make the second run of this suite fail against the first run's account —
+    // and then somebody would "fix" it by deleting the assertion.
+    final phone = '01${DateTime.now().microsecondsSinceEpoch % 1000000000}';
+    const password = 'live-suite-password-1';
+
+    await guarded(
+      () => anon.register(
+        body: RegisterDto(
+          phone: phone,
+          fullName: 'Live Suite',
+          password: password,
+          locale: 'en',
+        ),
+      ),
+    );
+    final pair = await guarded(
+      () => anon.login(body: LoginDto(identifier: phone, password: password)),
+    );
+    accessToken = pair.accessToken;
+
+    final transport = DioTransport(
+      baseUrl: base,
+      localeCode: () => 'en',
+      accessToken: () => accessToken,
+    );
     api = SahraApi(transport);
     restaurants = RestaurantRepositoryImpl(api, () => 'en');
     reservations = ReservationRepositoryImpl(api);
@@ -97,7 +146,55 @@ void main() {
     final confirmed = await reservations.confirm(holdId: held.id);
     expect(confirmed.status, 'confirmed');
     expect(confirmed.code, held.code);
+
+    // 6. AND IT COMES BACK. The screens the diner opens next read this list,
+    // and until now nothing had ever proved the booking that was just made
+    // appears in it — the write path and the read path were tested apart.
+    final mine = await reservations.myReservations(view: 'upcoming');
+    expect(
+      mine.map((r) => r.code),
+      contains(confirmed.code),
+      reason: 'the reservation just confirmed is not in GET /reservations',
+    );
+
+    final one = await reservations.reservation(
+      mine.firstWhere((r) => r.code == confirmed.code).id,
+    );
+    expect(one.status, 'confirmed');
+    expect(one.needsAcknowledgement, isFalse);
+    // The venue's wall clock, computed server-side — not derived here from the
+    // UTC instant, which is the whole reason these two fields exist.
+    expect(one.time, matches(RegExp(r'^\d{2}:\d{2}$')));
+    expect(one.venue.timezone, 'Africa/Cairo');
   }, timeout: const Timeout(Duration(seconds: 60)),);
+
+  test('C-1.6: an anonymous hold is refused, and typed as an AuthFailure', () async {
+    // The enforcement itself, over a real socket. The screens depend on this
+    // arriving as an `AuthFailure` specifically — that is what routes a guest
+    // to sign-in instead of showing them an error they cannot act on.
+    final anon = SahraApi(DioTransport(baseUrl: base, localeCode: () => 'en'));
+    final page = await restaurants.search(query: 'layali');
+    final venue = page.results.first;
+    final board = await reservations.slots(
+      restaurantId: venue.id,
+      date: isoDate(DateTime.now().add(const Duration(days: 1))),
+      partySize: 2,
+    );
+
+    await expectLater(
+      guarded(
+        () => anon.createHold(
+          body: CreateHoldDto(
+            restaurantId: venue.id,
+            startsAt: board.slots.first.startsAt,
+            partySize: 2,
+          ),
+          idempotencyKey: newIdempotencyKey(),
+        ),
+      ),
+      throwsA(isA<AuthFailure>()),
+    );
+  }, timeout: const Timeout(Duration(seconds: 30)),);
 
   test('a replayed idempotency key returns the SAME reservation', () async {
     // The guarantee that makes a retry on a bad Cairo connection safe. Driven

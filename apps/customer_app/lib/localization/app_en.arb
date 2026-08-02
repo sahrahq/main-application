@@ -230,5 +230,113 @@
   "cuisineCafe": "Cafe",
   "@cuisineLevantine": {
     "description": "Cuisine keys come from the API as enum-ish strings (levantine, street_food). Title-casing the key put English on the Arabic screen — found by looking at a golden. Unknown keys are skipped, not shown raw."
+  },
+  "signInTitle": "Sign in to book",
+  "signInWhy": "We hold your table under your name, and tell you if anything changes.",
+  "signInPhoneLabel": "Phone number",
+  "signInPhoneHint": "01x xxx xxxx",
+  "signInNameLabel": "Your name",
+  "signInNameHint": "So the restaurant knows who to expect",
+  "signInContinue": "Send me a code",
+  "signInSending": "Sending…",
+  "signInCodeTitle": "Enter the code",
+  "signInCodeSentTo": "We sent a 6-digit code to {phone}.",
+  "signInCodeLabel": "6-digit code",
+  "signInVerify": "Verify",
+  "signInVerifying": "Checking…",
+  "signInResend": "Send another code",
+  "signInResending": "Sending…",
+  "signInChangePhone": "Use a different number",
+  "signInDevHint": "In development the code is written to the API log — look for {marker}.",
+  "signInSlotHeld": "Your table: {venue}, {date} at {time}, {party}",
+  "signInSlotNote": "We'll finish this booking as soon as you're in.",
+  "signInCancel": "Not now",
+  "bookingsTitle": "My bookings",
+  "bookingsUpcoming": "Upcoming",
+  "bookingsPast": "Past",
+  "bookingsEmptyUpcomingTitle": "Nothing booked yet",
+  "bookingsEmptyUpcomingMessage": "When you book a table it will be here, with everything you need at the door.",
+  "bookingsEmptyUpcomingAction": "Find somewhere",
+  "bookingsEmptyPastTitle": "No visits yet",
+  "bookingsEmptyPastMessage": "Tables you have been to will be kept here.",
+  "bookingsSignedOutTitle": "Sign in to see your bookings",
+  "bookingsSignedOutMessage": "Your reservations are kept under your phone number.",
+  "bookingsSignedOutAction": "Sign in",
+  "bookingsCancelledByVenue": "The restaurant cancelled",
+  "bookingsCancelledByYou": "You cancelled",
+  "bookingsPartyOf": "Table for {party}",
+  "bookingsAcknowledge": "Got it",
+  "reservationTitle": "Your booking",
+  "reservationReference": "Confirmation",
+  "reservationWhen": "When",
+  "reservationParty": "Party",
+  "reservationStatus": "Status",
+  "reservationSpecialRequests": "You asked for",
+  "reservationOccasion": "Occasion",
+  "reservationModify": "Change time or party",
+  "reservationCancel": "Cancel booking",
+  "reservationNotYetAvailable": "Not available yet — call the restaurant to change or cancel.",
+  "reservationVenuePhone": "Call the restaurant",
+  "reservationCancelledNotice": "{venue} cancelled this booking: {reason}",
+  "reservationNotFoundTitle": "We lost that booking",
+  "reservationNotFoundMessage": "It may have been cancelled, or it belongs to another account.",
+  "statusPending": "Awaiting confirmation",
+  "statusConfirmed": "Confirmed",
+  "statusSeated": "Seated",
+  "statusCompleted": "Visited",
+  "statusNoShow": "Missed",
+  "statusCancelledByUser": "Cancelled by you",
+  "statusCancelledByRestaurant": "Cancelled by the restaurant",
+  "signOut": "Sign out",
+  "@signInCodeSentTo": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "@signInSlotHeld": {
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "party": {
+        "type": "String"
+      }
+    }
+  },
+  "@bookingsPartyOf": {
+    "placeholders": {
+      "party": {
+        "type": "int"
+      }
+    }
+  },
+  "@reservationCancelledNotice": {
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "@signInDevHint": {
+    "placeholders": {
+      "marker": {
+        "type": "String"
+      }
+    },
+    "description": "Shown only when the OTP delivery stub is in use. The marker is a PLACEHOLDER rather than part of the sentence so the screen can wrap it in a bidi isolate — 'STUB DELIVERY' inside Arabic prose broke across a line with its full stop leading, which the Arabic golden showed and no assertion did."
+  },
+  "@signInWhy": {
+    "description": "C-1.6 asks the diner to sign up at the booking action. This is the ONE sentence that has to make thirty seconds feel worth it, so it states what they get — the table under their name, and being told if it changes — not what we need."
   }
 }

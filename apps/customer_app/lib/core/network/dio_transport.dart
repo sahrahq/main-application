@@ -24,8 +24,13 @@ class DioTransport implements SahraTransport {
   DioTransport({
     required String baseUrl,
     required String Function() localeCode,
+    /// The current access token, or null. Read PER REQUEST rather than
+    /// captured, because it changes when the diner signs in and a transport
+    /// holding a stale copy would keep sending a token that no longer exists.
+    String? Function()? accessToken,
     Dio? dio,
   })  : _localeCode = localeCode,
+        _accessToken = accessToken ?? _noToken,
         _dio = (dio ?? Dio())
           ..options.baseUrl = baseUrl
           ..options.connectTimeout = const Duration(seconds: 8)
@@ -38,6 +43,7 @@ class DioTransport implements SahraTransport {
 
   final Dio _dio;
   final String Function() _localeCode;
+  final String? Function() _accessToken;
 
   @override
   Future<dynamic> send({
@@ -60,6 +66,10 @@ class DioTransport implements SahraTransport {
             // this selects localized CONTENT, never which message we show.
             'Accept-Language': _localeCode(),
             'X-App-Version': _appVersion,
+            // Absent for a guest, which is a legitimate state: browsing needs
+            // no token (C-1.6) and the server answers 401 for the one action
+            // that does.
+            ...?_bearer(),
             ...?headers,
           },
         ),
@@ -80,6 +90,11 @@ class DioTransport implements SahraTransport {
   /// Drawn here rather than in a screen because it is the only place with
   /// enough information, and because leaving it to screens guarantees three
   /// screens draw it three ways.
+  Map<String, String>? _bearer() {
+    final token = _accessToken();
+    return token == null ? null : <String, String>{'Authorization': 'Bearer $token'};
+  }
+
   Object _translate(DioException e) => switch (e.type) {
         // Not a wildcard: every member is listed so a new DioExceptionType in
         // a future Dio release is a COMPILE ERROR here rather than a silent
@@ -100,6 +115,9 @@ class DioTransport implements SahraTransport {
             : const OfflineException(),
       };
 }
+
+/// No session. A guest browsing is the ordinary case, not an error.
+String? _noToken() => null;
 
 /// Every status reaches [DioTransport.send], which decides what an error is.
 /// Named rather than an inline `(_) => true` so the reason survives: Dio's own

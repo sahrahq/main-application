@@ -27,13 +27,27 @@ class FakeTransport implements SahraTransport {
     Object? body,
   }) async {
     calls.add('$method $path');
-    // Every mutation must carry one (doc 06 §1). Asserted here rather than in
-    // one test, so a call site that forgets it fails wherever it is exercised.
-    if (method != 'GET') {
-      final key = headers?['idempotency-key'];
-      if (key == null || !_uuidV4.hasMatch(key)) {
-        throw StateError('$method $path was sent without a UUID v4 Idempotency-Key');
-      }
+
+    // A KEY THAT IS SENT MUST BE WELL FORMED. Nothing more is asserted here,
+    // and the reason is worth writing down because this check USED to say
+    // "every non-GET must carry one" and was wrong twice over.
+    //
+    // Wrong the first way: it could not fail for a real reason. The generator
+    // emits `idempotencyKey` as a REQUIRED named parameter on exactly the
+    // operations whose spec declares the header, so omitting it at a call site
+    // is a compile error, not a test failure.
+    //
+    // Wrong the second way, and this is the one that matters: it agreed with
+    // CLAUDE.md rule 2 — "every API mutation is idempotent" — while 22 of the
+    // 25 mutations broke it. It passed for four weeks because the only
+    // mutations any test drove were the two reservation ones, which comply.
+    // A guard pointed only at the compliant cases is not a guard, so counting
+    // moved to `apps/api/src/shared/api/idempotency-contract.spec.ts`, where
+    // it observes the whole committed spec instead of whatever this suite
+    // happened to call.
+    final key = headers?['idempotency-key'];
+    if (key != null && !_uuidV4.hasMatch(key)) {
+      throw StateError('$method $path sent a malformed Idempotency-Key: $key');
     }
     return handler(method, path, query);
   }
