@@ -3,22 +3,39 @@ import { Interval } from '@nestjs/schedule';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 
 /**
- * How long an unverified registration survives.
+ * How long an unverified registration survives. **24 HOURS.**
  *
- * **24 HOURS**, and the reason is NOT usability.
+ * ─────────────────────────────────────────────────────────────────────────
+ * THIS NUMBER IS NOT ARBITRARY, AND IT IS NOT A USABILITY SETTING.
+ * Read this before changing it.
+ * ─────────────────────────────────────────────────────────────────────────
  *
- * The obvious justification would be "long enough that someone slow reading
- * their SMS is not cut off, short enough that a squatted number frees up".
- * Neither half is load-bearing any more: `AuthService.register` now REPLACES
- * an unverified registration instead of refusing it, so a real owner is never
- * blocked however long the row has sat there, and a squatted number is
- * effectively free the moment its owner tries.
+ * The obvious justification — "long enough that someone slow reading their
+ * SMS is not cut off, short enough that a squatted number frees up for its
+ * owner" — is NO LONGER LOAD-BEARING, and reasoning from it will produce the
+ * wrong answer. `AuthService.register` now REPLACES an unverified
+ * registration rather than refusing it, so:
  *
- * What remains is DATA MINIMISATION. A phone number belonging to an account
- * nobody ever confirmed is personal data held with no basis — Egypt's PDPL
- * (Law 151/2020, doc 02 §4) and every GDPR-grade practice say to drop it.
- * 24 hours keeps a support window ("I tried to sign up yesterday") without
- * accumulating strangers' phone numbers indefinitely.
+ *   - a real owner is never blocked, however long the row has sat there
+ *   - a squatted number is free the moment its owner tries to use it
+ *
+ * Neither outcome depends on this constant at all. Tune it for usability and
+ * you are tuning something that has no usability effect.
+ *
+ * THE ACTUAL BASIS IS A LEGAL ONE: **data minimisation**.
+ *
+ * A phone number attached to an account nobody ever confirmed is personal
+ * data we hold with no lawful basis and no purpose — the person it identifies
+ * may never have heard of SAHRA, because anybody can type a stranger's number
+ * into a signup form. Egypt's **Personal Data Protection Law 151/2020**, which
+ * doc 02 §4 commits this platform to alongside GDPR-grade practice, requires
+ * that such data be kept no longer than the purpose needs. The purpose —
+ * completing a signup — is over within minutes.
+ *
+ * 24 hours is therefore an upper bound chosen for one remaining operational
+ * reason: it preserves a support window wide enough for "I tried to sign up
+ * yesterday and something went wrong". Shorter is defensible. LONGER NEEDS A
+ * REASON THAT SURVIVES A REGULATOR ASKING WHY WE STILL HAVE THE NUMBER.
  */
 export const PENDING_TTL_HOURS = 24;
 

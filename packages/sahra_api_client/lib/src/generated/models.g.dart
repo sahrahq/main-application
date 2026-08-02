@@ -538,6 +538,72 @@ class LogoutDto {
       };
 }
 
+class MyReservationResponse {
+  const MyReservationResponse({
+    required this.code,
+    required this.date,
+    required this.endsAt,
+    required this.id,
+    this.occasion,
+    required this.partySize,
+    required this.restaurant,
+    required this.source,
+    this.specialRequests,
+    required this.startsAt,
+    required this.status,
+    required this.time,
+  });
+
+  factory MyReservationResponse.fromJson(Map<String, dynamic> json) => MyReservationResponse(
+        code: json['code'] as String,
+        date: json['date'] as String,
+        endsAt: json['ends_at'] as String,
+        id: json['id'] as String,
+        occasion: json['occasion'] == null ? null : json['occasion'] as String,
+        partySize: (json['party_size'] as num).toInt(),
+        restaurant: ReservationVenueResponse.fromJson(json['restaurant'] as Map<String, dynamic>),
+        source: json['source'] as String,
+        specialRequests: json['special_requests'] == null ? null : json['special_requests'] as String,
+        startsAt: json['starts_at'] as String,
+        status: json['status'] as String,
+        time: json['time'] as String,
+      );
+
+  /// Human-readable, quoted at the door. e.g. SAH-7K2M
+  final String code;
+  /// YYYY-MM-DD on the RESTAURANT'S wall clock.
+  final String date;
+  final String endsAt;
+  final String id;
+  final String? occasion;
+  final int partySize;
+  final ReservationVenueResponse restaurant;
+  /// app | walk_in | phone — which door it came through.
+  final String source;
+  final String? specialRequests;
+  /// Absolute instant, ISO-8601 UTC.
+  final String startsAt;
+  /// pending | confirmed | seated | completed | no_show | cancelled_*
+  final String status;
+  /// HH:MM on the RESTAURANT'S wall clock.
+  final String time;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'code': code,
+        'date': date,
+        'ends_at': endsAt,
+        'id': id,
+        if (occasion != null) 'occasion': occasion!,
+        'party_size': partySize,
+        'restaurant': restaurant.toJson(),
+        'source': source,
+        if (specialRequests != null) 'special_requests': specialRequests!,
+        'starts_at': startsAt,
+        'status': status,
+        'time': time,
+      };
+}
+
 class OpeningHoursResponse {
   const OpeningHoursResponse({
     required this.closesAt,
@@ -841,6 +907,47 @@ class ReservationTableResponse {
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'tableId': tableId,
+      };
+}
+
+class ReservationVenueResponse {
+  const ReservationVenueResponse({
+    required this.city,
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    this.neighborhood,
+    required this.slug,
+    required this.timezone,
+  });
+
+  factory ReservationVenueResponse.fromJson(Map<String, dynamic> json) => ReservationVenueResponse(
+        city: json['city'] as String,
+        id: json['id'] as String,
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
+        slug: json['slug'] as String,
+        timezone: json['timezone'] as String,
+      );
+
+  final String city;
+  final String id;
+  final String nameAr;
+  final String nameEn;
+  final String? neighborhood;
+  final String slug;
+  /// IANA zone `date` and `time` are expressed in.
+  final String timezone;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'city': city,
+        'id': id,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        if (neighborhood != null) 'neighborhood': neighborhood!,
+        'slug': slug,
+        'timezone': timezone,
       };
 }
 

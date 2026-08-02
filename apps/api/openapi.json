@@ -518,6 +518,67 @@
         ],
         "type": "object"
       },
+      "MyReservationResponse": {
+        "properties": {
+          "code": {
+            "description": "Human-readable, quoted at the door. e.g. SAH-7K2M",
+            "type": "string"
+          },
+          "date": {
+            "description": "YYYY-MM-DD on the RESTAURANT'S wall clock.",
+            "type": "string"
+          },
+          "ends_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "occasion": {
+            "nullable": true,
+            "type": "string"
+          },
+          "party_size": {
+            "type": "integer"
+          },
+          "restaurant": {
+            "$ref": "#/components/schemas/ReservationVenueResponse"
+          },
+          "source": {
+            "description": "app | walk_in | phone — which door it came through.",
+            "type": "string"
+          },
+          "special_requests": {
+            "nullable": true,
+            "type": "string"
+          },
+          "starts_at": {
+            "description": "Absolute instant, ISO-8601 UTC.",
+            "type": "string"
+          },
+          "status": {
+            "description": "pending | confirmed | seated | completed | no_show | cancelled_*",
+            "type": "string"
+          },
+          "time": {
+            "description": "HH:MM on the RESTAURANT'S wall clock.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "status",
+          "source",
+          "starts_at",
+          "ends_at",
+          "date",
+          "time",
+          "party_size",
+          "restaurant"
+        ],
+        "type": "object"
+      },
       "OpeningHoursResponse": {
         "properties": {
           "closes_at": {
@@ -771,6 +832,42 @@
         },
         "required": [
           "tableId"
+        ],
+        "type": "object"
+      },
+      "ReservationVenueResponse": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "nullable": true,
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "timezone": {
+            "description": "IANA zone `date` and `time` are expressed in.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name_en",
+          "name_ar",
+          "city",
+          "timezone"
         ],
         "type": "object"
       },
@@ -2569,6 +2666,52 @@
         ]
       }
     },
+    "/v1/reservations": {
+      "get": {
+        "operationId": "MyReservationsController_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "upcoming",
+                "past"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MyReservationResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "invalid_query_param"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's own reservations",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
     "/v1/reservations/holds": {
       "post": {
         "operationId": "ReservationsController_createHold",
@@ -2668,6 +2811,45 @@
           }
         },
         "summary": "Confirm a held table",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/v1/reservations/{id}": {
+      "get": {
+        "operationId": "MyReservationsController_one",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "reservation_not_found — ALSO returned for a reservation belonging to someone else, deliberately. A 403 would confirm the row exists."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One of the caller's own reservations",
         "tags": [
           "reservations"
         ]

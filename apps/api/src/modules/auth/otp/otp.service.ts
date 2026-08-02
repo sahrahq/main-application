@@ -165,18 +165,29 @@ export class OtpService {
   /**
    * 429 per doc 06 §2 ("5 attempts → 429"), now carrying how long the wait is.
    *
-   * THE OLD COPY WAS ACTIVELY MISLEADING: "Request a new code" is precisely
-   * what does NOT work during a lock, so a diner who followed it would burn
-   * their three sends against a door that is shut, then contact support. The
-   * message now says to wait, and `retry_after` carries the seconds — which
-   * the error filter also promotes to the `Retry-After` header.
+   * TWO THINGS THIS COPY HAS TO DO, and the first draft got neither.
+   *
+   * 1. Say that WAITING is required. "Request a new code" is precisely what
+   *    does not work during a lock, so a diner following it burns their three
+   *    sends against a shut door and then contacts support.
+   * 2. Put the fault on the ATTEMPT, not the person. A draft that opened with
+   *    "wrong codes, too many of them" reads in Egyptian Arabic as being told
+   *    off — at the moment the reader is already locked out and frustrated.
+   *
+   * These strings are the FALLBACK for a client that does not know the code;
+   * the client owns its own copy in `errTooManyAttempts`. They are kept
+   * word-for-word identical so the two cannot drift into saying different
+   * things about the same lock.
+   *
+   * `retry_after` carries the seconds, which the error filter also promotes to
+   * the `Retry-After` header.
    */
   private tooManyAttempts(retryAfterSeconds: number): HttpException {
     return new HttpException(
       {
         code: 'too_many_attempts',
-        message: 'Too many incorrect codes. Please wait 15 minutes and try again.',
-        message_ar: 'أكواد غلط كتير. استنى ١٥ دقيقة وحاول تاني.',
+        message: "Too many attempts. Please wait 15 minutes and try again — asking for a new code won't help until then.",
+        message_ar: 'حاولت كتير والكود مظبطش. استنى ١٥ دقيقة وجرّب تاني — طلب كود جديد مش هيفيد دلوقتي.',
         retry_after: retryAfterSeconds,
       },
       HttpStatus.TOO_MANY_REQUESTS,

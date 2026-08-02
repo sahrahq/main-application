@@ -2,6 +2,8 @@ import { Module } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
 import { ReservationsService } from "./reservations.service";
 import { ReservationsController } from "./reservations.controller";
+import { MyReservationsController } from "./my-reservations.controller";
+import { MyReservationsService } from "./my-reservations.service";
 import { HoldExpiryService } from "./expiry/hold-expiry.service";
 import { HoldExpiryQueue } from "./expiry/hold-expiry.queue";
 import { HoldExpiryProcessor } from "./expiry/hold-expiry.processor";
@@ -22,14 +24,14 @@ const queueProviders = process.env.REDIS_URL ? [HoldExpiryProcessor] : [];
 
 @Module({
   imports: queueImports,
-  providers: [
+  providers: [MyReservationsService, 
     ReservationsService,
     HoldExpiryService,
     HoldExpiryQueue,
     HoldExpiryScheduler,
     ...queueProviders,
   ],
-  controllers: [ReservationsController],
+  controllers: [ReservationsController, MyReservationsController],
   exports: [ReservationsService, HoldExpiryService],
 })
 export class ReservationsModule {}

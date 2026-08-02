@@ -170,6 +170,48 @@ export class ReservationResponse {
   tables?: ReservationTableResponse[];
 }
 
+/** The venue block carried inside a diner's own reservation. */
+export class ReservationVenueResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() slug!: string;
+  @ApiProperty() name_en!: string;
+  @ApiProperty() name_ar!: string;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) neighborhood?: string | null;
+  @ApiProperty() city!: string;
+  @ApiProperty({ description: 'IANA zone `date` and `time` are expressed in.' })
+  timezone!: string;
+}
+
+/**
+ * doc 06 §3 `/reservations` and `/reservations/:id` — the DINER's view.
+ *
+ * snake_case, matching the search result and the public venue profile: these
+ * are the customer-facing reads and a client should not switch convention
+ * between them.
+ *
+ * Carries the instant AND the venue wall clock. `starts_at` is what the server
+ * accepts and compares; `date`/`time` are what a diner reads. A client
+ * deriving the second from the first plus a guessed timezone is 2–3 hours out
+ * in Cairo depending on the date.
+ */
+export class MyReservationResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty({ description: 'Human-readable, quoted at the door. e.g. SAH-7K2M' })
+  code!: string;
+  @ApiProperty({ description: 'pending | confirmed | seated | completed | no_show | cancelled_*' })
+  status!: string;
+  @ApiProperty({ description: 'app | walk_in | phone — which door it came through.' })
+  source!: string;
+  @ApiProperty({ description: 'Absolute instant, ISO-8601 UTC.' }) starts_at!: string;
+  @ApiProperty() ends_at!: string;
+  @ApiProperty({ description: "YYYY-MM-DD on the RESTAURANT'S wall clock." }) date!: string;
+  @ApiProperty({ description: "HH:MM on the RESTAURANT'S wall clock." }) time!: string;
+  @ApiProperty({ type: 'integer' }) party_size!: number;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) special_requests?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) occasion?: string | null;
+  @ApiProperty({ type: ReservationVenueResponse }) restaurant!: ReservationVenueResponse;
+}
+
 // ──────────────────────────────────────────────────────────── owner: venue ──
 
 export class RestaurantResponse {

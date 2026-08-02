@@ -41,7 +41,7 @@
   "errTableHasFutureReservations": "This table has upcoming bookings. Move or cancel them first.",
   "errTableNameTaken": "You already have a table with that name.",
   "errTableNotFound": "We couldn't find that table.",
-  "errTooManyAttempts": "Too many incorrect codes. Please wait 15 minutes and try again — a new code will not help until then.",
+  "errTooManyAttempts": "Too many attempts. Please wait 15 minutes and try again — asking for a new code won't help until then.",
   "errUnauthenticated": "Please sign in and try again.",
   "errUnprocessable": "We couldn't process that. Please check and try again.",
   "errValidationFailed": "Some of the details aren't right yet.",
@@ -68,6 +68,6 @@
     "description": "Short HEADING for an error state; the code's own sentence is the body. One per sealed Failure member (ENGINEERING-STANDARDS §7), so failureTitle's switch is exhaustive at compile time."
   },
   "@errTooManyAttempts": {
-    "description": "Shown after 5 wrong OTP codes, when the account is locked for 15 minutes (doc 11 flow 1). MUST say that waiting is required: the previous copy said 'request a new code', which is exactly what does not work during a lock — the diner burns their three sends against a shut door and then calls support. If LOCK_SECONDS changes in otp.service.ts, change this."
+    "description": "Shown after 5 wrong OTP codes, when verification is locked for 15 minutes (doc 11 flow 1). TWO THINGS THIS COPY MUST DO. (1) Say that WAITING is required: the original said 'ask for a new code', which is exactly what does not work during a lock — the diner burns their three sends against a shut door and then calls support. (2) Put the fault on the ATTEMPT, not the person. An earlier draft opened with 'wrong codes, too many of them', which Egyptian readers take as being told off at the moment they are already locked out. If LOCK_SECONDS changes in otp.service.ts, change this."
   }
 }

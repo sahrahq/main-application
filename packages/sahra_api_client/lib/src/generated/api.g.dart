@@ -421,6 +421,22 @@ class SahraApi {
     return TableResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `GET /v1/reservations`
+  ///
+  /// The caller's own reservations
+  Future<List<MyReservationResponse>> list2({
+    String? status,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/reservations',
+      query: <String, String>{
+        if (status != null) 'status': status,
+      },
+    );
+    return (response as List<dynamic>).map((e) => MyReservationResponse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   /// `POST /v1/reservations/holds`
   ///
   /// Hold a table for 5 minutes
@@ -456,6 +472,19 @@ class SahraApi {
       body: body.toJson(),
     );
     return ReservationResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `GET /v1/reservations/{id}`
+  ///
+  /// One of the caller's own reservations
+  Future<MyReservationResponse> one({
+    required String id,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/reservations/$id',
+    );
+    return MyReservationResponse.fromJson(response as Map<String, dynamic>);
   }
 
   /// `GET /v1/restaurants/search`
