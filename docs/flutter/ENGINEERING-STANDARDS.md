@@ -152,6 +152,46 @@ each test registers; read the files that exist on disk; assert the scanner
 parsed a plausible number of lines. Every "census" in this suite is written
 that way, and each one is there because its absence let something through.
 
+## A capability that is never called is indistinguishable from one that does not exist
+
+Twice in two days the lower layer supported a rule and the upper layer never
+asked. Both were invisible to every unit test. Both were caught by walking the
+journey.
+
+| | the layer that was right | the layer that never asked | what it cost |
+|---|---|---|---|
+| suspended accounts | `login` refused them | `verifyOtp` never checked status | suspension bypassable by anyone who could request a code |
+| reservation ownership | `createHold` accepted and stored a `userId`; `confirmHold` checked it | the HTTP controller passed neither | **every** booking made through the API was anonymous |
+
+Unit tests cannot see this. They test what a layer DOES, never what it
+INHERITED, and nothing knows the two layers are the same room.
+
+**RULE: an end-to-end journey, from the real cause to the real effect, is the
+only thing that distinguishes a working capability from a dormant one. Write
+one for every feature whose value is a chain rather than a call.**
+
+### The audit this produced, and its honest result
+
+Both bugs have the same silhouette — a parameter accepted, optional, and never
+supplied — so the obvious follow-up is: where else? **Two regex audits were
+run over `apps/api/src`. Both were dominated by false positives.**
+
+| scan | hits | real |
+|---|---|---|
+| "optional field never referenced by name anywhere" | 5 | **0** — a controller passing `dto` wholesale never mentions a field by name |
+| "explicit object literal omitting a declared key" | 12 | **0** — matched every method named `create`, and a comment between `{` and the key broke the match |
+
+The scanner cannot do this job, and running it and believing it would have
+been worse than not running it. **The type system can.** `CreateHoldInput.userId`
+is now `string | null` — required, explicitly nullable — so every caller must
+state whether it means "no account" or "a diner", and the compiler notices
+when neither is said.
+
+The generalisation: **when the difference between "unset" and "deliberately
+none" matters, an optional field cannot express it.** Make it required and
+nullable. The two failures above were both a `?` doing the work a `| null`
+should have done.
+
 ## An error can be correct and still leak by being DISTINGUISHABLE
 
 Every individual response below is right. The leak is in the *difference*

@@ -54,7 +54,27 @@ export function extractPgCode(err: unknown): string | undefined {
 
 export interface CreateHoldInput {
   restaurantId: string;
-  userId?: string | null;
+
+  /**
+   * The diner, or `null` for a staff-entered booking (R-3.2).
+   *
+   * **REQUIRED, AND EXPLICITLY NULLABLE. Do not make this optional again.**
+   *
+   * It was `userId?:` for weeks. The HTTP controller simply never passed one,
+   * so every reservation created through the API had `user_id = NULL` — a
+   * diner's own booking never appeared in their own `GET /reservations`, and
+   * nothing anywhere objected. The service supported the field, stored it, and
+   * even checked it on confirm; the layer above just never mentioned it.
+   *
+   * Optional meant the difference between "no account" and "I FORGOT TO SAY"
+   * was invisible. Required-and-nullable makes every caller state which one it
+   * means, and makes the compiler the thing that notices — which is the only
+   * tool that reliably can. Two regex audits were run over this codebase
+   * looking for the same shape elsewhere and BOTH were dominated by false
+   * positives; a type is not.
+   */
+  userId: string | null;
+
   guestName?: string | null;
   guestPhone?: string | null;
   partySize: number;

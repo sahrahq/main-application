@@ -77,9 +77,27 @@ searching from Europe at 23:30 asks about the wrong day. The correct answer is
 a server-side `tonight` filter. Noted rather than faked, because guessing a
 timezone is precisely how the 2–3 hour Cairo error gets in.
 
-**Booking does not require an account.** `POST /reservations/holds` has no
-guard today, so the path works end to end for a guest. C-1.6 says browsing is
-open and booking needs an account; the login gate belongs with the auth screens.
+**Booking REQUIRES an account** — decided 2026-08-02, C-1.6.
+
+Browsing stays fully open: search, venue detail and real availability need no
+token. The wall goes up at the booking ACTION and not before it, so a guest can
+see exactly what they would be signing up for.
+
+Why an identity is not optional: without one the diner cannot see the booking
+again, cannot cancel it, and cannot be told when the venue cancels — the
+CANCEL-1 notice has nobody to reach. Neither we nor the restaurant can tell a
+repeat diner from a serial no-show, and "is this guest a regular?" is one of
+the things venues are actually buying. Sign-up is phone + OTP, about thirty
+seconds; that is the friction accepted for the whole customer relationship.
+
+**The client half is a returning-user flow, not just a gate.** A guest who taps
+a slot must go to sign-in and come back TO THAT SAME SLOT, with their date and
+party size intact. Losing their place turns a thirty-second sign-up into an
+abandoned booking. Built with the sign-in screen; round trip asserted there.
+
+Walk-in and phone bookings (R-3.2) stay anonymous — they enter through
+`WalkInsService`, not this controller, and the constraint below exempts them by
+source rather than by making the column nullable-and-hoped-for.
 
 **Paging is not wired.** `next_cursor` is carried into the domain and unused.
 Page two has **not** been availability-filtered (the post-filter covers the

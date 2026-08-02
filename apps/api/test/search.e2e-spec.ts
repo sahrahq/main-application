@@ -30,6 +30,7 @@ import { AuditService } from '../src/shared/audit/audit.service';
 import { MeiliSearchIndex } from '../src/modules/search/meili-search.index';
 import { DisabledSearchIndex } from '../src/modules/search/disabled-search.index';
 import { RestaurantSearchService, SEARCH_PAGE_SIZE } from '../src/modules/search/restaurant-search.service';
+import { createTestDiner, removeTestDiner } from './support/test-diner';
 
 const MEILI_UP = process.env.MEILI_AVAILABLE === '1';
 const describeIf = MEILI_UP ? describe : describe.skip;
@@ -54,6 +55,12 @@ let admin: AdminRestaurantsService;
 let ownerUserId: string;
 let ownerId: string;
 let adminUserId: string;
+/**
+ * Owns the app bookings below. C-1.6 requires one, and the DB constraint
+ * `app_booking_has_diner` enforces it beneath the service — a fixture with a
+ * null user was reproducing the bug that shipped.
+ */
+let testDinerId: string;
 const made: string[] = [];
 
 /** +3 days so this suite cannot collide with the expiry suites. */
@@ -100,6 +107,7 @@ const activate = async (id: string): Promise<void> => {
 
 beforeAll(async () => {
   await prisma.$connect();
+  testDinerId = await createTestDiner(prisma);
   if (!MEILI_UP) return;
 
   index = new MeiliSearchIndex(process.env.MEILISEARCH_HOST ?? 'http://localhost:7700', undefined, `restaurants-test-${Date.now()}`);
@@ -137,6 +145,7 @@ afterAll(async () => {
   await prisma.user.deleteMany({
     where: { id: { in: [ownerUserId, adminUserId].filter(Boolean) } },
   }).catch(() => undefined);
+  await removeTestDiner(prisma, testDinerId);
   await prisma.$disconnect();
 }, 120_000);
 
@@ -394,7 +403,7 @@ describeIf('a slot shown in search is a hint, not a guarantee', () => {
     expect(advertised).toBeDefined();
 
     // Someone else books it between the search and the tap.
-    await reservations.createHold({
+    await reservations.createHold({ userId: testDinerId,
       restaurantId: id, partySize: 2,
       startsAt: new Date(`${DATE}T${advertised}:00.000Z`),
       idempotencyKey: randomUUID(),
@@ -403,8 +412,8 @@ describeIf('a slot shown in search is a hint, not a guarantee', () => {
     // The diner acts on what search told them. The engine re-validates and
     // says so plainly — never a silent failure, never a double booking.
     await expect(
-      reservations.createHold({
-        restaurantId: id, partySize: 2,
+      reservations.createHold({ userId: testDinerId,
+      restaurantId: id, partySize: 2,
         startsAt: new Date(`${DATE}T${advertised}:00.000Z`),
         idempotencyKey: randomUUID(),
       }),

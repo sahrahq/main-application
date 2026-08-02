@@ -556,24 +556,36 @@ describe('a booking made through the API belongs to the diner who made it', () =
     expect((list.body as { id: string }[]).map((r) => r.id)).toContain(bookedId);
   }, 60_000);
 
-  it('and a GUEST booking still works, belonging to nobody', async () => {
-    // Booking is still open without an account. Enforcing "account required to
-    // book" (doc 02 C-1.6) is a product decision, not something to slip in
-    // through a guard — and the shipped customer app books as a guest today.
+  it('and a GUEST CANNOT BOOK AT ALL — C-1.6', async () => {
+    // Browsing is open; the wall is at the booking action. Asserted on the
+    // AVAILABILITY call too, because a wall placed one step too early would
+    // stop a guest seeing whether it is even worth signing up.
     const date = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
     const slots = await request(http as never)
       .get(`/v1/restaurants/${venueId}/availability?date=${date}&party_size=2`)
-      .expect(200);
+      .expect(200); // ← no token, and that is correct
 
-    const hold = await request(http as never)
+    await request(http as never)
       .post('/v1/reservations/holds')
       .set('idempotency-key', randomUUID())
       .send({ restaurantId: venueId, startsAt: slots.body.slots[0].startsAt, partySize: 2 })
-      .expect(201);
+      .expect(401);
+  }, 60_000);
 
-    expect(hold.body.userId).toBeNull();
+  it('a guest cannot confirm either — a guessed hold id commits nothing', async () => {
+    await request(http as never)
+      .post(`/v1/reservations/holds/${randomUUID()}/confirm`)
+      .set('idempotency-key', randomUUID())
+      .send({})
+      .expect(401);
+  }, 60_000);
 
-    await prisma.$executeRaw`DELETE FROM reservation_tables WHERE reservation_id = ${hold.body.id}::uuid`;
-    await prisma.$executeRaw`DELETE FROM reservations WHERE id = ${hold.body.id}::uuid`;
+  it('and browsing stays open — search and venue detail need no token', async () => {
+    // The half of C-1.6 that must NOT change. A guest has to be able to see
+    // what they would be signing up for.
+    await request(http as never).get(`/v1/restaurants/${venueId}`).expect(200);
+    await request(http as never).get('/v1/restaurants/search?q=my').expect((r) => {
+      if (r.status === 401) throw new Error('search now requires a token — the wall moved');
+    });
   }, 60_000);
 });

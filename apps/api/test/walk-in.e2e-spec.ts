@@ -24,6 +24,7 @@ import { OwnerReservationsService } from '../src/modules/restaurants/owner-reser
 import { TablesService } from '../src/modules/restaurants/tables.service';
 import { ShiftsService } from '../src/modules/restaurants/shifts.service';
 import { WalkInsService } from '../src/modules/restaurants/walk-ins.service';
+import { createTestDiner, removeTestDiner } from './support/test-diner';
 
 const TEST_DB_URL = (() => {
   const base = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
@@ -47,6 +48,12 @@ let ownerId: string;
 let rivalOwnerId: string;
 let rivalOwnerUserId: string;
 let restaurantId: string;
+/**
+ * Owns the app bookings below. C-1.6 requires one, and the DB constraint
+ * `app_booking_has_diner` enforces it beneath the service — a fixture with a
+ * null user was reproducing the bug that shipped.
+ */
+let testDinerId: string;
 
 /** +5 days, clear of every other suite. */
 const DATE = (() => {
@@ -64,6 +71,7 @@ async function oneTable(name = 'W1') {
 
 beforeAll(async () => {
   await prisma.$connect();
+  testDinerId = await createTestDiner(prisma);
   const stamp = Date.now().toString().slice(-8);
 
   ownerUserId = randomUUID();
@@ -118,6 +126,7 @@ afterAll(async () => {
   await prisma.user.deleteMany({
     where: { id: { in: [ownerUserId, rivalOwnerUserId].filter(Boolean) } },
   }).catch(() => undefined);
+  await removeTestDiner(prisma, testDinerId);
   await prisma.$disconnect();
 }, 120_000);
 
@@ -203,15 +212,15 @@ describe('walk-ins consume the SAME inventory (doc 05 §7)', () => {
     // The exact failure that made this feature necessary: without it, this
     // hold succeeds and two parties are sent to one table.
     await expect(
-      reservations.createHold({
-        restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
+      reservations.createHold({ userId: testDinerId,
+      restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
       }),
     ).rejects.toMatchObject({ response: { code: 'slot_taken' } });
   }, 60_000);
 
   it('an app booking takes the table away from the walk-in — cleanly, not with a 500', async () => {
     await oneTable();
-    await reservations.createHold({
+    await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
     });
 
@@ -303,7 +312,7 @@ describe('the owner can tell a walk-in from an app booking', () => {
     const walk = await walkIns.create(ownerId, restaurantId, {
       partySize: 2, guestName: 'Walk', startsAt: at('19:00'), idempotencyKey: randomUUID(),
     });
-    const online = await reservations.createHold({
+    const online = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
     });
 
@@ -394,8 +403,8 @@ describe('a walk-in racing an online hold for the last table', () => {
             })
         : // diner, in the app
           () =>
-            reservations.createHold({
-              restaurantId, partySize: 2, startsAt, idempotencyKey: randomUUID(),
+            reservations.createHold({ userId: testDinerId,
+      restaurantId, partySize: 2, startsAt, idempotencyKey: randomUUID(),
             }),
     );
 

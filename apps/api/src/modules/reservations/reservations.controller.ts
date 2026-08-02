@@ -9,25 +9,37 @@ import { ReservationsService, HOLD_TTL_MINUTES } from './reservations.service';
 import { CreateHoldDto } from './dto/create-hold.dto';
 import { ConfirmHoldDto } from '../restaurants/dto/restaurant.dto';
 import { ReservationResponse } from '../../shared/api/responses.dto';
-import { OptionalJwtAuthGuard } from '../../shared/auth/optional-jwt-auth.guard';
+import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
 import type { AuthedUser } from '../../shared/auth/jwt.strategy';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
- * OPTIONAL auth, not none and not required.
+ * BOOKING REQUIRES AN ACCOUNT — doc 02 C-1.6, decided 2026-08-02.
  *
- * Booking stayed open to guests (doc 02 C-1.6 makes browsing open; enforcing
- * "account required to book" is a separate product decision), but the identity
- * of a caller who HAS a token was being thrown away: the service has always
- * accepted a `userId` and this controller never passed one, so every
- * reservation created through the API had `user_id = NULL` and would never
- * appear in that diner's own `GET /reservations`.
+ * Browsing stays fully open: search, venue detail and real availability need
+ * no token. The wall goes up at the booking ACTION and not before it.
+ *
+ * Why an identity is not optional here:
+ *
+ *   - without one the diner cannot see the booking again, cannot cancel it,
+ *     and cannot be told when the venue cancels — the cancellation notice
+ *     built in CANCEL-1 has nobody to reach
+ *   - neither we nor the restaurant can tell a repeat diner from a serial
+ *     no-show, and "is this guest a regular?" is one of the things venues are
+ *     actually buying
+ *
+ * Sign-up is phone + OTP, about thirty seconds. That is the friction accepted;
+ * the capability kept is the whole customer relationship.
+ *
+ * Walk-in and phone bookings (R-3.2) stay anonymous and are unaffected — they
+ * enter through `WalkInsService`, which calls the engine directly rather than
+ * through this controller.
  */
 @ApiTags('reservations')
 @ApiBearerAuth()
-@UseGuards(OptionalJwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('reservations')
 export class ReservationsController {
   constructor(private readonly reservations: ReservationsService) {}
@@ -61,7 +73,7 @@ export class ReservationsController {
   // advertises, so the next mismatch is a compile error in this file.
   async createHold(
     @Body() dto: CreateHoldDto,
-    @CurrentUser() user?: AuthedUser,
+    @CurrentUser() user: AuthedUser,
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<ReservationResponse> {
     if (!idempotencyKey || !UUID_RE.test(idempotencyKey)) {
@@ -74,8 +86,10 @@ export class ReservationsController {
 
     const r = await this.reservations.createHold({
       restaurantId: dto.restaurantId,
-      // The whole point of the optional guard. Null for a genuine guest.
-      userId: user?.id ?? null,
+      // Guaranteed present by the guard, and by the DB constraint
+      // `app_booking_has_diner` underneath it — the column was nullable, and
+      // nullable is why nothing objected for weeks.
+      userId: user.id,
       partySize: dto.partySize,
       startsAt: new Date(dto.startsAt),
       seatingPref: dto.seatingPref ?? null,
@@ -119,7 +133,7 @@ export class ReservationsController {
   async confirm(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ConfirmHoldDto,
-    @CurrentUser() user?: AuthedUser,
+    @CurrentUser() user: AuthedUser,
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<ReservationResponse> {
     if (!idempotencyKey || !UUID_RE.test(idempotencyKey)) {
@@ -133,8 +147,10 @@ export class ReservationsController {
     const r = await this.reservations.confirmHold({
       holdId: id,
       // `confirmHold` refuses to let one diner confirm another's hold. It has
-      // always been able to; nothing was ever telling it who was asking.
-      userId: user?.id ?? null,
+      // always been able to; nothing was ever telling it who was asking — so
+      // with an unauthenticated confirm, a guessed hold id would have
+      // committed somebody else's table.
+      userId: user.id,
       specialRequests: dto.specialRequests ?? null,
       occasion: dto.occasion ?? null,
       idempotencyKey,
