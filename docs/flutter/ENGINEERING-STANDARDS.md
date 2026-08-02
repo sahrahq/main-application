@@ -50,6 +50,40 @@ Everything below runs in one command — `melos run verify`, or the CI job in §
 "Strong" means a source scan that catches the shape people actually write.
 "Total" means it cannot be evaded without deleting the test.
 
+## Small COLOURED text fails contrast, and fails in Arabic first
+
+Confirmed three times now (Badge, BookingWidget overline, and the audit page):
+`textContrastGuideline` fails a coloured micro-label even when the colour pair
+computes to 6:1 arithmetically, because at 11–12px the antialiased strokes are
+mostly partial coverage — which is what a reader actually sees.
+
+**It fails in Arabic before it fails in Latin.** IBM Plex Sans Arabic sets
+lighter than Poppins at the same nominal size, so an English cell can pass
+while the Arabic one does not. Checking only `en` would have shipped it.
+
+The rule: the 11px overline token is safe for `textBody`/`textSoft` and nothing
+else. A coloured micro-label needs `body-s` (13px) at weight 700.
+
+## Suspect the guards at least as much as the code
+
+Across the setup day and two waves, the components have almost always been
+right on the first run and the things WATCHING them have almost always been
+wrong. That is the better failure distribution — a broken guard is caught by
+the next guard, a broken component is caught by a diner — but it means a green
+suite is evidence about the code only if the guards themselves are checked.
+
+**A guard that COMPUTES its expected number instead of OBSERVING it is broken
+by construction.** It cannot detect the failure it exists to detect, because
+the same bug that removes the work also removes it from the expectation. The
+contrast census failed this way twice: the first version multiplied two map
+lengths and compared the product to a constant, and passed while the tests it
+was counting had never been generated at all.
+
+The rule that follows: count what RAN, not what should have run. Increment as
+each test registers; read the files that exist on disk; assert the scanner
+parsed a plausible number of lines. Every "census" in this suite is written
+that way, and each one is there because its absence let something through.
+
 ---
 
 ## 1. Localization from day one
@@ -539,6 +573,7 @@ Kept as a running list rather than stopping the wave for each.
 | wave 1 | `mezze` icon reads as a command-key glyph at 28px |
 | wave 1 | `shisha` icon is hard to parse at small sizes — the hose dominates |
 | wave 2 | The mashrabiya lattice reads as rounded squares below ~40px tile; the eight-point star only resolves at larger tiles |
+| wave 3 | The party stepper uses `x` and `plus` as minus/plus. `x` is a close glyph, not a minus — a `minus` icon is missing from the set |
 
 ## What looking has found so far
 
@@ -548,6 +583,8 @@ Kept as a running list rather than stopping the wave for each.
 | 1 | `★` (U+2605) rendered as tofu — Poppins has no such glyph. The rating star is now drawn, not typed |
 | 1 | The drawn star was OUTLINED, which reads as an unearned rating, and gold where the reference says terracotta |
 | 2 | `SkeletonCard` stretched to whatever height was offered — a card with a large empty region under the text. No assertion covers "too tall" |
+| 3 | **The Material icon font was never loaded in tests.** 15 of 22 icons fall back to Material, so every one was rendering as an empty box — in goldens a human was supposed to be reviewing. The font guard only checked the four SAHRA families |
+| 3 | Arabic-Indic numerals in test data, where DESIGN-RULES requires Latin in both locales. Nothing enforces this at the caller |
 
 None of these could fail a test: a missing glyph still has width, an outlined
 star still renders, and a button of the wrong height still passes every

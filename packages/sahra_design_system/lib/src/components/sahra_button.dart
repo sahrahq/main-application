@@ -24,6 +24,7 @@ class SahraButton extends StatefulWidget {
   const SahraButton({
     required this.label,
     required this.onPressed,
+    this.iconOnly = false,
     this.variant = SahraButtonVariant.primary,
     this.size = SahraButtonSize.md,
     this.pill = false,
@@ -33,7 +34,20 @@ class SahraButton extends StatefulWidget {
   });
 
   /// Shown, and announced unless [semanticLabel] overrides it.
+  ///
+  /// When [iconOnly] is set the label is NOT drawn but is still the accessible
+  /// name — it is required rather than optional precisely so an icon-only
+  /// control cannot ship unannounced.
   final String label;
+
+  /// Draw the icon alone, in a circle.
+  ///
+  /// Added for wave 3: BookingWidget's party stepper, RestaurantCard's save
+  /// heart and DiningTrail all need a small circular icon control, and no
+  /// component among the sixteen provides one. Rather than inline a one-off in
+  /// each composite — which is how three subtly different buttons appear in a
+  /// design system — it lives here. See the wave-3 report.
+  final bool iconOnly;
 
   /// Null disables the button. Matches Flutter's convention rather than a
   /// separate `disabled` flag, so a disabled button cannot also carry a live
@@ -66,6 +80,7 @@ class _SahraButtonState extends State<SahraButton> {
     final s = context.sahra;
     final palette = _palette(s);
     final metrics = _metrics(widget.size);
+    final circle = widget.iconOnly;
 
     // NOT `excludeSemantics: true`. That strips the InkWell's tap ACTION along
     // with the child's label, which has two consequences, both found by
@@ -117,17 +132,19 @@ class _SahraButtonState extends State<SahraButton> {
                   decoration: BoxDecoration(
                     color: palette.background,
                     borderRadius: SahraRadius.allOf(
-                      widget.pill ? SahraRadius.pill : SahraRadius.md,
+                      widget.pill || circle ? SahraRadius.pill : SahraRadius.md,
                     ),
                     border: palette.border == null
                         ? null
                         : Border.all(color: palette.border!, width: 1.5),
                   ),
                   child: Padding(
-                    padding: SahraSpace.symmetric(
-                      horizontal: metrics.horizontal,
-                      vertical: metrics.vertical,
-                    ),
+                    padding: circle
+                        ? SahraSpace.all(metrics.vertical)
+                        : SahraSpace.symmetric(
+                            horizontal: metrics.horizontal,
+                            vertical: metrics.vertical,
+                          ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -136,27 +153,28 @@ class _SahraButtonState extends State<SahraButton> {
                           IconTheme.merge(
                             data: IconThemeData(
                               color: palette.foreground,
-                              size: metrics.fontSize,
+                              size: circle ? metrics.fontSize * 1.4 : metrics.fontSize,
                             ),
                             child: widget.icon!,
                           ),
-                          SizedBox(width: SahraSpace.s2),
+                          if (!circle) SizedBox(width: SahraSpace.s2),
                         ],
-                        Flexible(
-                          // Excluded so the visible label does not announce
-                          // twice; the Semantics above owns the accessible name.
-                          child: ExcludeSemantics(
-                            child: Text(
-                              widget.label,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    color: palette.foreground,
-                                    fontSize: metrics.fontSize,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                        if (!circle)
+                          Flexible(
+                            // Excluded so the visible label does not announce
+                            // twice; the Semantics above owns the accessible name.
+                            child: ExcludeSemantics(
+                              child: Text(
+                                widget.label,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                      color: palette.foreground,
+                                      fontSize: metrics.fontSize,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),

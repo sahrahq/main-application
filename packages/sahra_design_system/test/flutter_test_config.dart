@@ -44,6 +44,29 @@ const Map<String, List<String>> sahraFontAssets = <String, List<String>>{
 
 bool _loaded = false;
 
+/// Flutter's own icon font.
+///
+/// `flutter test` does NOT load it: an `Icon(Icons.favorite)` renders as an
+/// empty box, silently. Fifteen of the twenty-two icons in the set are Material
+/// fallbacks, so without this their goldens were pictures of tofu — and the
+/// font guard only checked the four SAHRA families, so nothing said so.
+///
+/// Found by looking at a RestaurantCard golden and seeing two blank squares
+/// where the save heart and the image placeholder should be.
+Future<void> _loadMaterialIcons() async {
+  final root = Platform.environment['FLUTTER_ROOT'];
+  if (root == null) return;
+  final file = File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+  if (!file.existsSync()) return;
+  final loader = FontLoader('MaterialIcons')
+    ..addFont(Future<ByteData>.value(ByteData.sublistView(file.readAsBytesSync())));
+  await loader.load();
+  materialIconsLoaded = true;
+}
+
+/// Asserted by the font guard — a silent miss here means tofu goldens.
+bool materialIconsLoaded = false;
+
 /// Load the bundled families into the test renderer.
 ///
 /// Reads from disk rather than through `rootBundle`, because the package's
@@ -66,6 +89,7 @@ Future<void> loadSahraFonts() async {
     }
     await loader.load();
   }
+  await _loadMaterialIcons();
   _loaded = true;
 }
 

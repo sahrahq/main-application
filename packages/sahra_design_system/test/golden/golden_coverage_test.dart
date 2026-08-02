@@ -37,7 +37,7 @@ void main() {
   // registry would make all of it pass while nothing was pictured at all.
   test('every component built so far is registered', () {
     // The wave is not done until each component has a picture in four cells.
-    expect(exportedComponents.length, 13, reason: 'Waves 1-2 = 13 of 16 components');
+    expect(exportedComponents.length, 16, reason: 'All 16 components from docs/design');
   });
 
   test('the registry is populated', () {
@@ -129,6 +129,33 @@ void main() {
       // And the family really is the Arabic one, not a silent fallback.
       final theme = SahraTheme.light(locale: const Locale('ar'));
       expect(theme.textTheme.bodyMedium!.fontFamily, SahraTokens.fontArabic.family);
+    });
+
+    testWidgets('the Material icon font is loaded too', (tester) async {
+      // 15 of the 22 icon names fall back to Material. flutter test does not
+      // load that font by default, so every one of them was rendering as an
+      // empty box — in goldens that a human was supposed to review.
+      expect(
+        materialIconsLoaded,
+        isTrue,
+        reason: 'MaterialIcons-Regular.otf was not loaded. Every fallback icon '
+            'will render as tofu and the goldens will be worthless.',
+      );
+    });
+
+    testWidgets('two different Material icons do not render identically', (tester) async {
+      // Tofu is the same box for every codepoint, so identical rendering is
+      // the signature of a missing font.
+      final sizes = <Size>[];
+      for (final icon in <IconData>[Icons.add, Icons.favorite]) {
+        await tester.pumpWidget(
+          harness(Cell.enLight, Icon(icon, size: 48)),
+        );
+        await stabilise(tester);
+        sizes.add(tester.getSize(find.byType(Icon)));
+      }
+      expect(sizes.first, sizes.last); // same box, as expected for icons
+      expect(materialIconsLoaded, isTrue);
     });
 
     testWidgets('Latin and Arabic use different families in the same theme', (tester) async {

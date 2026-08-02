@@ -160,6 +160,69 @@ final Map<String, Widget Function(Cell)> componentGoldens = <String, Widget Func
   // ── RatingStars ─────────────────────────────────────────────────────────
   'RatingStars/with-reviews': (cell) => const SahraRatingStars(rating: 4.8, reviews: 312),
   'RatingStars/large': (cell) => const SahraRatingStars(rating: 4.6, reviews: 812, size: 18),
+  // ══ WAVE 3 — the composites ══════════════════════════════════════════════
+
+  'BookingWidget/form': (cell) => SahraBookingWidget(
+        venue: _label(cell, en: 'Layali Lounge', ar: 'ليالي لاونج'),
+        times: const <String>['19:30', '21:00', '22:30'],
+        onBook: (_, __) {},
+        copy: _bookingCopy(cell),
+      ),
+  'BookingWidget/confirmed': (cell) => SahraBookingWidget(
+        venue: _label(cell, en: 'Layali Lounge', ar: 'ليالي لاونج'),
+        times: const <String>['19:30', '21:00', '22:30'],
+        confirmed: true,
+        onChangePlans: _noop,
+        copy: _bookingCopy(cell),
+      ),
+
+  'DiningTrail/visits': (cell) => SizedBox(
+        width: 320,
+        child: SahraDiningTrail(
+          visits: <SahraVisit>[
+            SahraVisit(
+              name: _label(cell, en: 'Sequoia', ar: 'سيكويا'),
+              date: _label(cell, en: 'Last Thursday', ar: 'الخميس اللي فات'),
+              note: _label(cell, en: 'Nile terrace', ar: 'تراس النيل'),
+            ),
+            SahraVisit(
+              name: _label(cell, en: 'Zooba', ar: 'زوبا'),
+              date: _label(cell, en: '12 July', ar: '12 يوليو'),
+            ),
+            SahraVisit(
+              name: _label(cell, en: 'Abou Tarek', ar: 'أبو طارق'),
+              date: _label(cell, en: '3 June', ar: '3 يونيو'),
+            ),
+          ],
+        ),
+      ),
+
+  'RestaurantCard/full': (cell) => SahraRestaurantCard(
+        name: _label(cell, en: 'Zooba', ar: 'زوبا'),
+        rating: 4.8,
+        reviews: 312,
+        cuisine: _label(cell, en: 'Egyptian', ar: 'مصري'),
+        neighbourhood: _label(cell, en: 'Zamalek', ar: 'الزمالك'),
+        price: r'$$',
+        featured: true,
+        featuredLabel: _label(cell, en: 'Featured', ar: 'مميز'),
+        availability: _label(cell, en: 'Tonight 19:30', ar: 'الليلة 19:30'),
+        saveLabel: _label(cell, en: 'Save Zooba', ar: 'احفظ زوبا'),
+        onSave: _noop,
+        onTap: _noop,
+        semanticLabel: _label(
+          cell,
+          en: 'Zooba, rated 4.8 from 312 reviews, Egyptian, Zamalek',
+          ar: 'زوبا، تقييم 4.8 من 312 مراجعة، مصري، الزمالك',
+        ),
+      ),
+  'RestaurantCard/plain': (cell) => SahraRestaurantCard(
+        name: _label(cell, en: 'Sequoia Nile', ar: 'سيكويا النيل'),
+        rating: 4.6,
+        reviews: 812,
+        cuisine: _label(cell, en: 'Mediterranean', ar: 'متوسطي'),
+      ),
+
   // ══ WAVE 2 ═══════════════════════════════════════════════════════════════
 
   'Skeleton/lines': (cell) => const Column(
@@ -279,6 +342,9 @@ const Set<String> exportedComponents = <String>{
   'SearchBar',
   'TabBar',
   'AvatarStack',
+  'BookingWidget',
+  'DiningTrail',
+  'RestaurantCard',
 };
 
 /// Entries with no tap action BY DESIGN — a disabled control, or a purely
@@ -301,11 +367,29 @@ const Set<String> nonInteractiveGoldens = <String>{
   'Skeleton/lines', 'Skeleton/card',
   'EmptyState/bare',
   'AvatarStack/overflow',
+  // Wave 3 display-only.
+  'DiningTrail/visits',
+  'RestaurantCard/plain',
 };
 
 /// A real callback: a null one disables the button, and a disabled control
 /// exposes no tap action — which the a11y guard correctly refuses.
 void _noop() {}
+
+SahraBookingCopy _bookingCopy(Cell cell) => SahraBookingCopy(
+      overline: _label(cell, en: 'Tonight', ar: 'الليلة'),
+      partySize: _label(cell, en: 'Party size', ar: 'عدد الأفراد'),
+      book: _label(cell, en: 'Book a table', ar: 'احجز طاولة'),
+      confirmedTitle: _label(cell, en: "You're in.", ar: 'تمام، اتحجزت.'),
+      confirmedBody: _label(
+        cell,
+        en: 'Your table for 2 is set for 21:00. We told them you are coming.',
+        ar: 'طاولتك لاتنين الساعة 21:00. قلنالهم إنك جاي.',
+      ),
+      changePlans: _label(cell, en: 'Change plans', ar: 'غيّر الخطة'),
+      decreaseParty: _label(cell, en: 'Fewer guests', ar: 'ضيوف أقل'),
+      increaseParty: _label(cell, en: 'More guests', ar: 'ضيوف أكتر'),
+    );
 
 String _label(Cell cell, {required String en, required String ar}) =>
     cell.locale.languageCode == 'ar' ? ar : en;
