@@ -19,7 +19,7 @@ export class CreateHoldDto {
   @IsUUID()
   restaurantId!: string;
 
-  @ApiProperty({ minimum: 1, maximum: 50, example: 2 })
+  @ApiProperty({ type: 'integer', minimum: 1, maximum: 50, example: 2 })
   @IsInt()
   @Min(1)
   @Max(50)

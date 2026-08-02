@@ -2,7 +2,9 @@ import {
   Body, Controller, Get, Param, Patch, Post, Query, UseGuards, ParseUUIDPipe,
   ForbiddenException, BadRequestException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiResponse, ApiTags,
+} from '@nestjs/swagger';
 import { RestaurantsService } from './restaurants.service';
 import { OwnerReservationsService } from './owner-reservations.service';
 import { CreateRestaurantDto, UpdateRestaurantDto } from './dto/restaurant.dto';
@@ -10,6 +12,7 @@ import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
 import type { AuthedUser } from '../../shared/auth/jwt.strategy';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { RestaurantResponse, BookResponse } from '../../shared/api/responses.dto';
 
 /** doc 06 §4 — `/owner/...`, role owner/staff. */
 @ApiTags('owner:restaurants')
@@ -46,6 +49,7 @@ export class OwnerRestaurantsController {
   }
 
   @Post()
+  @ApiOkResponse({ type: RestaurantResponse })
   @ApiOperation({ summary: 'Create a restaurant (lands in draft)' })
   @ApiResponse({ status: 201 })
   async create(@CurrentUser() user: AuthedUser, @Body() dto: CreateRestaurantDto) {
@@ -53,18 +57,21 @@ export class OwnerRestaurantsController {
   }
 
   @Get()
+  @ApiOkResponse({ type: [RestaurantResponse] })
   @ApiOperation({ summary: 'List my restaurants' })
   async listMine(@CurrentUser() user: AuthedUser) {
     return this.restaurants.listMine(await this.ownerIdOf(user));
   }
 
   @Get(':id')
+  @ApiOkResponse({ type: RestaurantResponse })
   @ApiOperation({ summary: 'Get one of my restaurants' })
   async getOne(@CurrentUser() user: AuthedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.restaurants.getOwned(await this.ownerIdOf(user), id);
   }
 
   @Patch(':id')
+  @ApiOkResponse({ type: RestaurantResponse })
   @ApiOperation({ summary: 'Update profile, policies, amenities' })
   async update(
     @CurrentUser() user: AuthedUser,
@@ -80,6 +87,7 @@ export class OwnerRestaurantsController {
    * previous UTC date.
    */
   @Get(':id/reservations')
+  @ApiOkResponse({ type: BookResponse })
   @ApiOperation({ summary: "Tonight's book, in the restaurant's local time" })
   async reservations(
     @CurrentUser() user: AuthedUser,
@@ -103,6 +111,7 @@ export class OwnerRestaurantsController {
   }
 
   @Post(':id/submit')
+  @ApiOkResponse({ type: RestaurantResponse })
   @ApiOperation({ summary: 'draft → pending_review' })
   @ApiResponse({ status: 409, description: 'invalid_status_transition' })
   async submit(@CurrentUser() user: AuthedUser, @Param('id', ParseUUIDPipe) id: string) {

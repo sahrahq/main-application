@@ -64,6 +64,32 @@ while the Arabic one does not. Checking only `en` would have shipped it.
 The rule: the 11px overline token is safe for `textBody`/`textSoft` and nothing
 else. A coloured micro-label needs `body-s` (13px) at weight 700.
 
+## A review artefact must first prove it can render what it claims to show
+
+Three times now the thing built FOR human review has itself been blind:
+
+| | |
+|---|---|
+| Goldens with no fonts loaded | every glyph a box — stable, diffable, worthless |
+| `★` typed rather than drawn | Poppins has no U+2605; the rating star was tofu |
+| Material icon font never loaded in tests | **15 of 22 icons rendered as empty squares in goldens a human was supposed to be reviewing** |
+
+The third is the worst, because the artefact looked fine at a glance and the
+font guard existed — it just only checked the four SAHRA families.
+
+**RULE: any artefact produced for human review must first prove it can render
+what it claims to show, and that proof must be a test.**
+
+In practice that means blank-box detection per font family, not per font
+system: two Arabic strings of different lengths must measure differently, and
+`materialIconsLoaded` must be true. A missing glyph still has width and still
+"renders", so existence checks are not enough — the proof has to be that
+DIFFERENT content produces DIFFERENT output.
+
+Applies beyond goldens. Any future artefact — a rendered report, a diff view, a
+screenshot pipeline — carries the same obligation before anyone is asked to
+trust their eyes on it.
+
 ## Suspect the guards at least as much as the code
 
 Across the setup day and two waves, the components have almost always been

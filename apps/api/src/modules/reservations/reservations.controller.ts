@@ -1,10 +1,13 @@
 import {
   Body, Controller, Headers, HttpCode, Post, Param, ParseUUIDPipe, BadRequestException,
 } from '@nestjs/common';
-import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiHeader, ApiOkResponse, ApiOperation, ApiResponse, ApiTags,
+} from '@nestjs/swagger';
 import { ReservationsService, HOLD_TTL_MINUTES } from './reservations.service';
 import { CreateHoldDto } from './dto/create-hold.dto';
 import { ConfirmHoldDto } from '../restaurants/dto/restaurant.dto';
+import { ReservationResponse } from '../../shared/api/responses.dto';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -22,9 +25,10 @@ export class ReservationsController {
    * bad and the client retries.
    */
   @Post('holds')
+  @ApiOkResponse({ type: ReservationResponse })
   @HttpCode(201)
   @ApiOperation({ summary: `Hold a table for ${HOLD_TTL_MINUTES} minutes` })
-  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'Client-generated UUID v4' })
+  @ApiHeader({ name: 'idempotency-key', required: true, description: 'Client-generated UUID v4' })
   @ApiResponse({ status: 201, description: 'Hold created' })
   @ApiResponse({ status: 409, description: 'slot_taken | pacing_limit_reached' })
   async createHold(
@@ -69,9 +73,10 @@ export class ReservationsController {
    * the one used on the hold — this is a separate mutation.
    */
   @Post('holds/:id/confirm')
+  @ApiOkResponse({ type: ReservationResponse })
   @HttpCode(200)
   @ApiOperation({ summary: 'Confirm a held table' })
-  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'Client-generated UUID v4' })
+  @ApiHeader({ name: 'idempotency-key', required: true, description: 'Client-generated UUID v4' })
   @ApiResponse({ status: 200, description: 'Reservation confirmed' })
   @ApiResponse({ status: 409, description: 'hold_expired | invalid_status_transition' })
   @ApiResponse({ status: 404, description: 'reservation_not_found' })

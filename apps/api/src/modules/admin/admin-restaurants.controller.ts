@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Param, Post, Req, UseGuards, ParseUUIDPipe } from "@nestjs/common";
 import type { Request } from "express";
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiResponse, ApiTags,
+} from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { AdminRestaurantsService } from "./admin-restaurants.service";
@@ -9,6 +11,7 @@ import { RolesGuard } from "../../shared/auth/roles.guard";
 import { Roles } from "../../shared/auth/roles.decorator";
 import { CurrentUser } from "../../shared/auth/current-user.decorator";
 import type { AuthedUser } from "../../shared/auth/jwt.strategy";
+import { AdminRestaurantResponse } from '../../shared/api/responses.dto';
 
 export class RejectRestaurantDto {
   @ApiPropertyOptional({ maxLength: 500, description: "Shown to the owner so they can fix it" })
@@ -24,6 +27,7 @@ export class AdminRestaurantsController {
   constructor(private readonly admin: AdminRestaurantsService) {}
 
   @Get()
+  @ApiOkResponse({ type: [AdminRestaurantResponse] })
   @Roles("admin", "support", "moderator")
   @ApiOperation({ summary: "The pending_review queue, oldest first" })
   list(@CurrentUser() user: AuthedUser) {
@@ -31,6 +35,7 @@ export class AdminRestaurantsController {
   }
 
   @Post(":id/approve")
+  @ApiOkResponse({ type: AdminRestaurantResponse })
   @Roles("admin")
   @ApiOperation({ summary: "pending_review to active" })
   @ApiResponse({ status: 409, description: "invalid_status_transition" })
@@ -42,6 +47,7 @@ export class AdminRestaurantsController {
   }
 
   @Post(":id/reject")
+  @ApiOkResponse({ type: AdminRestaurantResponse })
   @Roles("admin")
   @ApiOperation({ summary: "pending_review back to draft, with a reason" })
   reject(

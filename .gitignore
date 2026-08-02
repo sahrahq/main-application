@@ -58,6 +58,11 @@ packages/*/pubspec.lock
 # does not compile, and tokens_coverage_test.dart proves it has not drifted
 # from docs/design/tokens.json by comparing against the committed copy.
 !packages/sahra_design_system/lib/src/generated/tokens.g.dart
+# ...and the generated API client, for the same reason: it is not build_runner
+# output, a fresh clone cannot compile without it, and the drift test compares
+# against the committed copy.
+!packages/sahra_api_client/lib/src/generated/models.g.dart
+!packages/sahra_api_client/lib/src/generated/api.g.dart
 
 # Flutter platform build output
 **/ios/Flutter/.last_build_id

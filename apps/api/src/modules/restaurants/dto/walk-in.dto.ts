@@ -15,7 +15,7 @@ const ZONES = ['indoor', 'outdoor', 'family', 'bar', 'private'] as const;
  * which is worse data than none.
  */
 export class CreateWalkInDto {
-  @ApiProperty({ example: 4 })
+  @ApiProperty({ type: 'integer', example: 4 })
   @IsInt()
   @Min(1)
   @Max(50)

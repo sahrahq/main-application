@@ -3,7 +3,7 @@ import {
   Param, ParseUUIDPipe, Patch, Post, Query, UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags,
+  ApiBearerAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiQuery, ApiResponse, ApiTags,
 } from '@nestjs/swagger';
 import { TablesService } from './tables.service';
 import { ShiftsService } from './shifts.service';
@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
 import type { AuthedUser } from '../../shared/auth/jwt.strategy';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { TableResponse, RemoveTableResponse, ShiftResponse, ShiftWriteResponse, RemoveShiftResponse, ReservationResponse } from '../../shared/api/responses.dto';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -62,6 +63,7 @@ export class OwnerVenueConfigController {
   // ───────────────────────────────────────────────────────── tables (R-2.5) ──
 
   @Get('tables')
+  @ApiOkResponse({ type: [TableResponse] })
   @ApiOperation({ summary: 'List tables' })
   async listTables(
     @CurrentUser() user: AuthedUser,
@@ -71,6 +73,7 @@ export class OwnerVenueConfigController {
   }
 
   @Post('tables')
+  @ApiOkResponse({ type: TableResponse })
   @ApiOperation({ summary: 'Add a table' })
   @ApiResponse({ status: 409, description: 'table_name_taken' })
   async createTable(
@@ -82,6 +85,7 @@ export class OwnerVenueConfigController {
   }
 
   @Get('tables/:tableId')
+  @ApiOkResponse({ type: TableResponse })
   @ApiOperation({ summary: 'Get one table' })
   async getTable(
     @CurrentUser() user: AuthedUser,
@@ -92,6 +96,7 @@ export class OwnerVenueConfigController {
   }
 
   @Patch('tables/:tableId')
+  @ApiOkResponse({ type: TableResponse })
   @ApiOperation({ summary: 'Edit a table' })
   @ApiResponse({
     status: 409,
@@ -109,6 +114,7 @@ export class OwnerVenueConfigController {
   }
 
   @Delete('tables/:tableId')
+  @ApiOkResponse({ type: RemoveTableResponse })
   @ApiOperation({
     summary: 'Remove a table — hard delete if never used, otherwise retired so history survives',
   })
@@ -133,8 +139,9 @@ export class OwnerVenueConfigController {
    * taps again, and two tables must not be consumed.
    */
   @Post('reservations')
+  @ApiOkResponse({ type: ReservationResponse })
   @ApiOperation({ summary: 'Seat a walk-in or take a phone booking' })
-  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'Client-generated UUID v4' })
+  @ApiHeader({ name: 'idempotency-key', required: true, description: 'Client-generated UUID v4' })
   @ApiResponse({ status: 201 })
   @ApiResponse({ status: 409, description: 'slot_taken — the same 409 the app gets' })
   async createWalkIn(
@@ -162,6 +169,7 @@ export class OwnerVenueConfigController {
   // ───────────────────────────────────────────── opening hours / shifts (R-2.4) ──
 
   @Get('shifts')
+  @ApiOkResponse({ type: [ShiftResponse] })
   @ApiOperation({ summary: 'List opening hours' })
   async listShifts(
     @CurrentUser() user: AuthedUser,
@@ -171,6 +179,7 @@ export class OwnerVenueConfigController {
   }
 
   @Post('shifts')
+  @ApiOkResponse({ type: ShiftResponse })
   @ApiOperation({ summary: 'Add a shift (weekly or one-off date)' })
   @ApiResponse({ status: 409, description: 'shift_overlap' })
   async createShift(
@@ -182,6 +191,7 @@ export class OwnerVenueConfigController {
   }
 
   @Get('shifts/:shiftId')
+  @ApiOkResponse({ type: ShiftResponse })
   @ApiOperation({ summary: 'Get one shift' })
   async getShift(
     @CurrentUser() user: AuthedUser,
@@ -197,6 +207,7 @@ export class OwnerVenueConfigController {
    * restaurant can call those guests.
    */
   @Patch('shifts/:shiftId')
+  @ApiOkResponse({ type: ShiftWriteResponse })
   @ApiOperation({ summary: 'Edit opening hours' })
   @ApiQuery({ name: 'force', required: false, type: Boolean })
   @ApiResponse({ status: 409, description: 'bookings_outside_new_hours | shift_overlap' })
@@ -213,6 +224,7 @@ export class OwnerVenueConfigController {
   }
 
   @Delete('shifts/:shiftId')
+  @ApiOkResponse({ type: RemoveShiftResponse })
   @ApiOperation({ summary: 'Remove a shift' })
   @ApiQuery({ name: 'force', required: false, type: Boolean })
   @ApiResponse({ status: 409, description: 'bookings_outside_new_hours' })

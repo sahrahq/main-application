@@ -1,6 +1,9 @@
 import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
-import { ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
+} from '@nestjs/swagger';
 import { RestaurantSearchService, SEARCH_PAGE_SIZE } from './restaurant-search.service';
+import { SearchResponse } from '../../shared/api/responses.dto';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -11,6 +14,7 @@ export class SearchController {
   constructor(private readonly search: RestaurantSearchService) {}
 
   @Get('search')
+  @ApiOkResponse({ type: SearchResponse })
   @ApiOperation({ summary: 'Discovery search — text + facets, availability post-filtered' })
   @ApiQuery({ name: 'q', required: false, example: 'sequoia' })
   @ApiQuery({ name: 'cuisine', required: false, example: 'egyptian' })

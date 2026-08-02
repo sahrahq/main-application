@@ -1,6 +1,9 @@
 import { Controller, Get, Param, Query, ParseUUIDPipe, BadRequestException } from "@nestjs/common";
-import { ApiOperation, ApiTags, ApiQuery } from "@nestjs/swagger";
+import {
+  ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
+} from '@nestjs/swagger';
 import { AvailabilityService } from "./availability.service";
+import { AvailabilityResponse } from '../../shared/api/responses.dto';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -11,6 +14,7 @@ export class AvailabilityController {
 
   /** doc 06 §3 — public; browsing availability must not require an account. */
   @Get(":id/availability")
+  @ApiOkResponse({ type: AvailabilityResponse })
   @ApiOperation({ summary: "Bookable slots for a date and party size" })
   @ApiQuery({ name: "date", example: "2026-08-02" })
   @ApiQuery({ name: "party_size", example: 2 })

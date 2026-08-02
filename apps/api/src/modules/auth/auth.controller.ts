@@ -1,11 +1,14 @@
 import { Body, Controller, Post, HttpCode, Req, UseGuards, Get } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiResponse, ApiTags,
+} from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AuthService, RequestCtx } from './auth.service';
 import { RegisterDto, LoginDto, RefreshDto, LogoutDto, VerifyOtpDto, ResendOtpDto } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
 import type { AuthedUser } from '../../shared/auth/jwt.strategy';
+import { RegisterResponse, TokenPairResponse, UserResponse, OtpSentResponse, ApiErrorResponse } from '../../shared/api/responses.dto';
 
 /** Bind a refresh token to where it came from, for audit + anomaly review. */
 function ctxOf(req: Request): RequestCtx {
@@ -21,6 +24,8 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('register')
+  @ApiOkResponse({ type: RegisterResponse })
+  @ApiResponse({ status: 400, type: ApiErrorResponse })
   @HttpCode(201)
   @ApiOperation({ summary: 'Create an account (phone is the primary identity)' })
   @ApiResponse({ status: 201, description: '{ userId, otpRequired: true }' })
@@ -36,6 +41,7 @@ export class AuthController {
   }
 
   @Post('verify-otp')
+  @ApiOkResponse({ type: TokenPairResponse })
   @HttpCode(200)
   @ApiOperation({ summary: 'Verify the phone code; activates the account' })
   @ApiResponse({ status: 200, description: 'Access + refresh token pair' })
@@ -46,6 +52,7 @@ export class AuthController {
   }
 
   @Post('resend-otp')
+  @ApiOkResponse({ type: OtpSentResponse })
   @HttpCode(202)
   @ApiOperation({ summary: 'Re-send the phone code (rate limited)' })
   @ApiResponse({ status: 429, description: 'otp_rate_limited' })
@@ -54,6 +61,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @ApiOkResponse({ type: TokenPairResponse })
   @HttpCode(200)
   @ApiOperation({ summary: 'Password login' })
   @ApiResponse({ status: 200, description: 'Access + refresh token pair' })
@@ -63,6 +71,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @ApiOkResponse({ type: TokenPairResponse })
   @HttpCode(200)
   @ApiOperation({
     summary: 'Rotate the refresh token',
@@ -83,6 +92,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @ApiOkResponse({ type: UserResponse })
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'The caller identified by the access token' })

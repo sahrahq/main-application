@@ -15,13 +15,13 @@ export class CreateTableDto {
   @MaxLength(30)
   name!: string;
 
-  @ApiProperty({ example: 2, description: 'Smallest party this table is offered to' })
+  @ApiProperty({ type: 'integer', example: 2, description: 'Smallest party this table is offered to' })
   @IsInt()
   @Min(1)
   @Max(50)
   minCapacity!: number;
 
-  @ApiProperty({ example: 4 })
+  @ApiProperty({ type: 'integer', example: 4 })
   @IsInt()
   @Min(1)
   @Max(50)
@@ -32,7 +32,7 @@ export class CreateTableDto {
   @IsIn(ZONES as unknown as string[])
   zone?: string;
 
-  @ApiPropertyOptional({ description: 'Allocation preference — lower assigns first' })
+  @ApiPropertyOptional({ type: 'integer', description: 'Allocation preference — lower assigns first' })
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -50,17 +50,17 @@ export class UpdateTableDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(30)
   name?: string;
 
-  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) @Max(50)
+  @ApiPropertyOptional({ type: 'integer' }) @IsOptional() @IsInt() @Min(1) @Max(50)
   minCapacity?: number;
 
-  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) @Max(50)
+  @ApiPropertyOptional({ type: 'integer' }) @IsOptional() @IsInt() @Min(1) @Max(50)
   maxCapacity?: number;
 
   @ApiPropertyOptional({ enum: ZONES })
   @IsOptional() @IsIn(ZONES as unknown as string[])
   zone?: string;
 
-  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) @Max(999)
+  @ApiPropertyOptional({ type: 'integer' }) @IsOptional() @IsInt() @Min(0) @Max(999)
   priority?: number;
 
   @ApiPropertyOptional({ type: [String] })
@@ -82,7 +82,7 @@ export class CreateShiftDto {
   @IsString() @MinLength(1) @MaxLength(60)
   nameAr!: string;
 
-  @ApiPropertyOptional({ example: 5, description: '0=Sunday. Exactly one of this or specificDate.' })
+  @ApiPropertyOptional({ type: 'integer', example: 5, description: '0=Sunday. Exactly one of this or specificDate.' })
   @IsOptional() @IsInt() @Min(0) @Max(6)
   dayOfWeek?: number;
 

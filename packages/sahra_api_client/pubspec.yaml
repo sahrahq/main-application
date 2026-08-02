@@ -1,0 +1,13 @@
+name: sahra_api_client
+description: >
+  Typed SAHRA API client, GENERATED from apps/api/openapi.json. Never
+  hand-written. Pure Dart — the HTTP transport is injected, so the package has
+  no opinion about Dio and can be exercised in tests without a network.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dev_dependencies:
+  test: ^1.25.0

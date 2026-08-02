@@ -1,0 +1,2657 @@
+{
+  "components": {
+    "schemas": {
+      "AdminRestaurantResponse": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "nullable": true,
+            "type": "object"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "status",
+          "nameEn",
+          "nameAr",
+          "city"
+        ],
+        "type": "object"
+      },
+      "ApiErrorBody": {
+        "properties": {
+          "code": {
+            "description": "The only field a client should branch on.",
+            "type": "string"
+          },
+          "details": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetailResponse"
+            },
+            "type": "array"
+          },
+          "message": {
+            "type": "string"
+          },
+          "message_ar": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "retry_after": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "message_ar",
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "ApiErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "AvailabilityResponse": {
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "partySize": {
+            "type": "integer"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/SlotResponse"
+            },
+            "type": "array"
+          },
+          "timezone": {
+            "description": "IANA zone the `time` fields are expressed in.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "partySize",
+          "timezone",
+          "slots"
+        ],
+        "type": "object"
+      },
+      "BookResponse": {
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "reservations": {
+            "items": {
+              "$ref": "#/components/schemas/BookRowResponse"
+            },
+            "type": "array"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "timezone",
+          "reservations"
+        ],
+        "type": "object"
+      },
+      "BookRowResponse": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "guestName": {
+            "nullable": true,
+            "type": "object"
+          },
+          "guestPhone": {
+            "nullable": true,
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "occasion": {
+            "nullable": true,
+            "type": "object"
+          },
+          "partySize": {
+            "type": "integer"
+          },
+          "source": {
+            "description": "app | walk_in | phone — which door it came through.",
+            "type": "string"
+          },
+          "specialRequests": {
+            "nullable": true,
+            "type": "object"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tables": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "time": {
+            "description": "HH:MM in the restaurant's local time.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "time",
+          "startsAt",
+          "partySize",
+          "status",
+          "source",
+          "tables"
+        ],
+        "type": "object"
+      },
+      "ConfirmHoldDto": {
+        "properties": {
+          "occasion": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "specialRequests": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateHoldDto": {
+        "properties": {
+          "guestName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "guestPhone": {
+            "example": "+201000000000",
+            "maxLength": 20,
+            "type": "string"
+          },
+          "occasion": {
+            "example": "anniversary",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "partySize": {
+            "example": 2,
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "restaurantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "seatingPref": {
+            "enum": [
+              "indoor",
+              "outdoor",
+              "family",
+              "bar",
+              "private"
+            ],
+            "type": "string"
+          },
+          "specialRequests": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "startsAt": {
+            "description": "ISO 8601, UTC",
+            "example": "2026-08-01T21:00:00.000Z",
+            "type": "string"
+          }
+        },
+        "required": [
+          "restaurantId",
+          "partySize",
+          "startsAt"
+        ],
+        "type": "object"
+      },
+      "CreateRestaurantDto": {
+        "properties": {
+          "bookingMode": {
+            "enum": [
+              "instant",
+              "request"
+            ],
+            "type": "string"
+          },
+          "city": {
+            "default": "Cairo",
+            "type": "string"
+          },
+          "cuisines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lat": {
+            "example": 30.0622,
+            "type": "number"
+          },
+          "lng": {
+            "example": 31.2185,
+            "type": "number"
+          },
+          "nameAr": {
+            "description": "Arabic name — required, not optional (CLAUDE.md: bilingual by column)",
+            "maxLength": 160,
+            "type": "string"
+          },
+          "nameEn": {
+            "maxLength": 160,
+            "type": "string"
+          },
+          "neighborhood": {
+            "example": "Zamalek",
+            "type": "string"
+          },
+          "priceBand": {
+            "maximum": 4,
+            "minimum": 1,
+            "type": "number"
+          },
+          "slotIntervalMin": {
+            "default": 30,
+            "type": "number"
+          }
+        },
+        "required": [
+          "nameEn",
+          "nameAr",
+          "lat",
+          "lng"
+        ],
+        "type": "object"
+      },
+      "CreateShiftDto": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "closesAt": {
+            "example": "23:00",
+            "type": "string"
+          },
+          "dayOfWeek": {
+            "description": "0=Sunday. Exactly one of this or specificDate.",
+            "example": 5,
+            "type": "integer"
+          },
+          "defaultTurnMinutes": {
+            "example": {
+              "1-2": 90,
+              "3-4": 105,
+              "5+": 120
+            },
+            "type": "object"
+          },
+          "isRamadan": {
+            "description": "Flag only — Maghrib anchoring is not implemented yet",
+            "type": "boolean"
+          },
+          "nameAr": {
+            "example": "العشاء",
+            "type": "string"
+          },
+          "nameEn": {
+            "example": "Dinner",
+            "type": "string"
+          },
+          "opensAt": {
+            "description": "Restaurant wall clock, 24h",
+            "example": "18:00",
+            "type": "string"
+          },
+          "spansMidnight": {
+            "description": "Set for sohour-style shifts running past midnight",
+            "type": "boolean"
+          },
+          "specificDate": {
+            "description": "Exactly one of this or dayOfWeek.",
+            "example": "2026-03-20",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nameEn",
+          "nameAr",
+          "opensAt",
+          "closesAt"
+        ],
+        "type": "object"
+      },
+      "CreateTableDto": {
+        "properties": {
+          "combinableWith": {
+            "description": "Table ids in THIS restaurant",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "maxCapacity": {
+            "example": 4,
+            "type": "integer"
+          },
+          "minCapacity": {
+            "description": "Smallest party this table is offered to",
+            "example": 2,
+            "type": "integer"
+          },
+          "name": {
+            "example": "T1",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "priority": {
+            "description": "Allocation preference — lower assigns first",
+            "type": "integer"
+          },
+          "zone": {
+            "default": "indoor",
+            "enum": [
+              "indoor",
+              "outdoor",
+              "family",
+              "bar",
+              "private"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "minCapacity",
+          "maxCapacity"
+        ],
+        "type": "object"
+      },
+      "CreateWalkInDto": {
+        "properties": {
+          "guestName": {
+            "example": "Nour",
+            "maxLength": 120,
+            "type": "string"
+          },
+          "guestPhone": {
+            "example": "+201000000000",
+            "maxLength": 20,
+            "type": "string"
+          },
+          "occasion": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "partySize": {
+            "example": 4,
+            "type": "integer"
+          },
+          "seatingPref": {
+            "enum": [
+              "indoor",
+              "outdoor",
+              "family",
+              "bar",
+              "private"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "default": "walk_in",
+            "description": "`app` is rejected — staff entries must stay distinguishable from customer ones",
+            "enum": [
+              "walk_in",
+              "phone"
+            ],
+            "type": "string"
+          },
+          "specialRequests": {
+            "type": "string"
+          },
+          "startsAt": {
+            "description": "ISO-8601 UTC. Omit for a party at the door — defaults to now.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "partySize"
+        ],
+        "type": "object"
+      },
+      "ErrorDetailResponse": {
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "issue": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "issue"
+        ],
+        "type": "object"
+      },
+      "LoginDto": {
+        "properties": {
+          "identifier": {
+            "description": "Phone or email",
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "password"
+        ],
+        "type": "object"
+      },
+      "LogoutDto": {
+        "properties": {
+          "allDevices": {
+            "default": false,
+            "type": "boolean"
+          },
+          "refreshToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ],
+        "type": "object"
+      },
+      "OtpSentResponse": {
+        "properties": {
+          "retryAfter": {
+            "description": "Seconds until another code may be requested.",
+            "type": "number"
+          },
+          "sent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sent",
+          "retryAfter"
+        ],
+        "type": "object"
+      },
+      "RefreshDto": {
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ],
+        "type": "object"
+      },
+      "RegisterDto": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "locale": {
+            "default": "ar",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional — OTP-only accounts are supported",
+            "minLength": 8,
+            "type": "string"
+          },
+          "phone": {
+            "description": "E.164 or local Egyptian (01xxxxxxxxx)",
+            "example": "+201000000000",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone",
+          "fullName"
+        ],
+        "type": "object"
+      },
+      "RegisterResponse": {
+        "properties": {
+          "otpRequired": {
+            "type": "boolean"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "otpRequired"
+        ],
+        "type": "object"
+      },
+      "RejectRestaurantDto": {
+        "properties": {
+          "reason": {
+            "description": "Shown to the owner so they can fix it",
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RemoveShiftResponse": {
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          },
+          "reservationsOutsideHours": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "deleted",
+          "reservationsOutsideHours"
+        ],
+        "type": "object"
+      },
+      "RemoveTableResponse": {
+        "properties": {
+          "deactivated": {
+            "description": "True when it was retired so history survives.",
+            "type": "boolean"
+          },
+          "deleted": {
+            "description": "True only when the table had never been used.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted",
+          "deactivated"
+        ],
+        "type": "object"
+      },
+      "ResendOtpDto": {
+        "properties": {
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "ReservationResponse": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string"
+          },
+          "guestName": {
+            "nullable": true,
+            "type": "object"
+          },
+          "guestPhone": {
+            "nullable": true,
+            "type": "object"
+          },
+          "holdExpiresAt": {
+            "nullable": true,
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "partySize": {
+            "type": "integer"
+          },
+          "restaurantId": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/ReservationTableResponse"
+            },
+            "type": "array"
+          },
+          "userId": {
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "restaurantId",
+          "partySize",
+          "startsAt",
+          "endsAt",
+          "status",
+          "source"
+        ],
+        "type": "object"
+      },
+      "ReservationTableResponse": {
+        "properties": {
+          "tableId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tableId"
+        ],
+        "type": "object"
+      },
+      "RestaurantResponse": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "descriptionAr": {
+            "nullable": true,
+            "type": "object"
+          },
+          "descriptionEn": {
+            "nullable": true,
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "nullable": true,
+            "type": "object"
+          },
+          "priceBand": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "status",
+          "nameEn",
+          "nameAr",
+          "city"
+        ],
+        "type": "object"
+      },
+      "SearchResponse": {
+        "properties": {
+          "availability_filtered": {
+            "type": "boolean"
+          },
+          "estimated_total": {
+            "type": "integer"
+          },
+          "next_cursor": {
+            "nullable": true,
+            "type": "object"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SearchResultResponse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "results",
+          "estimated_total",
+          "availability_filtered"
+        ],
+        "type": "object"
+      },
+      "SearchResultResponse": {
+        "properties": {
+          "cuisines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "distance_km": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "nullable": true,
+            "type": "object"
+          },
+          "next_available": {
+            "description": "Local HH:MM teasers. A HINT, not an offer — no absolute instant is given precisely so no client can treat one as bookable.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "price_band": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "rating_count": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name_en",
+          "name_ar",
+          "cuisines",
+          "rating",
+          "rating_count"
+        ],
+        "type": "object"
+      },
+      "ShiftResponse": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "closesAt": {
+            "type": "string"
+          },
+          "dayOfWeek": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "defaultTurnMinutes": {
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isRamadan": {
+            "type": "boolean"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "opensAt": {
+            "type": "string"
+          },
+          "spansMidnight": {
+            "type": "boolean"
+          },
+          "specificDate": {
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "nameEn",
+          "nameAr",
+          "opensAt",
+          "closesAt",
+          "spansMidnight",
+          "defaultTurnMinutes",
+          "isRamadan",
+          "active"
+        ],
+        "type": "object"
+      },
+      "ShiftWriteResponse": {
+        "properties": {
+          "reservationsOutsideHours": {
+            "description": "Live future bookings now outside the shift. NEVER cancelled — returned so the restaurant can contact those guests.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "shift": {
+            "$ref": "#/components/schemas/ShiftResponse"
+          }
+        },
+        "required": [
+          "shift",
+          "reservationsOutsideHours"
+        ],
+        "type": "object"
+      },
+      "SlotResponse": {
+        "properties": {
+          "startsAt": {
+            "description": "Absolute instant, ISO-8601 UTC. POST this back.",
+            "type": "string"
+          },
+          "time": {
+            "description": "HH:MM on the RESTAURANT'S wall clock.",
+            "type": "string"
+          },
+          "zones": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "time",
+          "startsAt",
+          "zones"
+        ],
+        "type": "object"
+      },
+      "TableResponse": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "combinableWith": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "maxCapacity": {
+            "type": "integer"
+          },
+          "minCapacity": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "zone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "minCapacity",
+          "maxCapacity",
+          "zone",
+          "priority",
+          "combinableWith",
+          "active"
+        ],
+        "type": "object"
+      },
+      "TokenPairResponse": {
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "required": [
+          "accessToken",
+          "expiresIn",
+          "refreshToken",
+          "user"
+        ],
+        "type": "object"
+      },
+      "UpdateRestaurantDto": {
+        "properties": {
+          "bookingMode": {
+            "enum": [
+              "instant",
+              "request"
+            ],
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "cuisines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "descriptionAr": {
+            "type": "string"
+          },
+          "descriptionEn": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "type": "string"
+          },
+          "priceBand": {
+            "type": "number"
+          },
+          "slotIntervalMin": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateShiftDto": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "closesAt": {
+            "example": "23:00",
+            "type": "string"
+          },
+          "dayOfWeek": {
+            "description": "0=Sunday. Exactly one of this or specificDate.",
+            "example": 5,
+            "type": "integer"
+          },
+          "defaultTurnMinutes": {
+            "example": {
+              "1-2": 90,
+              "3-4": 105,
+              "5+": 120
+            },
+            "type": "object"
+          },
+          "isRamadan": {
+            "description": "Flag only — Maghrib anchoring is not implemented yet",
+            "type": "boolean"
+          },
+          "nameAr": {
+            "example": "العشاء",
+            "type": "string"
+          },
+          "nameEn": {
+            "example": "Dinner",
+            "type": "string"
+          },
+          "opensAt": {
+            "description": "Restaurant wall clock, 24h",
+            "example": "18:00",
+            "type": "string"
+          },
+          "spansMidnight": {
+            "description": "Set for sohour-style shifts running past midnight",
+            "type": "boolean"
+          },
+          "specificDate": {
+            "description": "Exactly one of this or dayOfWeek.",
+            "example": "2026-03-20",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateTableDto": {
+        "properties": {
+          "active": {
+            "description": "false retires the table; 409 if it has future bookings",
+            "type": "boolean"
+          },
+          "combinableWith": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "maxCapacity": {
+            "type": "integer"
+          },
+          "minCapacity": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "zone": {
+            "enum": [
+              "indoor",
+              "outdoor",
+              "family",
+              "bar",
+              "private"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UserResponse": {
+        "properties": {
+          "email": {
+            "nullable": true,
+            "type": "object"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "phone",
+          "fullName",
+          "locale",
+          "status",
+          "roles"
+        ],
+        "type": "object"
+      },
+      "VerifyOtpDto": {
+        "properties": {
+          "code": {
+            "example": "123456",
+            "maxLength": 6,
+            "minLength": 6,
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "code"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "contact": {},
+    "description": "Restaurant reservation platform — Egypt/MENA",
+    "title": "SAHRA API",
+    "version": "1.0"
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/admin/restaurants": {
+      "get": {
+        "operationId": "AdminRestaurantsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminRestaurantResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The pending_review queue, oldest first",
+        "tags": [
+          "admin:restaurants"
+        ]
+      }
+    },
+    "/v1/admin/restaurants/{id}/approve": {
+      "post": {
+        "operationId": "AdminRestaurantsController_approve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRestaurantResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "description": "invalid_status_transition"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "pending_review to active",
+        "tags": [
+          "admin:restaurants"
+        ]
+      }
+    },
+    "/v1/admin/restaurants/{id}/reject": {
+      "post": {
+        "operationId": "AdminRestaurantsController_reject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRestaurantDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRestaurantResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "pending_review back to draft, with a reason",
+        "tags": [
+          "admin:restaurants"
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "invalid_credentials | account_unavailable"
+          }
+        },
+        "summary": "Password login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke this refresh token, or every one for the user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller identified by the access token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "description": "Returns a NEW pair and revokes the presented token. Replaying a revoked token revokes the entire family and returns 401.",
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "invalid_refresh_token | token_reuse_detected"
+          }
+        },
+        "summary": "Rotate the refresh token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "description": "{ userId, otpRequired: true }"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "description": "phone_exists | email_exists"
+          }
+        },
+        "summary": "Create an account (phone is the primary identity)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/resend-otp": {
+      "post": {
+        "operationId": "AuthController_resendOtp",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendOtpDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtpSentResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "description": "otp_rate_limited"
+          }
+        },
+        "summary": "Re-send the phone code (rate limited)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/verify-otp": {
+      "post": {
+        "operationId": "AuthController_verifyOtp",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "invalid_otp | otp_expired"
+          },
+          "429": {
+            "description": "too_many_attempts"
+          }
+        },
+        "summary": "Verify the phone code; activates the account",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/owner/restaurants": {
+      "get": {
+        "operationId": "OwnerRestaurantsController_listMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RestaurantResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List my restaurants",
+        "tags": [
+          "owner:restaurants"
+        ]
+      },
+      "post": {
+        "operationId": "OwnerRestaurantsController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRestaurantDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestaurantResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a restaurant (lands in draft)",
+        "tags": [
+          "owner:restaurants"
+        ]
+      }
+    },
+    "/v1/owner/restaurants/{id}": {
+      "get": {
+        "operationId": "OwnerRestaurantsController_getOne",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestaurantResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one of my restaurants",
+        "tags": [
+          "owner:restaurants"
+        ]
+      },
+      "patch": {
+        "operationId": "OwnerRestaurantsController_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRestaurantDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestaurantResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update profile, policies, amenities",
+        "tags": [
+          "owner:restaurants"
+        ]
+      }
+    },
+    "/v1/owner/restaurants/{id}/reservations": {
+      "get": {
+        "operationId": "OwnerRestaurantsController_reservations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tonight's book, in the restaurant's local time",
+        "tags": [
+          "owner:restaurants"
+        ]
+      }
+    },
+    "/v1/owner/restaurants/{id}/submit": {
+      "post": {
+        "operationId": "OwnerRestaurantsController_submit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestaurantResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "description": "invalid_status_transition"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "draft → pending_review",
+        "tags": [
+          "owner:restaurants"
+        ]
+      }
+    },
+    "/v1/owner/restaurants/{restaurantId}/reservations": {
+      "post": {
+        "operationId": "OwnerVenueConfigController_createWalkIn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Client-generated UUID v4",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWalkInDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "description": ""
+          },
+          "409": {
+            "description": "slot_taken — the same 409 the app gets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Seat a walk-in or take a phone booking",
+        "tags": [
+          "owner:venue-config"
+        ]
+      }
+    },
+    "/v1/owner/restaurants/{restaurantId}/shifts": {
+      "get": {
+        "operationId": "OwnerVenueConfigController_listShifts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ShiftResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List opening hours",
+        "tags": [
+          "owner:venue-config"
+        ]
+      },
+      "post": {
+        "operationId": "OwnerVenueConfigController_createShift",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShiftDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "description": "shift_overlap"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a shift (weekly or one-off date)",
+        "tags": [
+          "owner:venue-config"
+        ]
+      }
+    },
+    "/v1/owner/restaurants/{restaurantId}/shifts/{shiftId}": {
+      "delete": {
+        "operationId": "OwnerVenueConfigController_removeShift",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shiftId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "force",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveShiftResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "description": "bookings_outside_new_hours"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a shift",
+        "tags": [
+          "owner:venue-config"
+        ]
+      },
+      "get": {
+        "operationId": "OwnerVenueConfigController_getShift",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shiftId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one shift",
+        "tags": [
+          "owner:venue-config"
+        ]
+      },
+      "patch": {
+        "operationId": "OwnerVenueConfigController_updateShift",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shiftId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "force",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateShiftDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftWriteResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "description": "bookings_outside_new_hours | shift_overlap"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit opening hours",
+        "tags": [
+          "owner:venue-config"
+        ]
+      }
+    },
+    "/v1/owner/restaurants/{restaurantId}/tables": {
+      "get": {
+        "operationId": "OwnerVenueConfigController_listTables",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TableResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List tables",
+        "tags": [
+          "owner:venue-config"
+        ]
+      },
+      "post": {
+        "operationId": "OwnerVenueConfigController_createTable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTableDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "description": "table_name_taken"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a table",
+        "tags": [
+          "owner:venue-config"
+        ]
+      }
+    },
+    "/v1/owner/restaurants/{restaurantId}/tables/{tableId}": {
+      "delete": {
+        "operationId": "OwnerVenueConfigController_removeTable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveTableResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "description": "table_has_future_reservations"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a table — hard delete if never used, otherwise retired so history survives",
+        "tags": [
+          "owner:venue-config"
+        ]
+      },
+      "get": {
+        "operationId": "OwnerVenueConfigController_getTable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one table",
+        "tags": [
+          "owner:venue-config"
+        ]
+      },
+      "patch": {
+        "operationId": "OwnerVenueConfigController_updateTable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTableDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "description": "table_has_future_reservations (retiring one that is booked) | capacity_conflict_with_reservations (shrinking below a booked party)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a table",
+        "tags": [
+          "owner:venue-config"
+        ]
+      }
+    },
+    "/v1/reservations/holds": {
+      "post": {
+        "operationId": "ReservationsController_createHold",
+        "parameters": [
+          {
+            "description": "Client-generated UUID v4",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHoldDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "description": "Hold created"
+          },
+          "409": {
+            "description": "slot_taken | pacing_limit_reached"
+          }
+        },
+        "summary": "Hold a table for 5 minutes",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/v1/reservations/holds/{id}/confirm": {
+      "post": {
+        "operationId": "ReservationsController_confirm",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Client-generated UUID v4",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmHoldDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "reservation_not_found"
+          },
+          "409": {
+            "description": "hold_expired | invalid_status_transition"
+          }
+        },
+        "summary": "Confirm a held table",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/v1/restaurants/search": {
+      "get": {
+        "operationId": "SearchController_find",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "example": "sequoia",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cuisine",
+            "required": false,
+            "schema": {
+              "example": "egyptian",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "neighborhood",
+            "required": false,
+            "schema": {
+              "example": "Zamalek",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_band",
+            "required": false,
+            "schema": {
+              "example": 3,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rating_min",
+            "required": false,
+            "schema": {
+              "example": 4,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "example": 30.0622,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lng",
+            "required": false,
+            "schema": {
+              "example": 31.2185,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "radius_km",
+            "required": false,
+            "schema": {
+              "example": 5,
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD; needs party_size",
+            "in": "query",
+            "name": "available_at",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_size",
+            "required": false,
+            "schema": {
+              "example": 2,
+              "type": "string"
+            }
+          },
+          {
+            "description": "comma-separated",
+            "in": "query",
+            "name": "amenities",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "enum": [
+                "relevance",
+                "rating",
+                "distance"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "example": 20,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Discovery search — text + facets, availability post-filtered",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/restaurants/{id}/availability": {
+      "get": {
+        "operationId": "AvailabilityController_getSlots",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "example": "2026-08-02",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_size",
+            "required": true,
+            "schema": {
+              "example": 2,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Bookable slots for a date and party size",
+        "tags": [
+          "availability"
+        ]
+      }
+    }
+  },
+  "servers": [],
+  "tags": []
+}

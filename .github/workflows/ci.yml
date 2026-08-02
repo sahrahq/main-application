@@ -31,6 +31,15 @@ jobs:
         working-directory: packages/sahra_lints
         run: dart pub get && dart analyze --fatal-infos
 
+      - name: API client is generated and current
+        working-directory: packages/sahra_api_client
+        run: |
+          dart pub get
+          dart analyze --fatal-infos
+          # Regenerates from the committed spec and diffs. Generated output is
+          # NOT formatted — see the package README.
+          dart test
+
       - name: Shared copy — ARB parity and backend error coverage
         working-directory: packages/sahra_localization
         run: dart pub get && dart test
@@ -100,6 +109,13 @@ jobs:
         run: |
           pnpm prisma migrate deploy
           psql "$DATABASE_URL" -f prisma/sql/01_guards.sql
+
+      - name: OpenAPI spec is current
+        working-directory: apps/api
+        # Boots the REAL app and diffs the document against the committed one.
+        # If a controller can change without the spec changing, guarantee 1 is
+        # theatre — so this runs against live services, like the e2e suite.
+        run: pnpm openapi:export --check
 
       - name: Build, unit, e2e
         working-directory: apps/api
