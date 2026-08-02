@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -24,15 +26,39 @@ SessionStore sessionStore(Ref ref) => SecureSessionStore();
 /// path a genuinely expired token takes and is therefore already handled.
 @Riverpod(keepAlive: true)
 class CurrentSession extends _$CurrentSession {
+  Completer<void> _ready = Completer<void>();
+
+  /// Completes once storage has been consulted, whatever the answer.
+  ///
+  /// ANYONE MAKING A SIGNED-IN-OR-NOT DECISION MUST AWAIT THIS. A Riverpod
+  /// notifier is created on first read, so before this existed the restore had
+  /// not merely *not finished* when the bottom navigation asked — it had not
+  /// STARTED. `AppShell` was the first reader, it read synchronously, and a
+  /// returning diner tapping Bookings was told they were signed out and sent
+  /// to sign in. Found by a probe print in the tab test, which reported
+  /// `session after restore: null` and then made its own assertions pass by
+  /// having triggered the restore.
+  ///
+  /// The state stays `Session?` rather than becoming `AsyncValue<Session?>`
+  /// for the reason in the class note: the transport has no widget tree to
+  /// show a spinner in. A caller that needs certainty awaits this; a caller
+  /// that only needs a token takes the 401 path, which is already handled.
+  Future<void> get ready => _ready.future;
+
   @override
   Session? build() {
+    if (_ready.isCompleted) _ready = Completer<void>();
     _restore();
     return null;
   }
 
   Future<void> _restore() async {
-    final stored = await ref.read(sessionStoreProvider).read();
-    if (stored != null && state == null) state = stored;
+    try {
+      final stored = await ref.read(sessionStoreProvider).read();
+      if (stored != null && state == null) state = stored;
+    } finally {
+      if (!_ready.isCompleted) _ready.complete();
+    }
   }
 
   Future<void> signIn(Session session) async {

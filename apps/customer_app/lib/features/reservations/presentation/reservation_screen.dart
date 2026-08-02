@@ -40,7 +40,7 @@ class ReservationScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: SahraAppBar(
         title: Text(l10n.reservationTitle),
         leading: IconButton(
           icon: const SahraIcon('arrow-back'),

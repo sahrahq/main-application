@@ -338,5 +338,29 @@
   },
   "@signInWhy": {
     "description": "C-1.6 asks the diner to sign up at the booking action. This is the ONE sentence that has to make thirty seconds feel worth it, so it states what they get — the table under their name, and being told if it changes — not what we need."
+  },
+  "tabDiscover": "Discover",
+  "tabBookings": "Bookings",
+  "tabAccount": "Account",
+  "accountTitle": "Account",
+  "accountSignedOutTitle": "You're browsing as a guest",
+  "accountSignedOutMessage": "Sign in to book a table and keep your reservations in one place.",
+  "accountMyBookings": "My bookings",
+  "accountSignOut": "Sign out",
+  "accountSigningOut": "Signing out…",
+  "accountLanguage": "Language",
+  "accountLanguageValue": "Follows your device",
+  "accountNotBuilt": "Saved places, payment methods and notification settings are not built yet.",
+  "searchLocationSemantic": "Searching in {city}",
+  "@searchLocationSemantic": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    },
+    "description": "Announced for the city label in the search pill. It is NOT a control — city switching is not built (SEARCH-1) — so the announcement states scope rather than offering an action."
+  },
+  "@accountNotBuilt": {
+    "description": "ProfileScreen.jsx draws seven rows; three of them have no implementation. Naming them is more honest than drawing rows that fail on tap."
   }
 }

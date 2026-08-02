@@ -628,4 +628,47 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get signOut => 'تسجيل الخروج';
+
+  @override
+  String get tabDiscover => 'استكشف';
+
+  @override
+  String get tabBookings => 'حجوزاتي';
+
+  @override
+  String get tabAccount => 'حسابي';
+
+  @override
+  String get accountTitle => 'حسابي';
+
+  @override
+  String get accountSignedOutTitle => 'إنت بتتفرج كضيف';
+
+  @override
+  String get accountSignedOutMessage =>
+      'سجّل دخولك عشان تحجز طاولة وتلاقي حجوزاتك كلها في مكان واحد.';
+
+  @override
+  String get accountMyBookings => 'حجوزاتي';
+
+  @override
+  String get accountSignOut => 'تسجيل الخروج';
+
+  @override
+  String get accountSigningOut => 'بنخرّجك…';
+
+  @override
+  String get accountLanguage => 'اللغة';
+
+  @override
+  String get accountLanguageValue => 'زي إعدادات جهازك';
+
+  @override
+  String get accountNotBuilt =>
+      'الأماكن المحفوظة وطرق الدفع وإعدادات الإشعارات لسه ما اتعملوش.';
+
+  @override
+  String searchLocationSemantic(String city) {
+    return 'بتدوّر في $city';
+  }
 }

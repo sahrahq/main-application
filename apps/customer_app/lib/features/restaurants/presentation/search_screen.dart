@@ -66,6 +66,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   SahraSearchBar(
                     hint: l10n.searchHint,
                     location: l10n.searchLocation,
+                    locationSemanticLabel:
+                        l10n.searchLocationSemantic(l10n.searchLocation),
                     controller: _controller,
                     onChanged: ref.read(searchCriteriaProvider.notifier).setText,
                     semanticLabel: l10n.searchHint,

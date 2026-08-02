@@ -55,7 +55,7 @@ class BookScreen extends ConsumerWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: SahraAppBar(
         title: Text(l10n.bookTitle),
         leading: IconButton(
           icon: const SahraIcon('arrow-back'),

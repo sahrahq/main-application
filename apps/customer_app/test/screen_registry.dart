@@ -4,6 +4,7 @@ import 'package:sahra_customer_app/core/auth/session.dart';
 import 'package:sahra_customer_app/core/error/failure.dart';
 import 'package:sahra_customer_app/features/auth/domain/auth_repository.dart';
 import 'package:sahra_customer_app/features/auth/presentation/sign_in_notifier.dart';
+import 'package:sahra_customer_app/features/auth/presentation/account_screen.dart';
 import 'package:sahra_customer_app/features/auth/presentation/sign_in_screen.dart';
 import 'package:sahra_customer_app/features/reservations/presentation/book_screen.dart';
 import 'package:sahra_customer_app/features/reservations/presentation/my_bookings_screen.dart';
@@ -166,6 +167,22 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
       ..._signedIn,
       bookingsViewProvider.overrideWith(() => _PastTab()),
     ],
+  ),
+
+  // ── Account ─────────────────────────────────────────────────────────────
+  'Account/signed-in': ScreenCase(
+    build: (_) => const AccountScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => throw offline),
+      ..._signedIn,
+    ],
+  ),
+  // Reachable only when a session expires while the screen is open — the tab
+  // demands sign-in before it opens. Pictured because "only reachable in one
+  // situation" is exactly the state nobody looks at.
+  'Account/signed-out': ScreenCase(
+    build: (_) => const AccountScreen(),
+    overrides: (_) => _transport((_, __, ___) => throw offline),
   ),
 
   // ── Reservation detail ──────────────────────────────────────────────────

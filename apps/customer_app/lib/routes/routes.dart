@@ -11,6 +11,7 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/presentation/account_screen.dart';
 import '../features/auth/presentation/sign_in_screen.dart';
 import '../features/reservations/presentation/book_screen.dart';
 import '../features/reservations/presentation/confirmed_screen.dart';
@@ -18,6 +19,7 @@ import '../features/reservations/presentation/my_bookings_screen.dart';
 import '../features/reservations/presentation/reservation_screen.dart';
 import '../features/restaurants/presentation/search_screen.dart';
 import '../features/restaurants/presentation/venue_screen.dart';
+import '../shared/widgets/app_shell.dart';
 
 class SearchRoute {
   const SearchRoute();
@@ -79,6 +81,12 @@ class BookingsRoute {
   void go(BuildContext context) => context.go(path);
 }
 
+class AccountRoute {
+  const AccountRoute();
+  static const String path = '/account';
+  void go(BuildContext context) => context.go(path);
+}
+
 class ReservationRoute {
   const ReservationRoute(this.id);
   final String id;
@@ -105,12 +113,46 @@ class ConfirmedRoute {
       );
 }
 
+/// THE TAB BAR IS A SHELL, NOT A WIDGET EACH SCREEN REMEMBERS TO ADD.
+///
+/// A `ShellRoute` wraps every top-level destination, so the navigation exists
+/// because of where you are rather than because a screen opted in — the same
+/// argument as `SahraPageWidth`, one level up. Adding a fourth tab later is one
+/// entry here, not an edit to four files.
+///
+/// What is deliberately OUTSIDE the shell: venue detail, the booking form, the
+/// confirmation, and sign-in. Those are a flow, not a destination — a diner
+/// mid-booking should not be one tap from silently abandoning it, and the
+/// confirmation is a full-screen moment in the reference.
 GoRouter buildRouter() => GoRouter(
       initialLocation: SearchRoute.path,
       routes: <RouteBase>[
-        GoRoute(
-          path: SearchRoute.path,
-          builder: (_, __) => const SearchScreen(),
+        ShellRoute(
+          builder: (context, state, child) => AppShell(
+            location: state.uri.path,
+            child: child,
+          ),
+          routes: <RouteBase>[
+            GoRoute(
+              path: SearchRoute.path,
+              builder: (_, __) => const SearchScreen(),
+            ),
+            GoRoute(
+              path: BookingsRoute.path,
+              builder: (_, __) => const MyBookingsScreen(),
+              routes: <RouteBase>[
+                GoRoute(
+                  path: ':id',
+                  builder: (_, state) =>
+                      ReservationScreen(id: state.pathParameters['id']!),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: AccountRoute.path,
+              builder: (_, __) => const AccountScreen(),
+            ),
+          ],
         ),
         GoRoute(
           path: VenueRoute.path,
@@ -139,17 +181,6 @@ GoRouter buildRouter() => GoRouter(
                 ? context.pop(true)
                 : const BookingsRoute().go(context),
           ),
-        ),
-        GoRoute(
-          path: BookingsRoute.path,
-          builder: (_, __) => const MyBookingsScreen(),
-          routes: <RouteBase>[
-            GoRoute(
-              path: ':id',
-              builder: (_, state) =>
-                  ReservationScreen(id: state.pathParameters['id']!),
-            ),
-          ],
         ),
         GoRoute(
           path: ConfirmedRoute.path,

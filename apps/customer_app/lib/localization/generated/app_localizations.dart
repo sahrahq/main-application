@@ -1195,6 +1195,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign out'**
   String get signOut;
+
+  /// No description provided for @tabDiscover.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover'**
+  String get tabDiscover;
+
+  /// No description provided for @tabBookings.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookings'**
+  String get tabBookings;
+
+  /// No description provided for @tabAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get tabAccount;
+
+  /// No description provided for @accountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountTitle;
+
+  /// No description provided for @accountSignedOutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re browsing as a guest'**
+  String get accountSignedOutTitle;
+
+  /// No description provided for @accountSignedOutMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to book a table and keep your reservations in one place.'**
+  String get accountSignedOutMessage;
+
+  /// No description provided for @accountMyBookings.
+  ///
+  /// In en, this message translates to:
+  /// **'My bookings'**
+  String get accountMyBookings;
+
+  /// No description provided for @accountSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get accountSignOut;
+
+  /// No description provided for @accountSigningOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing out…'**
+  String get accountSigningOut;
+
+  /// No description provided for @accountLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get accountLanguage;
+
+  /// No description provided for @accountLanguageValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows your device'**
+  String get accountLanguageValue;
+
+  /// ProfileScreen.jsx draws seven rows; three of them have no implementation. Naming them is more honest than drawing rows that fail on tap.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved places, payment methods and notification settings are not built yet.'**
+  String get accountNotBuilt;
+
+  /// Announced for the city label in the search pill. It is NOT a control — city switching is not built (SEARCH-1) — so the announcement states scope rather than offering an action.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching in {city}'**
+  String searchLocationSemantic(String city);
 }
 
 class _AppLocalizationsDelegate

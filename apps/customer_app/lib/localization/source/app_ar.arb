@@ -130,5 +130,18 @@
   "statusNoShow": "مجاش",
   "statusCancelledByUser": "إنت ألغيته",
   "statusCancelledByRestaurant": "المطعم ألغاه",
-  "signOut": "تسجيل الخروج"
+  "signOut": "تسجيل الخروج",
+  "tabDiscover": "استكشف",
+  "tabBookings": "حجوزاتي",
+  "tabAccount": "حسابي",
+  "accountTitle": "حسابي",
+  "accountSignedOutTitle": "إنت بتتفرج كضيف",
+  "accountSignedOutMessage": "سجّل دخولك عشان تحجز طاولة وتلاقي حجوزاتك كلها في مكان واحد.",
+  "accountMyBookings": "حجوزاتي",
+  "accountSignOut": "تسجيل الخروج",
+  "accountSigningOut": "بنخرّجك…",
+  "accountLanguage": "اللغة",
+  "accountLanguageValue": "زي إعدادات جهازك",
+  "accountNotBuilt": "الأماكن المحفوظة وطرق الدفع وإعدادات الإشعارات لسه ما اتعملوش.",
+  "searchLocationSemantic": "بتدوّر في {city}"
 }

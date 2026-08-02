@@ -641,4 +641,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signOut => 'Sign out';
+
+  @override
+  String get tabDiscover => 'Discover';
+
+  @override
+  String get tabBookings => 'Bookings';
+
+  @override
+  String get tabAccount => 'Account';
+
+  @override
+  String get accountTitle => 'Account';
+
+  @override
+  String get accountSignedOutTitle => 'You\'re browsing as a guest';
+
+  @override
+  String get accountSignedOutMessage =>
+      'Sign in to book a table and keep your reservations in one place.';
+
+  @override
+  String get accountMyBookings => 'My bookings';
+
+  @override
+  String get accountSignOut => 'Sign out';
+
+  @override
+  String get accountSigningOut => 'Signing out…';
+
+  @override
+  String get accountLanguage => 'Language';
+
+  @override
+  String get accountLanguageValue => 'Follows your device';
+
+  @override
+  String get accountNotBuilt =>
+      'Saved places, payment methods and notification settings are not built yet.';
+
+  @override
+  String searchLocationSemantic(String city) {
+    return 'Searching in $city';
+  }
 }

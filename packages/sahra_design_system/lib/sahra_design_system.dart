@@ -5,6 +5,7 @@
 library sahra_design_system;
 
 export 'src/generated/tokens.g.dart' show SahraFontStack, SahraTokens, SahraNightTokens;
+export 'src/components/sahra_app_bar.dart';
 export 'src/components/sahra_avatar.dart';
 export 'src/components/sahra_avatar_stack.dart';
 export 'src/components/sahra_badge.dart';

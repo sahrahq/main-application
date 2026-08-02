@@ -82,8 +82,9 @@ class SahraIcon extends StatelessWidget {
     'minus',
     'map-pin',
     'chevron-down',
-    // Directional. See the note on _material below — this one MIRRORS.
+    // Directional. See the note on _material below — these MIRROR.
     'arrow-back',
+    'chevron-forward',
   ];
 
   static const Map<String, IconData> _material = <String, IconData>{
@@ -115,6 +116,12 @@ class SahraIcon extends StatelessWidget {
     // back arrow pointing the wrong way is the exact "mirrors but reads wrong"
     // failure ENGINEERING-STANDARDS lists as un-catchable by any other test.
     'arrow-back': Icons.arrow_back,
+    // "Onward", not "right". `Icons.arrow_forward_ios` also carries
+    // `matchTextDirection: true`, so the disclosure chevron on a list row
+    // points right in English and LEFT in Arabic — where "further in" is.
+    // A hardcoded `chevron_right` would point out of the row in RTL, which is
+    // the same class of defect as a back arrow that does not turn round.
+    'chevron-forward': Icons.arrow_forward_ios,
   };
 
   @override
