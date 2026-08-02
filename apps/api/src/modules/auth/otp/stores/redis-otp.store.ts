@@ -44,4 +44,28 @@ export class RedisOtpStore implements OtpStore {
   async consume(key: string): Promise<void> {
     await this.redis.del(key);
   }
+
+  /**
+   * A separate key with its own TTL, so Redis expires the lock and `consume`
+   * on the challenge cannot remove it.
+   *
+   * `SET … NX PX` — set only if absent. Two concurrent fifth-failures must not
+   * let the second one restart the clock the first one began; NX makes the
+   * first writer win and the second a no-op.
+   */
+  async lock(key: string, untilMs: number): Promise<void> {
+    const ttl = Math.max(1, untilMs - Date.now());
+    await this.redis.set(lockKey(key), String(untilMs), 'PX', ttl, 'NX');
+  }
+
+  async lockedForMs(key: string): Promise<number> {
+    const ttl = await this.redis.pttl(lockKey(key));
+    // -2 = no key, -1 = key with no expiry (which this never writes).
+    return ttl > 0 ? ttl : 0;
+  }
+}
+
+/** Namespaced away from the challenge so neither can clobber the other. */
+function lockKey(key: string): string {
+  return `${key}:lock`;
 }

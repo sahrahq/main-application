@@ -16,7 +16,7 @@ import { InMemoryOtpStore } from '../src/modules/auth/otp/stores/in-memory-otp.s
 import { InMemoryRateLimiter } from '../src/modules/auth/otp/stores/in-memory-rate-limiter';
 import { RecordingOtpDelivery } from '../src/modules/auth/otp/delivery/recording-otp.delivery';
 import { PrismaService } from '../src/shared/prisma/prisma.service';
-import { resetOtpSendBudget } from './support/otp-budget';
+import { resetOtpState } from './support/otp-budget';
 
 const url = (() => {
   const base = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
@@ -41,7 +41,7 @@ let userId: string;
 
 beforeAll(async () => {
   // Shared per-IP OTP budget — see support/otp-budget.ts.
-  await resetOtpSendBudget();
+  await resetOtpState();
 
   await prisma.$connect();
 }, 60_000);
@@ -71,11 +71,39 @@ describe('auth — registration and login', () => {
     expect(u.passwordHash!.startsWith('$argon2id$')).toBe(true);
   }, 60_000);
 
+  it('verifies the phone, which is what makes the account defended', async () => {
+    // Moved ahead of the duplicate test deliberately. 409 `phone_exists` is
+    // now the answer for a VERIFIED account only: an unverified registration
+    // is reclaimable, because refusing it told real diners their own number
+    // was taken (see account-squatting.e2e-spec.ts).
+    const code = otpDelivery.sent.filter((m) => m.phone === normalizePhone(PHONE)).at(-1)!.code;
+    const pair = await auth.verifyOtp(userId, code);
+
+    expect(pair.accessToken).toBeTruthy();
+    const u = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    expect(u.status).toBe('active');
+    expect(u.phoneVerifiedAt).not.toBeNull();
+  }, 60_000);
+
   it('rejects a duplicate phone even when written in a different format', async () => {
     // Same number, international form — must collide with the local form.
+    //
+    // This assertion is unchanged, but what it proves has moved: before, it
+    // held for ANY existing row; now it holds because the row above is
+    // VERIFIED. An unverified one would be reclaimed instead, which is the
+    // whole point of the squatting fix.
     await expect(
       auth.register({ phone: normalizePhone(PHONE), fullName: 'Impostor' }),
     ).rejects.toMatchObject({ response: { code: 'phone_exists' } });
+  }, 60_000);
+
+  it('and the impostor did not overwrite the password on the way past', async () => {
+    // The reclaim path rewrites `passwordHash`. If the verified-account guard
+    // ever regressed, this row would silently lose its password and the login
+    // test below would fail with a confusing "invalid credentials".
+    const u = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    expect(u.passwordHash).toBeTruthy();
+    expect(u.fullName).toBe('Nour Hassan');
   }, 60_000);
 
   it('logs in and issues a working pair', async () => {

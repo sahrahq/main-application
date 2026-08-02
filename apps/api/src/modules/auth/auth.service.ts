@@ -50,14 +50,67 @@ export class AuthService {
 
     const clash = await this.prisma.user.findFirst({
       where: { OR: [{ phone }, ...(input.email ? [{ email: input.email }] : [])] },
-      select: { id: true, phone: true },
+      select: { id: true, phone: true, phoneVerifiedAt: true, status: true },
     });
-    if (clash) {
+
+    // ── ACCOUNT SQUATTING ────────────────────────────────────────────────
+    //
+    // A registration that was never verified holds nothing. Anyone could type
+    // a stranger's number, never answer the code, and leave a `pending` row
+    // that made the real owner's signup answer 409 `phone_exists`.
+    //
+    // That is not primarily a security problem, it is a SILENT CUSTOMER LOSS:
+    // a real diner is told their own phone number is taken, and leaves. They
+    // do not contact support, so it never appears anywhere we look — which
+    // makes it worse than an attack we could at least observe.
+    //
+    // Whoever is holding the phone is overwhelmingly likely to be its owner,
+    // and they still have to answer a code sent to it. So an unverified
+    // registration is REPLACED rather than refused.
+    //
+    // WHAT THIS MUST NOT DO:
+    //   - take over a VERIFIED account. `phoneVerifiedAt` is the line, and it
+    //     is checked in addition to status, because either alone is one bug
+    //     away from being the wrong question.
+    //   - reveal whether a number is registered. The response below is
+    //     byte-identical in shape and status to a first-time registration
+    //     (201 `{userId, otpRequired: true}`), so a caller cannot tell the two
+    //     apart — otherwise this becomes the enumeration oracle avoided
+    //     everywhere else.
+    const reclaimable =
+      clash !== null &&
+      clash.phone === phone &&
+      clash.phoneVerifiedAt === null &&
+      clash.status === 'pending';
+
+    if (clash && !reclaimable) {
       throw new ConflictException({
         code: clash.phone === phone ? 'phone_exists' : 'email_exists',
         message: 'An account with those details already exists.',
         message_ar: 'يوجد حساب بهذه البيانات بالفعل.',
       });
+    }
+
+    if (reclaimable) {
+      // The new registrant's details win: the row being replaced was never
+      // proven to belong to anyone, and a squatter must not get to fix a
+      // stranger's name in our database.
+      const reclaimed = await this.prisma.user.update({
+        where: { id: clash!.id },
+        data: {
+          fullName: input.fullName,
+          email: input.email ?? null,
+          locale: input.locale ?? 'ar',
+          passwordHash: input.password ? await argon2.hash(input.password, ARGON2_OPTS) : null,
+        },
+        select: { id: true },
+      });
+
+      await this.otp
+        .issue({ userId: reclaimed.id, phone, purpose: 'phone_verify', ip: ctx.ip })
+        .catch((e) => this.logger.error(`OTP send failed for ${reclaimed.id}: ${String(e)}`));
+
+      return { userId: reclaimed.id, otpRequired: true };
     }
 
     const user = await this.prisma.user.create({

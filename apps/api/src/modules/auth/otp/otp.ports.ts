@@ -21,6 +21,21 @@ export interface OtpStore {
   incrementAttempts(key: string): Promise<number>;
   /** Spend the challenge. A consumed OTP must never verify twice. */
   consume(key: string): Promise<void>;
+
+  /**
+   * Lock verification for a (user, purpose) until [untilMs].
+   *
+   * SEPARATE FROM THE CHALLENGE, deliberately. The attempt cap on a challenge
+   * is decorative on its own: after five wrong guesses the attacker simply
+   * requests a new code and buys five more. doc 11 flow 1 specifies
+   * "5 fails → Locked 15 min", and a lock that a new send resets is not that.
+   *
+   * So this key outlives the challenge and is NOT touched by `issue`.
+   */
+  lock(key: string, untilMs: number): Promise<void>;
+
+  /** Milliseconds remaining on a lock, or 0 if there is none. */
+  lockedForMs(key: string): Promise<number>;
 }
 
 export interface RateLimiter {

@@ -152,6 +152,42 @@ each test registers; read the files that exist on disk; assert the scanner
 parsed a plausible number of lines. Every "census" in this suite is written
 that way, and each one is there because its absence let something through.
 
+## A second door to an existing room must be checked against the first
+
+Distinct from the vacuous-pass class above, and it fails the other way round:
+there the guard was broken, here **the guard is fine and simply was never
+asked**.
+
+`verifyOtp` issued a full token pair to a **suspended account**. It read the
+status, preserved it when writing the row, and never acted on it. Password
+login had refused suspended accounts since the day it was written — so the
+rule existed, was correct, and was enforced at one door out of two. Suspension
+is the platform's only lever against a serial no-show or a fraud account
+(doc 02 A-1, C-3.5), and a lever one door ignores is not a lever.
+
+Nothing could have caught it. Every test of the old door passed; the new door
+had tests, and they tested what it *does*, not what it *inherited*. There is no
+assertion for "the new path forgot a rule the old path had", because nothing
+knows the two paths are the same room.
+
+**RULE: when a second entrance is added to something that already has one,
+enumerate every check the first performs and prove the second performs it
+too — as a list, written down, before the new path ships.**
+
+For the auth surface that list is now:
+
+| check | password login | phone-OTP sign-in | registration |
+|---|---|---|---|
+| account not suspended/deleted | ✔ | ✔ | n/a (creates) |
+| soft-deleted rows invisible | ✔ | ✔ | ✔ |
+| per-phone / per-IP send limits | n/a | ✔ | ✔ |
+| verify attempt cap + 15-min lock | n/a | ✔ | ✔ |
+| timing does not reveal registration | ✔ (dummy hash) | ✖ *(401, same as doc 06 §2 specifies for login)* | ✖ *(409 `phone_exists`)* |
+
+The last row is deliberately shown failing at two doors. It is a known,
+recorded gap rather than a discovered one, and writing the table is what made
+it obvious that the two are the *same* gap and should be closed together.
+
 **A guard that can be satisfied by DESTROYING the thing it guards is not a
 guard.** `sahra_bidi.dart` passed `flutter analyze` precisely because the
 control characters had been replaced with garbage. When a static check turns

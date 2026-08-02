@@ -28,14 +28,59 @@
 | Endpoint | Method | Body (req) | Success | Notes |
 |---|---|---|---|---|
 | `/auth/register` | POST | `{phone, email?, password?, full_name, locale}` | 201 `{user_id, otp_required: true}` | 409 `phone_exists` |
-| `/auth/verify-otp` | POST | `{user_id, code}` | 200 `{access_token, refresh_token, user}` | 5 attempts → 429 |
-| `/auth/login` | POST | `{identifier, password}` or `{phone}` → OTP flow | 200 tokens | 401 `invalid_credentials` |
+| `/auth/verify-otp` | POST | `{user_id, code, purpose?}` | 200 `{access_token, refresh_token, user}` | 5 attempts → 429 + **15-minute lock** |
+| `/auth/login` | POST | `{identifier, password}` | 200 tokens | 401 `invalid_credentials` |
+| `/auth/request-otp` | POST | `{phone}` | 202 `{user_id, otp_required: true}` | 401 `invalid_credentials` \| `account_unavailable`, 429 `otp_rate_limited` |
 | `/auth/social` | POST | `{provider: google\|apple\|facebook, id_token}` | 200 tokens (creates account on first login) | |
 | `/auth/refresh` | POST | `{refresh_token}` | 200 new pair (old refresh revoked) | reuse → revoke family, 401 |
 | `/auth/logout` | POST | `{refresh_token, all_devices?}` | 204 | |
 | `/auth/forgot-password` | POST | `{identifier}` | 202 always (no enumeration) | |
 | `/auth/reset-password` | POST | `{token/otp, new_password}` | 204 | |
 | `/auth/verify-email` | POST | `{token}` | 204 | |
+
+### Why phone-OTP sign-in is its own route
+
+**This table originally put `{phone}` → OTP flow on `/auth/login`. It is
+`/auth/request-otp` in the implementation, and that is deliberate — do not
+"correct" it back.**
+
+The two branches return categorically different things: a **token pair**, or a
+**handle to a challenge nobody has answered yet**. One endpoint returning
+either is a union response, and a union response is a `Map<String, dynamic>` in
+the generated Flutter client — every field optional, nothing checkable at
+compile time. `packages/sahra_api_client` exists specifically to make a backend
+change a Dart compile error at the call site, and `tool/generate_client.dart`
+refuses to emit an untyped map for exactly this reason.
+
+The rule postdates this document. Where they disagree, the rule wins, because
+the doc's shape was written before there was a typed client to break.
+
+`request-otp` returns the same `{user_id, otp_required}` shape as `/register`,
+because it feeds the same next call.
+
+### `purpose` on verify-otp
+
+Challenges are keyed `otp:{purpose}:{user_id}`, so a **registration code cannot
+sign anyone in** and a sign-in code cannot activate an account. `purpose`
+defaults to `phone_verify`, so the registration flow is unchanged.
+
+### The 15-minute lock
+
+doc 11 flow 1 specifies "5 fails → Locked 15 min + resend option". The lock is
+on the **user**, lives in its own key, and **`request-otp` does not reset it** —
+without that, five wrong guesses locked only the challenge and a fresh code
+bought five more, so the real budget was 3 codes × 5 attempts = 15 guesses per
+10 minutes, indefinitely. `retry_after` carries the wait.
+
+### Registration reclaims an UNVERIFIED number
+
+`/auth/register` answers **409 `phone_exists` only for a VERIFIED account.** A
+`pending` registration nobody ever confirmed is replaced and a fresh code
+issued, because the person holding the phone is overwhelmingly likely to be its
+owner — and the previous behaviour told real diners their own number was taken.
+The response is byte-identical in shape and status to a first-time
+registration, so it is not an enumeration oracle. Unverified rows are swept
+after 24 hours (PDPL data minimisation).
 
 Example — login response:
 

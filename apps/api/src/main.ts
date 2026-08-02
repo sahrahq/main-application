@@ -1,16 +1,29 @@
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { Logger } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 import { validateSecrets } from "./shared/config/secrets.validation";
 import { corsOptionsFor } from "./shared/config/cors.options";
+import { resolveTrustProxy } from "./shared/config/trust-proxy";
 
 async function bootstrap(): Promise<void> {
   // Before anything can serve traffic: refuse to start on a weak or
   // file-resident signing secret in production (doc 09 §1.1).
   validateSecrets();
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // How many proxies are in front of us, as a HOP COUNT — never `true`.
+  //
+  // `req.ip` feeds every per-IP rate limit and the refresh-token audit trail,
+  // and it is derived from a header the client sends. Trusting the whole chain
+  // makes those limits bypassable by typing a different X-Forwarded-For, which
+  // is worse than the limits being too strict. Required in production; see
+  // trust-proxy.ts for why it is not defaulted.
+  const proxy = resolveTrustProxy();
+  app.set('trust proxy', proxy.hops);
+  new Logger('bootstrap').log(proxy.reason);
 
   // Browser origins (doc 07 §3 — the admin surface is Flutter Web, and the
   // customer app is developed in Chrome). The policy itself lives in

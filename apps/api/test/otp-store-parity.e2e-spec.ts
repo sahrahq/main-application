@@ -18,6 +18,7 @@ import { RedisOtpStore } from '../src/modules/auth/otp/stores/redis-otp.store';
 import { RedisRateLimiter } from '../src/modules/auth/otp/stores/redis-rate-limiter';
 import { RecordingOtpDelivery } from '../src/modules/auth/otp/delivery/recording-otp.delivery';
 import type { OtpStore, RateLimiter } from '../src/modules/auth/otp/otp.ports';
+import { resetOtpState } from './support/otp-budget';
 
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 
@@ -30,6 +31,14 @@ const REDIS_UP = process.env.REDIS_AVAILABLE === '1';
 let redis: Redis | null = null;
 
 beforeAll(async () => {
+  // BEFORE, not only after. This suite asserts a send cap from a known
+  // starting point, and OTP state in Redis is shared with every other e2e
+  // suite AND survives between runs — so it passed alone and failed in the
+  // full run, having inherited a partly-spent budget from a suite that ran
+  // earlier. Cleaning up after yourself is not enough when the resource is
+  // global; you have to arrive clean too.
+  await resetOtpState();
+
   if (!REDIS_UP) return;
   redis = new Redis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 2 });
   await redis.connect();

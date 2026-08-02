@@ -11,6 +11,22 @@ import {
 export const OTP_TTL_SECONDS = 5 * 60;
 export const MAX_ATTEMPTS = 5;
 
+/**
+ * doc 11 flow 1 — "5 fails → Locked 15 min + resend option".
+ *
+ * WITHOUT THIS THE ATTEMPT CAP IS DECORATIVE. Five wrong guesses locked the
+ * CHALLENGE, and the attacker simply requested a new code and bought five
+ * more: the real budget was 3 codes × 5 attempts = 15 guesses per 10 minutes,
+ * forever. The lock is keyed on the USER, lives in its own key, and `issue`
+ * does not touch it.
+ *
+ * IF THIS NUMBER CHANGES, CHANGE THE COPY. `errTooManyAttempts` states the
+ * wait in words, in both locales, because a diner told only "too many
+ * attempts" will keep requesting codes that cannot help them — which is a
+ * support call. Asserted by otp.service.spec.ts.
+ */
+export const LOCK_SECONDS = 15 * 60;
+
 /** doc 06 §1 — "OTP send 3/10min". Applied per phone AND per IP. */
 export const SEND_LIMIT_PER_PHONE = 3;
 export const SEND_LIMIT_PER_IP = 10;
@@ -91,6 +107,13 @@ export class OtpService {
   /** True on success. Throws with a machine-readable code otherwise. */
   async verify(input: VerifyInput): Promise<boolean> {
     const key = this.key(input.userId, input.purpose);
+
+    // FIRST, before anything else is read. A locked user is locked whatever
+    // challenge is in flight — including a brand-new one they just requested,
+    // which is the whole point of the lock outliving the challenge.
+    const lockedFor = await this.store.lockedForMs(key);
+    if (lockedFor > 0) throw this.tooManyAttempts(Math.ceil(lockedFor / 1000));
+
     const challenge = await this.store.get(key);
 
     if (!challenge) throw this.invalid();
@@ -104,18 +127,20 @@ export class OtpService {
       });
     }
 
-    // Check the cap BEFORE comparing, so a locked challenge cannot be probed
+    // Check the cap BEFORE comparing, so a spent challenge cannot be probed
     // further — otherwise the attacker still learns which guess was right.
     if (challenge.attempts >= MAX_ATTEMPTS) {
-      throw this.tooManyAttempts();
+      await this.store.lock(key, this.now() + LOCK_SECONDS * 1000);
+      throw this.tooManyAttempts(LOCK_SECONDS);
     }
 
     if (!matches(input.code, challenge.codeHash)) {
       const attempts = await this.store.incrementAttempts(key);
       if (attempts >= MAX_ATTEMPTS) {
-        // Keep the row so the lock is observable until it expires; a delete
-        // here would let the attacker start clean by re-requesting.
-        throw this.invalid();
+        // The fifth failure locks the USER, not the challenge. Requesting a
+        // new code from here changes nothing until the lock expires.
+        await this.store.lock(key, this.now() + LOCK_SECONDS * 1000);
+        throw this.tooManyAttempts(LOCK_SECONDS);
       }
       throw this.invalid();
     }
@@ -137,13 +162,22 @@ export class OtpService {
     });
   }
 
-  private tooManyAttempts(): HttpException {
-    // 429 per doc 06 §2 ("5 attempts → 429").
+  /**
+   * 429 per doc 06 §2 ("5 attempts → 429"), now carrying how long the wait is.
+   *
+   * THE OLD COPY WAS ACTIVELY MISLEADING: "Request a new code" is precisely
+   * what does NOT work during a lock, so a diner who followed it would burn
+   * their three sends against a door that is shut, then contact support. The
+   * message now says to wait, and `retry_after` carries the seconds — which
+   * the error filter also promotes to the `Retry-After` header.
+   */
+  private tooManyAttempts(retryAfterSeconds: number): HttpException {
     return new HttpException(
       {
         code: 'too_many_attempts',
-        message: 'Too many incorrect attempts. Request a new code.',
-        message_ar: 'محاولات كتير غلط. اطلب كود جديد.',
+        message: 'Too many incorrect codes. Please wait 15 minutes and try again.',
+        message_ar: 'أكواد غلط كتير. استنى ١٥ دقيقة وحاول تاني.',
+        retry_after: retryAfterSeconds,
       },
       HttpStatus.TOO_MANY_REQUESTS,
     );

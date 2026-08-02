@@ -23,7 +23,7 @@ import { PrismaClient } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { OTP_DELIVERY } from '../src/modules/auth/otp/otp.ports';
 import { RecordingOtpDelivery } from '../src/modules/auth/otp/delivery/recording-otp.delivery';
-import { resetOtpSendBudget } from './support/otp-budget';
+import { resetOtpState } from './support/otp-budget';
 
 const url = (() => {
   const base = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
@@ -59,7 +59,7 @@ beforeAll(async () => {
   // in Redis between runs. Without this the suite passes on a cold Redis and
   // fails ten minutes later against identical code — which is exactly what it
   // did. See the note in support/otp-budget.ts.
-  await resetOtpSendBudget();
+  await resetOtpState();
 
   delivery = new RecordingOtpDelivery();
   const mod = await Test.createTestingModule({ imports: [AppModule] })

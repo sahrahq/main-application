@@ -1,7 +1,8 @@
 import Redis from 'ioredis';
 
 /**
- * Reset the OTP send budget before a suite that sends codes.
+ * Reset ALL shared OTP state before a suite that touches it: send counters,
+ * live challenges, and verify locks.
  *
  * THE PROBLEM THIS SOLVES, because it is not obvious and it cost a debugging
  * session:
@@ -19,10 +20,15 @@ import Redis from 'ioredis';
  *
  * This resets the counters. It does NOT weaken the limiter: the limiter is
  * still the real one, still Redis-backed, and `phone-otp-login.e2e-spec.ts`
- * asserts the per-phone limit fires. What is reset is the budget SHARED WITH
+ * asserts the per-phone limit fires. What is reset is the state SHARED WITH
  * OTHER SUITES, which is a property of the harness rather than of the code.
+ *
+ * Every suite that issues or verifies a code must call this. Running the whole
+ * e2e suite proved why: `otp-store-parity` passed alone and failed in the full
+ * run, because earlier suites had spent the per-IP budget it assumed was
+ * fresh.
  */
-export async function resetOtpSendBudget(): Promise<void> {
+export async function resetOtpState(): Promise<void> {
   const url = process.env.REDIS_URL;
   // No Redis means the in-memory limiter, which is per-process and therefore
   // already clean at the start of every suite.
@@ -34,7 +40,11 @@ export async function resetOtpSendBudget(): Promise<void> {
     // `scanStream` rather than KEYS: KEYS blocks the server, and this runs
     // against whatever Redis a developer happens to have, including a shared
     // one.
-    const stream = client.scanStream({ match: 'otp:send:*', count: 100 });
+    // `otp:*`, not `otp:send:*`. The send counters were only half of it: the
+    // 15-minute verify LOCK also lives in Redis and also outlives a suite, so
+    // a run that left a user locked would fail the next suite to use that id
+    // with an error about attempts rather than about whatever it was testing.
+    const stream = client.scanStream({ match: 'otp:*', count: 100 });
     for await (const batch of stream) {
       const keys = batch as string[];
       if (keys.length > 0) await client.del(...keys);
