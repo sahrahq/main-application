@@ -152,6 +152,40 @@ each test registers; read the files that exist on disk; assert the scanner
 parsed a plausible number of lines. Every "census" in this suite is written
 that way, and each one is there because its absence let something through.
 
+## An error can be correct and still leak by being DISTINGUISHABLE
+
+Every individual response below is right. The leak is in the *difference*
+between two of them, which no test of either one alone can see.
+
+| endpoint | says | and therefore reveals |
+|---|---|---|
+| `GET /restaurants/:idOrSlug` | 404 for a non-active venue, never 403 | a 403 would confirm an unlaunched venue exists |
+| `GET /reservations/:id` | 404 for somebody else's, never 403 | a 403 would confirm the reservation exists |
+| `POST /auth/register` | 409 `phone_exists` | **that this number has an account** — still open, logged as AUTH-3 |
+
+**RULE: when an endpoint can answer "no" for more than one reason, assert that
+the answers are IDENTICAL — same status, same code, same body shape — not
+merely that each is individually correct.**
+
+The assertion that matters is the second one, and it is the one usually
+skipped:
+
+```ts
+it("ANOTHER USER'S RESERVATION IS 404, NOT 403", …)
+it('and an id that exists for nobody answers IDENTICALLY', …)
+```
+
+Without the second, the 404 is theatre: an attacker who can tell
+"yours-but-404" from "nobody's-404" has the oracle back, and the first test
+still passes. The same shape appears in `account-squatting.e2e-spec.ts` — a
+first-time registration and a reclaim are compared field by field — because a
+reclaim answering *slightly* differently would have told an attacker which
+numbers hold unverified accounts.
+
+Three applications so far; AUTH-3 is the one still failing, and it is recorded
+rather than quietly fixed at one door because closing it at `register` alone
+would move the oracle to `request-otp`.
+
 ## A second door to an existing room must be checked against the first
 
 Distinct from the vacuous-pass class above, and it fails the other way round:

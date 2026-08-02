@@ -540,10 +540,14 @@ class LogoutDto {
 
 class MyReservationResponse {
   const MyReservationResponse({
+    this.cancelReason,
+    this.cancelledAt,
+    this.cancelledBy,
     required this.code,
     required this.date,
     required this.endsAt,
     required this.id,
+    required this.needsAcknowledgement,
     this.occasion,
     required this.partySize,
     required this.restaurant,
@@ -555,10 +559,14 @@ class MyReservationResponse {
   });
 
   factory MyReservationResponse.fromJson(Map<String, dynamic> json) => MyReservationResponse(
+        cancelReason: json['cancel_reason'] == null ? null : json['cancel_reason'] as String,
+        cancelledAt: json['cancelled_at'] == null ? null : json['cancelled_at'] as String,
+        cancelledBy: json['cancelled_by'] == null ? null : json['cancelled_by'] as String,
         code: json['code'] as String,
         date: json['date'] as String,
         endsAt: json['ends_at'] as String,
         id: json['id'] as String,
+        needsAcknowledgement: json['needs_acknowledgement'] as bool,
         occasion: json['occasion'] == null ? null : json['occasion'] as String,
         partySize: (json['party_size'] as num).toInt(),
         restaurant: ReservationVenueResponse.fromJson(json['restaurant'] as Map<String, dynamic>),
@@ -569,12 +577,18 @@ class MyReservationResponse {
         time: json['time'] as String,
       );
 
+  final String? cancelReason;
+  final String? cancelledAt;
+  /// 'user' | 'restaurant' | null. Derived, so no client parses a status string.
+  final String? cancelledBy;
   /// Human-readable, quoted at the door. e.g. SAH-7K2M
   final String code;
   /// YYYY-MM-DD on the RESTAURANT'S wall clock.
   final String date;
   final String endsAt;
   final String id;
+  /// The RESTAURANT cancelled and the diner has not seen it yet. THE CLIENT MUST SURFACE THIS. It is the only signal that a booking they believe they hold is gone, and a reservation carrying it stays in `upcoming` regardless of date until POST /reservations/{id}/acknowledge-cancellation.
+  final bool needsAcknowledgement;
   final String? occasion;
   final int partySize;
   final ReservationVenueResponse restaurant;
@@ -589,10 +603,14 @@ class MyReservationResponse {
   final String time;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
+        if (cancelReason != null) 'cancel_reason': cancelReason!,
+        if (cancelledAt != null) 'cancelled_at': cancelledAt!,
+        if (cancelledBy != null) 'cancelled_by': cancelledBy!,
         'code': code,
         'date': date,
         'ends_at': endsAt,
         'id': id,
+        'needs_acknowledgement': needsAcknowledgement,
         if (occasion != null) 'occasion': occasion!,
         'party_size': partySize,
         'restaurant': restaurant.toJson(),

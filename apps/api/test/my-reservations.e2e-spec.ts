@@ -345,3 +345,144 @@ describe('GET /v1/reservations/:id', () => {
       .expect(400);
   });
 });
+
+// ────────────────────────────────── the cancellation the diner did not make ──
+
+describe('a booking the RESTAURANT cancelled does not silently vanish', () => {
+  /**
+   * THE WORST EXPERIENCE THIS PRODUCT CAN PRODUCE.
+   *
+   * A diner who cancels knows they cancelled. A diner whose venue cancels does
+   * not — and if the reservation simply leaves their upcoming list, they turn
+   * up to a restaurant that is not expecting them, in front of their guests.
+   * They blame SAHRA, and they are right to.
+   *
+   * It is produced by a `WHERE status IN ('confirmed', ...)` clause that looks
+   * entirely reasonable, which is why it needs a test rather than care.
+   */
+  let venueCancelled = '';
+
+  beforeAll(async () => {
+    venueCancelled = await seedReservation({
+      userId: mine.id,
+      startsAt: new Date(Date.now() + 4 * 86_400_000),
+      status: 'cancelled_by_restaurant',
+      code: `VCX${suffix.slice(-5)}`,
+    });
+    await prisma.$executeRaw`
+      UPDATE reservations
+         SET cancelled_at = now(), cancel_reason = 'Kitchen flood'
+       WHERE id = ${venueCancelled}::uuid`;
+  });
+
+  it('STAYS in upcoming, unlike one the diner cancelled', async () => {
+    const res = await request(http as never)
+      .get('/v1/reservations?status=upcoming')
+      .set(...auth(mine.token))
+      .expect(200);
+
+    const ids = (res.body as { id: string }[]).map((r) => r.id);
+    expect(ids).toContain(venueCancelled);
+    // The contrast is the whole point: same list, same date range, opposite
+    // treatment, decided by WHO cancelled.
+    expect(ids).not.toContain(cancelledId);
+  });
+
+  it('says who cancelled, when, and why — without the client parsing a status', async () => {
+    const res = await request(http as never)
+      .get(`/v1/reservations/${venueCancelled}`)
+      .set(...auth(mine.token))
+      .expect(200);
+
+    expect(res.body.cancelled_by).toBe('restaurant');
+    expect(res.body.cancel_reason).toBe('Kitchen flood');
+    expect(res.body.cancelled_at).toMatch(/Z$/);
+    expect(res.body.needs_acknowledgement).toBe(true);
+  });
+
+  it('a diner-cancelled one reports `user`, and needs no acknowledgement', async () => {
+    const res = await request(http as never)
+      .get(`/v1/reservations/${cancelledId}`)
+      .set(...auth(mine.token))
+      .expect(200);
+
+    expect(res.body.cancelled_by).toBe('user');
+    expect(res.body.needs_acknowledgement).toBe(false);
+  });
+
+  it('STAYS EVEN AFTER THE DATE PASSES — it leaves when seen, not when stale', async () => {
+    // The diner who opens the app three days late is exactly the person who
+    // most needs telling. A date comparison would have hidden it from them
+    // precisely because they were slow.
+    const past = new Date(Date.now() - 2 * 86_400_000);
+    await prisma.$executeRaw`
+      UPDATE reservations SET starts_at = ${past} WHERE id = ${venueCancelled}::uuid`;
+
+    const res = await request(http as never)
+      .get('/v1/reservations?status=upcoming')
+      .set(...auth(mine.token))
+      .expect(200);
+
+    expect((res.body as { id: string }[]).map((r) => r.id)).toContain(venueCancelled);
+  });
+
+  it('leaves upcoming once acknowledged, and appears in past', async () => {
+    await request(http as never)
+      .post(`/v1/reservations/${venueCancelled}/acknowledge-cancellation`)
+      .set(...auth(mine.token))
+      .expect(204);
+
+    const upcoming = await request(http as never)
+      .get('/v1/reservations?status=upcoming')
+      .set(...auth(mine.token))
+      .expect(200);
+    expect((upcoming.body as { id: string }[]).map((r) => r.id)).not.toContain(venueCancelled);
+
+    const past = await request(http as never)
+      .get('/v1/reservations?status=past')
+      .set(...auth(mine.token))
+      .expect(200);
+    expect((past.body as { id: string }[]).map((r) => r.id)).toContain(venueCancelled);
+  });
+
+  it('acknowledging twice does not move the timestamp', async () => {
+    const before = await prisma.$queryRaw<{ cancellation_seen_at: Date }[]>`
+      SELECT cancellation_seen_at FROM reservations WHERE id = ${venueCancelled}::uuid`;
+
+    await request(http as never)
+      .post(`/v1/reservations/${venueCancelled}/acknowledge-cancellation`)
+      .set(...auth(mine.token))
+      .expect(204);
+
+    const after = await prisma.$queryRaw<{ cancellation_seen_at: Date }[]>`
+      SELECT cancellation_seen_at FROM reservations WHERE id = ${venueCancelled}::uuid`;
+
+    expect(after[0].cancellation_seen_at.getTime())
+      .toBe(before[0].cancellation_seen_at.getTime());
+  });
+
+  it('ANOTHER DINER CANNOT ACKNOWLEDGE IT AWAY', async () => {
+    // Otherwise the notice could be cleared by anyone who guessed the id, and
+    // the diner would never see it — the original failure, restored through a
+    // new door.
+    const other = await seedReservation({
+      userId: mine.id,
+      startsAt: new Date(Date.now() + 6 * 86_400_000),
+      status: 'cancelled_by_restaurant',
+      code: `VCY${suffix.slice(-5)}`,
+    });
+
+    const res = await request(http as never)
+      .post(`/v1/reservations/${other}/acknowledge-cancellation`)
+      .set(...auth(theirs.token))
+      .expect(404);
+    expect(res.body.error.code).toBe('reservation_not_found');
+
+    // …and it is still waiting for the diner it belongs to.
+    const mineList = await request(http as never)
+      .get('/v1/reservations?status=upcoming')
+      .set(...auth(mine.token))
+      .expect(200);
+    expect((mineList.body as { id: string }[]).map((r) => r.id)).toContain(other);
+  });
+});

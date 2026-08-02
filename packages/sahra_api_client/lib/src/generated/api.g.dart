@@ -487,6 +487,19 @@ class SahraApi {
     return MyReservationResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `POST /v1/reservations/{id}/acknowledge-cancellation`
+  ///
+  /// Mark a restaurant-initiated cancellation as seen
+  Future<void> acknowledge({
+    required String id,
+  }) async {
+    await _transport.send(
+      method: 'POST',
+      path: '/v1/reservations/$id/acknowledge-cancellation',
+    );
+    return;
+  }
+
   /// `GET /v1/restaurants/search`
   ///
   /// Discovery search — text + facets, availability post-filtered

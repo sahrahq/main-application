@@ -520,6 +520,19 @@
       },
       "MyReservationResponse": {
         "properties": {
+          "cancel_reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelled_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelled_by": {
+            "description": "'user' | 'restaurant' | null. Derived, so no client parses a status string.",
+            "nullable": true,
+            "type": "string"
+          },
           "code": {
             "description": "Human-readable, quoted at the door. e.g. SAH-7K2M",
             "type": "string"
@@ -533,6 +546,10 @@
           },
           "id": {
             "type": "string"
+          },
+          "needs_acknowledgement": {
+            "description": "The RESTAURANT cancelled and the diner has not seen it yet. THE CLIENT MUST SURFACE THIS. It is the only signal that a booking they believe they hold is gone, and a reservation carrying it stays in `upcoming` regardless of date until POST /reservations/{id}/acknowledge-cancellation.",
+            "type": "boolean"
           },
           "occasion": {
             "nullable": true,
@@ -575,6 +592,7 @@
           "date",
           "time",
           "party_size",
+          "needs_acknowledgement",
           "restaurant"
         ],
         "type": "object"
@@ -2850,6 +2868,38 @@
           }
         ],
         "summary": "One of the caller's own reservations",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/v1/reservations/{id}/acknowledge-cancellation": {
+      "post": {
+        "operationId": "MyReservationsController_acknowledge",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Acknowledged (idempotent)"
+          },
+          "404": {
+            "description": "reservation_not_found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a restaurant-initiated cancellation as seen",
         "tags": [
           "reservations"
         ]

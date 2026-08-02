@@ -14,6 +14,7 @@ const SELECT = Prisma.sql`
   SELECT res.id, res.code, res.status::text AS status, res.source::text AS source,
          res.starts_at, res.ends_at, res.party_size,
          res.special_requests, res.occasion,
+         res.cancelled_at, res.cancel_reason, res.cancellation_seen_at,
          r.id           AS r_id,
          r.slug         AS r_slug,
          r.name_en      AS r_name_en,
@@ -43,6 +44,22 @@ export type ReservationView = (typeof RESERVATION_VIEWS)[number];
 const LIVE_STATUSES = ['pending', 'confirmed', 'seated'] as const;
 const NEVER_SHOWN = ['held', 'expired'] as const;
 
+/**
+ * The one cancellation the diner did not perform.
+ *
+ * A booking the DINER cancelled can leave the upcoming list immediately: they
+ * were there, they know. A booking the RESTAURANT cancelled cannot — if it
+ * simply disappears, the diner turns up to a venue that is not expecting them,
+ * in front of their guests, and blames SAHRA. That is the worst experience
+ * this product can produce, and it is produced by a `WHERE status IN (...)`
+ * clause that looks entirely reasonable.
+ *
+ * So it stays VISIBLE until acknowledged — **regardless of date**. It leaves
+ * because they saw it, not because the date passed. A diner opening the app
+ * three days late is exactly the person who most needs telling.
+ */
+const CANCELLED_BY_VENUE = 'cancelled_by_restaurant';
+
 export interface MyReservationRow {
   id: string;
   code: string;
@@ -56,6 +73,16 @@ export interface MyReservationRow {
   party_size: number;
   special_requests: string | null;
   occasion: string | null;
+  /** 'user' | 'restaurant' | null — derived, so no client parses a status. */
+  cancelled_by: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  /**
+   * The restaurant cancelled and the diner has not been shown it yet. The
+   * client MUST surface this; it is the only signal that a booking they think
+   * they have is gone.
+   */
+  needs_acknowledgement: boolean;
   restaurant: {
     id: string;
     slug: string;
@@ -77,6 +104,9 @@ interface Row {
   party_size: number;
   special_requests: string | null;
   occasion: string | null;
+  cancelled_at: Date | null;
+  cancel_reason: string | null;
+  cancellation_seen_at: Date | null;
   r_id: string;
   r_slug: string;
   r_name_en: string;
@@ -108,13 +138,19 @@ export class MyReservationsService {
     const rows = view === 'upcoming'
       ? await this.prisma.$queryRaw<Row[]>`
           ${SELECT} WHERE res.user_id = ${userId}::uuid
-                      AND res.starts_at >= ${now}
-                      AND res.status::text = ANY(${[...LIVE_STATUSES]})
+                      AND (
+                            (res.starts_at >= ${now}
+                             AND res.status::text = ANY(${[...LIVE_STATUSES]}))
+                         OR (res.status::text = ${CANCELLED_BY_VENUE}
+                             AND res.cancellation_seen_at IS NULL)
+                          )
                     ORDER BY res.starts_at ASC
                     LIMIT ${PAGE_LIMIT}`
       : await this.prisma.$queryRaw<Row[]>`
           ${SELECT} WHERE res.user_id = ${userId}::uuid
                       AND NOT (res.status::text = ANY(${[...NEVER_SHOWN]}))
+                      AND NOT (res.status::text = ${CANCELLED_BY_VENUE}
+                               AND res.cancellation_seen_at IS NULL)
                       AND (res.starts_at < ${now}
                            OR NOT (res.status::text = ANY(${[...LIVE_STATUSES]})))
                     ORDER BY res.starts_at DESC
@@ -146,6 +182,31 @@ export class MyReservationsService {
       });
     }
     return toRow(row);
+  }
+
+  /**
+   * The diner has seen that the restaurant cancelled.
+   *
+   * Its own call, not a side effect of reading the reservation. A GET that
+   * acknowledged would be acknowledged by a prefetch, a retry, or a list
+   * render — none of which is a human reading the notice, which is the only
+   * event that should clear it.
+   *
+   * Idempotent, and only ever writes once: `cancellation_seen_at IS NULL`
+   * guards the UPDATE, so a double tap does not move the timestamp.
+   */
+  async acknowledgeCancellation(userId: string, id: string): Promise<void> {
+    // Ownership first, and it doubles as the 404 for someone else's id —
+    // identical to the one for an id that exists for nobody.
+    await this.one(userId, id);
+
+    await this.prisma.$executeRaw`
+      UPDATE reservations
+         SET cancellation_seen_at = now()
+       WHERE id = ${id}::uuid
+         AND user_id = ${userId}::uuid
+         AND status = 'cancelled_by_restaurant'
+         AND cancellation_seen_at IS NULL`;
   }
 
   static parseView(raw: string | undefined): ReservationView {
@@ -187,6 +248,14 @@ function toRow(r: Row): MyReservationRow {
     party_size: r.party_size,
     special_requests: r.special_requests,
     occasion: r.occasion,
+    cancelled_by: cancelledBy(r.status),
+    cancelled_at: r.cancelled_at?.toISOString() ?? null,
+    cancel_reason: r.cancel_reason,
+    // Derived here rather than left to the client to work out from a status
+    // string and a null check. A client that got the rule slightly wrong would
+    // fail silently, in the one place where failing silently is the harm.
+    needs_acknowledgement:
+      r.status === 'cancelled_by_restaurant' && r.cancellation_seen_at === null,
     restaurant: {
       id: r.r_id,
       slug: r.r_slug,
@@ -197,6 +266,13 @@ function toRow(r: Row): MyReservationRow {
       timezone: tz,
     },
   };
+}
+
+/** Who cancelled, as a word rather than a status string to be parsed. */
+function cancelledBy(status: string): string | null {
+  if (status === 'cancelled_by_user') return 'user';
+  if (status === 'cancelled_by_restaurant') return 'restaurant';
+  return null;
 }
 
 /** YYYY-MM-DD on the venue's wall clock, not the server's. */

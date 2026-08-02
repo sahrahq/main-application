@@ -117,10 +117,44 @@ Search response item:
 | `/reservations/holds` | POST | `{restaurant_id, starts_at, party_size, seating_pref?}` + Idempotency-Key | 201 `{hold_id, expires_at}` | 409 `slot_taken` + `alternatives` |
 | `/reservations/holds/:id/confirm` | POST | `{special_requests?, occasion?, coupon_code?}` | 200 reservation | 409 `hold_expired`, 402 `deposit_required` |
 | `/reservations` | GET | `?status=upcoming\|past` | 200 list | |
-| `/reservations/:id` | GET/PATCH | PATCH `{starts_at?, party_size?}` re-runs allocation atomically | 200 | 409 if new slot unavailable (original kept) |
+| `/reservations/:id` | GET/PATCH | PATCH `{starts_at?, party_size?}` re-runs allocation atomically | 200 | 409 if new slot unavailable (original kept). **GET answers 404 for another diner's reservation — never 403** |
+| `/reservations/:id/acknowledge-cancellation` | POST | | 204 (idempotent) | 404 |
 | `/reservations/:id` | DELETE | | 200 `{status, refund?}` | 409 if already seated/completed |
 | `/waitlists` | POST/GET, DELETE `/waitlists/:id` | `{restaurant_id, desired_date, window_start, window_end, party_size}` | 201 `{position}` | 409 duplicate |
 | `/waitlists/:id/claim` | POST | | 201 hold | 409 `offer_expired` |
+
+### A restaurant-initiated cancellation must be SEEN, not merely recorded
+
+**`/reservations/:id/acknowledge-cancellation` is not in the original table.**
+It exists because of an asymmetry the `?status=upcoming|past` split hides:
+
+- a diner who **cancels** knows they cancelled, so the booking can leave their
+  upcoming list immediately;
+- a diner whose **restaurant cancels** does not. If it leaves on a date
+  comparison, the booking silently disappears and they arrive at a venue that
+  is not expecting them, in front of their guests.
+
+So a `cancelled_by_restaurant` reservation stays in **upcoming regardless of
+date** until acknowledged. It leaves because the diner saw it, not because the
+date passed — the person who opens the app three days late is exactly the one
+who most needs telling.
+
+`reservation_status` already distinguishes `cancelled_by_user` from
+`cancelled_by_restaurant`, so nothing is inferred; `cancellation_seen_at`
+(migration `20260802000000`) records the acknowledgement.
+
+Acknowledgement is a POST rather than a side effect of the GET, because a read
+that acknowledged would be acknowledged by a prefetch, a retry or a list
+render — none of which is a human reading the notice.
+
+Responses carry `cancelled_by`, `cancelled_at`, `cancel_reason` and
+`needs_acknowledgement`, the last derived server-side so no client has to
+re-implement the rule.
+
+> **Two P0 gaps this depends on:** nothing yet SETS `cancelled_by_restaurant`
+> (there is no owner cancel endpoint), and nothing can notify a diner who is
+> not looking at the app. Both are tracked in
+> `docs/decisions/2026-08-02-open-p0-gaps.md` as CANCEL-1 and NOTIFY-1.
 
 ### Reviews, payments, profile
 | Endpoint | Method | Notes |

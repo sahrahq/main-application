@@ -209,6 +209,26 @@ export class MyReservationResponse {
   @ApiProperty({ type: 'integer' }) party_size!: number;
   @ApiPropertyOptional({ nullable: true, type: 'string' }) special_requests?: string | null;
   @ApiPropertyOptional({ nullable: true, type: 'string' }) occasion?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: 'string',
+    description: "'user' | 'restaurant' | null. Derived, so no client parses a status string.",
+  })
+  cancelled_by?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) cancelled_at?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) cancel_reason?: string | null;
+
+  @ApiProperty({
+    description:
+      'The RESTAURANT cancelled and the diner has not seen it yet. THE CLIENT ' +
+      'MUST SURFACE THIS. It is the only signal that a booking they believe ' +
+      'they hold is gone, and a reservation carrying it stays in `upcoming` ' +
+      'regardless of date until POST /reservations/{id}/acknowledge-cancellation.',
+  })
+  needs_acknowledgement!: boolean;
+
   @ApiProperty({ type: ReservationVenueResponse }) restaurant!: ReservationVenueResponse;
 }
 

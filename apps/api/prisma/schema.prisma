@@ -379,6 +379,13 @@ model Reservation {
   confirmIdempotencyKey String?    @unique @map("confirm_idempotency_key") @db.Uuid
   cancelledAt    DateTime?         @map("cancelled_at") @db.Timestamptz(6)
   cancelReason   String?           @map("cancel_reason")
+  /// When the diner acknowledged a RESTAURANT-initiated cancellation.
+  ///
+  /// NULL keeps the reservation visible in their upcoming list regardless of
+  /// date: it leaves that list because they saw it, not because the date
+  /// passed. A venue cancellation that silently disappears is how a diner
+  /// turns up to a restaurant that is not expecting them.
+  cancellationSeenAt DateTime?     @map("cancellation_seen_at") @db.Timestamptz(6)
   /// Optimistic-lock counter.
   version        Int               @default(0)
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -390,6 +397,9 @@ model Reservation {
 
   @@index([restaurantId, startsAt], map: "idx_resv_rest_time")
   @@index([userId, startsAt(sort: Desc)], map: "idx_resv_user")
+  /// Partial — see the migration. Only the UNACKNOWLEDGED ones are ever
+  /// queried, and they are a small, self-clearing subset.
+  @@index([userId, startsAt], map: "idx_resv_unacknowledged_cancellation")
   @@map("reservations")
 }
 

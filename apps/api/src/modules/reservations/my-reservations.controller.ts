@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
@@ -51,5 +51,31 @@ export class MyReservationsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<MyReservationResponse> {
     return this.reservations.one(user.id, id) as Promise<MyReservationResponse>;
+  }
+
+  /**
+   * The diner has seen that the restaurant cancelled on them.
+   *
+   * ITS OWN CALL, not a side effect of the GET above. A read that acknowledged
+   * would be acknowledged by a prefetch, a retry, or a list render — none of
+   * which is a human reading the notice, and the notice existing at all is the
+   * difference between a diner knowing and a diner arriving at a restaurant
+   * that is not expecting them.
+   *
+   * 204, idempotent, and only ever writes the timestamp once.
+   *
+   * NOT IN doc 06 §3 — added here because the acknowledgement model it
+   * enables has no other home. See the section added to that document.
+   */
+  @Post(':id/acknowledge-cancellation')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Mark a restaurant-initiated cancellation as seen' })
+  @ApiResponse({ status: 204, description: 'Acknowledged (idempotent)' })
+  @ApiResponse({ status: 404, description: 'reservation_not_found' })
+  acknowledge(
+    @CurrentUser() user: AuthedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    return this.reservations.acknowledgeCancellation(user.id, id);
   }
 }
