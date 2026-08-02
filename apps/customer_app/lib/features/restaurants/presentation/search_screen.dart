@@ -46,7 +46,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final results = ref.watch(searchResultsProvider);
 
     return Scaffold(
-      body: SafeArea(
+      // One wrapper, at the top of the body. See SahraPageWidth: scattering
+      // MediaQuery width checks through widgets is how three screens end up
+      // with three ideas of "wide".
+      body: SahraPageWidth(
+        child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -108,6 +112,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

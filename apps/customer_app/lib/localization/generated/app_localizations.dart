@@ -332,10 +332,10 @@ abstract class AppLocalizations {
   /// **'We couldn\'t find that table.'**
   String get errTableNotFound;
 
-  /// No description provided for @errTooManyAttempts.
+  /// Shown after 5 wrong OTP codes, when verification is locked for 15 minutes (doc 11 flow 1). TWO THINGS THIS COPY MUST DO. (1) Say that WAITING is required: the original said 'ask for a new code', which is exactly what does not work during a lock — the diner burns their three sends against a shut door and then calls support. (2) Put the fault on the ATTEMPT, not the person. An earlier draft opened with 'wrong codes, too many of them', which Egyptian readers take as being told off at the moment they are already locked out. If LOCK_SECONDS changes in otp.service.ts, change this.
   ///
   /// In en, this message translates to:
-  /// **'Too many tries. Ask for a new code.'**
+  /// **'Too many attempts. Please wait 15 minutes and try again — asking for a new code won\'t help until then.'**
   String get errTooManyAttempts;
 
   /// No description provided for @errUnauthenticated.

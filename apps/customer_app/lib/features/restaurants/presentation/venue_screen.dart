@@ -41,7 +41,10 @@ class VenueScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      body: SahraAsyncView<VenueProfile>(
+      // One wrapper at the top of the body, like every other screen. See
+      // SahraPageWidth for why the decision lives in one place.
+      body: SahraPageWidth(
+        child: SahraAsyncView<VenueProfile>(
         value: ref.watch(venueProfileProvider(idOrSlug)),
         onRetry: () => ref.invalidate(venueProfileProvider(idOrSlug)),
         // A profile is one object; it is never "empty". Required by the
@@ -70,6 +73,7 @@ class VenueScreen extends ConsumerWidget {
           ),
         ),
         content: (context, venue) => _Content(venue: venue),
+        ),
       ),
     );
   }

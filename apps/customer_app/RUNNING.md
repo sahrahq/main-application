@@ -90,7 +90,24 @@ cd apps\customer_app
 flutter run -d chrome --dart-define-from-file=env/web.json
 ```
 
-Chrome opens on the search screen.
+Chrome opens on the search screen, **drawn inside a phone-sized frame centred
+on the page** — 375 × 812 with a 40px corner radius, the exact shell
+`docs/design/ui_kits/app/index.html` renders the reference screens in. A
+375-point screen stretched across a 1440-point browser window shows you
+something that will never ship.
+
+To look at wide layouts deliberately:
+
+```powershell
+flutter run -d chrome --dart-define-from-file=env/web.json --dart-define=DEVICE_FRAME=false
+```
+
+> **The frame is cosmetic.** It makes what you see match what ships; it does not
+> make the app correct at any size. That comes from
+> `flutter test test/layout/viewport_matrix_test.dart`, which renders every
+> screen at six real device sizes including **320 × 568 at 200% text** — the
+> worst case, and where all five real overflows were found. A green frame is
+> not evidence.
 
 > The `--dart-define-from-file` matters. Without it the app uses the Android
 > emulator's host alias `10.0.2.2`, and in a browser every request fails as

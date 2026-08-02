@@ -25,6 +25,20 @@ class Env {
   /// C-4.5, P2.
   static const bool enableLoyalty = bool.fromEnvironment('ENABLE_LOYALTY');
 
+  /// Draw the app inside a phone-sized frame, centred on the page.
+  ///
+  /// ON BY DEFAULT, and only meaningful on web: `flutter run -d chrome` is a
+  /// preview harness for a phone-first app, and reviewing a 375-point screen
+  /// stretched across a 1440-point window shows you something that will never
+  /// ship. Turn it off to look at wide layouts deliberately:
+  ///
+  ///     --dart-define=DEVICE_FRAME=false
+  ///
+  /// It is COSMETIC. Correctness at real device sizes is guaranteed by
+  /// `test/layout/viewport_matrix_test.dart`, not by this looking right.
+  static const bool deviceFrame =
+      bool.fromEnvironment('DEVICE_FRAME', defaultValue: true);
+
   /// Pin the app to one locale, ignoring the device.
   ///
   /// A DEVELOPMENT AND REVIEW affordance, not a product setting: Arabic is

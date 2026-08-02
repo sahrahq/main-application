@@ -129,9 +129,17 @@ List<LayoutFault> layoutFaults(
   //    removes a false positive without removing coverage.
   //
   //    Nodes clipped by the screen edge are skipped for the same reason.
+  //    A node CLIPPED BY A VIEWPORT EDGE is skipped for the same reason. The
+  //    party stepper reported 48x47 at 200% text — one pixel short — purely
+  //    because the bottom of its row sat on the scroll boundary. That is a
+  //    fact about scroll position, not about whether a thumb can hit it, and
+  //    it is the SAME false positive already fixed for horizontal scrollers,
+  //    one axis over. Fixing it only for horizontal was fixing the instance
+  //    rather than the class.
   final screen = Offset.zero & viewport;
   for (final node in _tappableNodesOutsideHorizontalScrollers(tester)) {
     if (!_containsWithTolerance(screen, node.rect)) continue;
+    if (_touchesEdge(screen, node.rect)) continue;
     final size = node.rect.size;
     if (size.width + 0.5 < SahraRules.minTouchTarget ||
         size.height + 0.5 < SahraRules.minTouchTarget) {
@@ -274,6 +282,14 @@ List<SemanticsNode> _tappableNodesOutsideHorizontalScrollers(WidgetTester tester
   if (root != null) walk(root, insideHorizontal: false);
   return found;
 }
+
+/// Does this rect sit against a viewport edge, where a scroller may have
+/// clipped it? Half a pixel of tolerance, matching the text check.
+bool _touchesEdge(Rect screen, Rect r) =>
+    r.top <= screen.top + 0.5 ||
+    r.left <= screen.left + 0.5 ||
+    r.right >= screen.right - 0.5 ||
+    r.bottom >= screen.bottom - 0.5;
 
 /// `Rect.contains` on all four corners, with the same half-pixel tolerance the
 /// text check uses.

@@ -146,7 +146,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errTableNotFound => 'We couldn\'t find that table.';
 
   @override
-  String get errTooManyAttempts => 'Too many tries. Ask for a new code.';
+  String get errTooManyAttempts =>
+      'Too many attempts. Please wait 15 minutes and try again — asking for a new code won\'t help until then.';
 
   @override
   String get errUnauthenticated => 'Please sign in and try again.';

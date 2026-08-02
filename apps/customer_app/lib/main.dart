@@ -6,6 +6,7 @@ import 'config/env/env.dart';
 import 'localization/generated/app_localizations.dart';
 import 'routes/routes.dart';
 import 'shared/providers/app_providers.dart';
+import 'shared/widgets/device_frame.dart';
 
 void main() => runApp(const ProviderScope(child: SahraApp()));
 
@@ -49,7 +50,11 @@ class SahraApp extends StatelessWidget {
         final dark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: dark ? SahraTheme.dark(locale: locale) : SahraTheme.light(locale: locale),
-          child: LocaleSync(child: child ?? const SizedBox.shrink()),
+          // The frame is OUTSIDE LocaleSync and inside Theme: it is chrome
+          // around the app, not part of it, and it is off in every real build.
+          child: SahraDeviceFrame(
+            child: LocaleSync(child: child ?? const SizedBox.shrink()),
+          ),
         );
       },
     );

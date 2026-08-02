@@ -61,11 +61,28 @@ class BookScreen extends ConsumerWidget {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
-      body: SafeArea(
+      body: SahraPageWidth(
+        child: SafeArea(
         top: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            // ONE scroll view over the header AND the slots.
+            //
+            // This was a fixed header above `Expanded(slots)`. At 320x568 with
+            // 200% text the header alone is taller than the body, so Expanded
+            // was handed nothing and the Column overflowed by 101px — on the
+            // smallest phone we support, at the text size a lot of Egyptian
+            // users on mid-range Androids actually run.
+            //
+            // The footer stays OUTSIDE it: the confirm button and the
+            // cancellation policy must not scroll away from the thing they
+            // confirm.
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
             Padding(
               padding: SahraSpace.all(SahraSpace.s5),
               child: Column(
@@ -95,11 +112,14 @@ class BookScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            Expanded(
-              child: _Slots(restaurantId: restaurantId, progress: progress),
+                    _Slots(restaurantId: restaurantId, progress: progress),
+                  ],
+                ),
+              ),
             ),
             _Footer(restaurantId: restaurantId, progress: progress),
           ],
+        ),
         ),
       ),
     );
@@ -162,7 +182,9 @@ class _Slots extends ConsumerWidget {
       // builds, so the person it breaks for is a diner running large text on
       // a mid-range Android, which is a large share of this market.
       // Found by textScaleMatrix in all four cells.
-      empty: (context) => SingleChildScrollView(
+      // No scroll view of its own: the whole screen body is one, and nesting
+      // two gives the inner one unbounded height.
+      empty: (context) => Padding(
         padding: SahraSpace.symmetric(horizontal: SahraSpace.s5),
         child: SahraEmptyState(
           icon: 'lantern',
@@ -170,7 +192,7 @@ class _Slots extends ConsumerWidget {
           message: l10n.bookNoSlotsMessage(criteria.partySize),
         ),
       ),
-      content: (context, board) => SingleChildScrollView(
+      content: (context, board) => Padding(
         padding: SahraSpace.symmetric(horizontal: SahraSpace.s5),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

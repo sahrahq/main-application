@@ -51,6 +51,44 @@ checked across the whole palette, not component by component.
 - **Spacing**: 4px scale. **Radius**: sm 8 / md 12 / lg 16 / xl 24 / pill 999. **Shadows**: warm ink-tinted only; on dark, elevation = lighter surface, not shadow.
 - **Motion**: 150–200ms ease-out; press scale .98; no bounces. Signature moments per motion spec in `HANDOFF.md` (splash, confirmation, save-heart, skeleton shimmer, pull-to-refresh lantern).
 
+## Layout width — content stops stretching at 560
+
+Every screen here was drawn on a phone. `ui_kits/app/index.html` renders each
+one at exactly **375 × 812** and nothing in this package contemplates a wider
+window, because nothing was meant to be seen in one. Flutter builds for web and
+for tablets, and a `Column` given 1440 points will use all of them: a venue
+description becomes one 200-character line, a result row becomes a thumbnail
+marooned in whitespace, a booking button stretches a whole monitor.
+
+**Rule: content has a maximum readable width and CENTRES beyond it, rather than
+stretching edge to edge.** `SahraLayout.maxContentWidth = 560`, applied through
+`SahraPageWidth` — one wrapper at the top of a screen's body.
+
+Why 560:
+
+- ~1.5× the 375 the screens were actually drawn at, so a layout never stretches
+  more than half again beyond what a designer saw;
+- it keeps the venue description at roughly 60–75 characters a line, the
+  measure typography settled on a century ago;
+- it is **below 768**, so tablet portrait gets the centred phone layout rather
+  than a stretched one. Deliberate: `management_app` is the tablet-first
+  surface, its screens will be *drawn* for tablets, and the customer app must
+  not inherit a half-considered wide layout in the meantime.
+
+**This is not a breakpoint system.** One number, one behaviour, one place — the
+same discipline as the tokens. A screen that needs a real tablet layout should
+get a designed one, not a wider phone.
+
+Do **not** put `MediaQuery.of(context).size.width` checks in widgets. That is
+how three screens end up with three ideas of "wide", and how changing the
+number becomes a search-and-replace instead of an edit. Components are exempt
+by construction: a component fills what its parent offers.
+
+Enforced by `packages/sahra_design_system/test/layout/page_width_test.dart` and
+by the viewport matrix in `packages/sahra_test_harness`, which renders every
+screen and component at six real device sizes — including 320×568 at 200% text,
+which is where things actually break.
+
 ## Voice
 Warm host, not a booking engine. One clear recommendation. Direct second person, sentence case; UPPERCASE only for overlines/micro-labels. Meta pattern: `★ 4.8 (312) · Levantine · $$$`.
 

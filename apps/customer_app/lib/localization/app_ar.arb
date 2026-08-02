@@ -41,7 +41,7 @@
   "errTableHasFutureReservations": "الطاولة دي عليها حجوزات قادمة. انقلها أو الغيها الأول.",
   "errTableNameTaken": "عندك طاولة بنفس الاسم.",
   "errTableNotFound": "مالقيناش الطاولة دي.",
-  "errTooManyAttempts": "حاولت كتير. اطلب كود جديد.",
+  "errTooManyAttempts": "حاولت كتير والكود مظبطش. استنى ١٥ دقيقة وجرّب تاني — طلب كود جديد مش هيفيد دلوقتي.",
   "errUnauthenticated": "سجّل دخولك وحاول تاني.",
   "errUnprocessable": "مقدرناش ننفّذ ده. راجع البيانات وحاول تاني.",
   "errValidationFailed": "فيه بيانات لسه مش مظبوطة.",

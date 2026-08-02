@@ -135,7 +135,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errTableNotFound => 'مالقيناش الطاولة دي.';
 
   @override
-  String get errTooManyAttempts => 'حاولت كتير. اطلب كود جديد.';
+  String get errTooManyAttempts =>
+      'حاولت كتير والكود مظبطش. استنى ١٥ دقيقة وجرّب تاني — طلب كود جديد مش هيفيد دلوقتي.';
 
   @override
   String get errUnauthenticated => 'سجّل دخولك وحاول تاني.';

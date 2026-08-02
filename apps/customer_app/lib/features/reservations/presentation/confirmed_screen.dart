@@ -43,8 +43,19 @@ class ConfirmedScreen extends StatelessWidget {
     final text = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
+      body: SahraPageWidth(
+        child: SafeArea(
+        // Centred when it fits, scrolled when it does not.
+        //
+        // Two Spacers around a fixed ticket overflowed by 191px at 320x568
+        // with 200% text — the single worst of the five, and on the screen a
+        // diner is most likely to show someone at the door.
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
           padding: SahraSpace.all(SahraSpace.s5),
           child: Column(
             children: <Widget>[
@@ -72,6 +83,11 @@ class ConfirmedScreen extends StatelessWidget {
               ),
             ],
           ),
+                ),
+              ),
+            ),
+          ),
+        ),
         ),
       ),
     );
