@@ -51,6 +51,19 @@ void main() {
     expect(v, isEmpty, reason: describe(v, 'imports'));
   });
 
+  test('the bidi corruption signature appears nowhere in this app', () {
+    // `'2066'` / `'2069'` in a Dart string literal is what a swallowed
+    // backslash leaves behind when someone tries to shell-edit the isolate
+    // constants. The constants themselves live in sahra_design_system and are
+    // checked there; this catches the signature spreading — a copy-paste of a
+    // corrupted `ltrRun`, or the same mistake made locally in a screen.
+    //
+    // Scanned WITHOUT the generated exclusion: generated output is exactly
+    // where nobody looks.
+    final v = noBidiCorruptionSignature(lib);
+    expect(v, isEmpty, reason: describeBidi(v));
+  });
+
   test('AsyncValue is unwrapped ONLY inside SahraAsyncView', () {
     // A screen with its own `.when(` is a screen with its own loading and
     // error handling, which is how a product ends up with three different
