@@ -110,3 +110,12 @@ desktop.ini
 # be looked at locally; CI uploads them as a build artifact instead. Never
 # committed — they are the output of a failure, not a baseline.
 **/test/**/failures/
+
+# ── Flutter generated-but-COMMITTED output ──────────────────────────────
+# Same treatment as tokens.g.dart and the API client: generated, committed,
+# excluded from formatting, drift-checked in CI. Un-ignored explicitly because
+# the blanket `*.g.dart` rule above would otherwise swallow them.
+!apps/customer_app/lib/**/*.g.dart
+!apps/customer_app/lib/localization/generated/
+!apps/customer_app/lib/localization/app_ar.arb
+!apps/customer_app/lib/localization/app_en.arb

@@ -35,9 +35,24 @@ void main() {
 
   // THE CENSUS. Everything below iterates `componentGoldens`; an empty
   // registry would make all of it pass while nothing was pictured at all.
-  test('every component built so far is registered', () {
-    // The wave is not done until each component has a picture in four cells.
-    expect(exportedComponents.length, 16, reason: 'All 16 components from docs/design');
+  test('all sixteen design-package components are registered', () {
+    // The count that matters for "the design package is ported". Discovered
+    // components are counted separately below, so this number cannot be made
+    // to pass by adding something the design package never specified.
+    expect(designPackageComponents.length, 16, reason: 'All 16 components from docs/design');
+    expect(exportedComponents, containsAll(designPackageComponents));
+  });
+
+  test('discovered components are registered and counted apart', () {
+    // Pieces the SCREENS turned up that the design package never named. Held
+    // to the same bar — four goldens, a11y, text scale — but reported
+    // separately so "16 of 16" stays a true statement about the design package.
+    final discovered = exportedComponents.difference(designPackageComponents);
+    expect(discovered, isNotEmpty);
+    // OBSERVED, not computed: the set is read off the registry, and the number
+    // is the one a human agreed to. A guard that recalculated its own
+    // expectation could not detect a component silently disappearing.
+    expect(discovered.length, 6, reason: 'Discovered so far: ${discovered.toList()..sort()}');
   });
 
   test('the registry is populated', () {

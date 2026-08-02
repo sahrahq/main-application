@@ -31,10 +31,22 @@ export class ReservationsController {
   @ApiHeader({ name: 'idempotency-key', required: true, description: 'Client-generated UUID v4' })
   @ApiResponse({ status: 201, description: 'Hold created' })
   @ApiResponse({ status: 409, description: 'slot_taken | pacing_limit_reached' })
+  // The RETURN TYPE IS DECLARED, and that is not decoration.
+  //
+  // `@ApiOkResponse({ type: ReservationResponse })` tells the spec — and
+  // therefore the generated Dart client — what comes back. Nothing was
+  // checking that the object below actually matched it: this handler returned
+  // neither `restaurantId` nor `source`, both declared required, and the
+  // client's `ReservationResponse.fromJson` threw a null cast on the first
+  // real booking. The e2e suite missed it because those tests assert on named
+  // fields rather than on shape.
+  //
+  // Annotating the return type puts `tsc` on the same contract the decorator
+  // advertises, so the next mismatch is a compile error in this file.
   async createHold(
     @Body() dto: CreateHoldDto,
     @Headers('idempotency-key') idempotencyKey?: string,
-  ) {
+  ): Promise<ReservationResponse> {
     if (!idempotencyKey || !UUID_RE.test(idempotencyKey)) {
       throw new BadRequestException({
         code: 'missing_idempotency_key',
@@ -58,11 +70,16 @@ export class ReservationsController {
     return {
       id: r.id,
       code: r.code,
+      restaurantId: r.restaurantId,
+      userId: r.userId,
+      guestName: r.guestName,
+      guestPhone: r.guestPhone,
       status: r.status,
-      startsAt: r.startsAt,
-      endsAt: r.endsAt,
+      source: r.source,
+      startsAt: r.startsAt.toISOString(),
+      endsAt: r.endsAt.toISOString(),
       partySize: r.partySize,
-      holdExpiresAt: r.holdExpiresAt,
+      holdExpiresAt: r.holdExpiresAt?.toISOString() ?? null,
     };
   }
 
@@ -84,7 +101,7 @@ export class ReservationsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ConfirmHoldDto,
     @Headers('idempotency-key') idempotencyKey?: string,
-  ) {
+  ): Promise<ReservationResponse> {
     if (!idempotencyKey || !UUID_RE.test(idempotencyKey)) {
       throw new BadRequestException({
         code: 'missing_idempotency_key',
@@ -103,12 +120,18 @@ export class ReservationsController {
     return {
       id: r.id,
       code: r.code,
+      restaurantId: r.restaurantId,
+      userId: r.userId,
+      guestName: r.guestName,
+      guestPhone: r.guestPhone,
       status: r.status,
-      startsAt: r.startsAt,
-      endsAt: r.endsAt,
+      source: r.source,
+      startsAt: r.startsAt.toISOString(),
+      endsAt: r.endsAt.toISOString(),
       partySize: r.partySize,
-      specialRequests: r.specialRequests,
-      occasion: r.occasion,
+      // Confirmed: the hold window is over, so there is no expiry left to
+      // report. Explicitly null rather than absent — the field is declared.
+      holdExpiresAt: null,
     };
   }
 }

@@ -2,7 +2,6 @@
   "@@locale": "en",
   "@@x-review-status": "UNREVIEWED",
   "@@x-note": "English source copy. Reviewed alongside the Arabic in one pass — see docs/decisions/2026-08-02-a11y-manual-pass-launch-blocker.md",
-
   "errAccountUnavailable": "This account can't be used right now. Please contact support.",
   "errBadRequest": "Something about that request wasn't right. Please try again.",
   "errBookingsOutsideNewHours": "Some confirmed bookings fall outside these hours.",
@@ -46,14 +45,26 @@
   "errUnauthenticated": "Please sign in and try again.",
   "errUnprocessable": "We couldn't process that. Please check and try again.",
   "errValidationFailed": "Some of the details aren't right yet.",
-
   "errOffline": "You're offline. We'll try again when you're back.",
   "errUnknown": "Something went wrong. Please try again.",
-
   "actionRetry": "Try again",
   "actionDismiss": "Dismiss",
   "errorReference": "Reference {requestId}",
   "@errorReference": {
-    "placeholders": { "requestId": { "type": "String" } }
+    "placeholders": {
+      "requestId": {
+        "type": "String"
+      }
+    }
+  },
+  "errTitleOffline": "You're offline",
+  "errTitleNetwork": "That took too long",
+  "errTitleAuth": "You need an account for that",
+  "errTitleConflict": "Something just changed",
+  "errTitleValidation": "Check that again",
+  "errTitleServer": "SAHRA is having a moment",
+  "errTitleUnknown": "Something went wrong",
+  "@errTitleOffline": {
+    "description": "Short HEADING for an error state; the code's own sentence is the body. One per sealed Failure member (ENGINEERING-STANDARDS §7), so failureTitle's switch is exhaustive at compile time."
   }
 }

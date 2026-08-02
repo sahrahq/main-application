@@ -1,0 +1,166 @@
+{
+  "@@locale": "en",
+  "@@x-source": "App-specific copy. Merged with the shared backend-error vocabulary from packages/sahra_localization by tool/merge_arb.dart into ../app_en.arb, which is what gen-l10n compiles. Edit THIS file, not the generated one.",
+  "@@x-provenance": "Pulled from docs/design/ui_kits/app/*.jsx, which carry both languages (DESIGN-RULES.md §1: copy is not invented).",
+  "appTitle": "SAHRA",
+  "@appTitle": {
+    "description": "Brand name. Not translated — it is the same word."
+  },
+  "searchHint": "Search",
+  "searchLocation": "CAIRO",
+  "@searchLocation": {
+    "description": "SearchScreen.jsx t.city — the city chip inside the search bar."
+  },
+  "searchFilterTonight": "Tonight",
+  "@searchFilterTonight": {
+    "description": "SearchScreen.jsx t.chips[0]. The only chip wired to real behaviour: it filters by tonight's availability."
+  },
+  "searchOpenTonight": "{count, plural, =0{Nothing open tonight} =1{1 place open tonight} other{{count} places open tonight}}",
+  "@searchOpenTonight": {
+    "description": "SearchScreen.jsx t.open, made dynamic.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchResultCount": "{count, plural, =0{No places} =1{1 place} other{{count} places}}",
+  "@searchResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchNextAvailable": "Next: {time}",
+  "@searchNextAvailable": {
+    "description": "SearchScreen.jsx t.next.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "searchStartTitle": "Where are you eating tonight?",
+  "searchStartMessage": "Search by name, cuisine or area — in Arabic, English, or however you type it.",
+  "searchEmptyTitle": "Nothing matches that",
+  "searchEmptyMessage": "Try a nearby area, or a different night.",
+  "@searchEmptyMessage": {
+    "description": "11-user-flows §2: 'nothing matches — try nearby areas' + suggested alternatives."
+  },
+  "searchEmptyAction": "Start over",
+  "searchOfflineTitle": "You're offline",
+  "searchOfflineMessage": "We can't reach SAHRA right now. Your connection came back before — it will again.",
+  "venueBack": "Back",
+  "venueShare": "Share",
+  "venueSave": "Save",
+  "venueSaved": "Saved",
+  "venueBook": "Book a table",
+  "venueBookingFrom": "From",
+  "venueBookingFree": "Free to book",
+  "@venueBookingFree": {
+    "description": "VenueDetailScreen.jsx t.free — SAHRA charges the diner nothing."
+  },
+  "venueOpenTonight": "Open tonight",
+  "venueClosedToday": "Closed today",
+  "venueHoursRange": "{opens} – {closes}",
+  "@venueHoursRange": {
+    "placeholders": {
+      "opens": {
+        "type": "String"
+      },
+      "closes": {
+        "type": "String"
+      }
+    }
+  },
+  "venueDirections": "Get directions",
+  "venueCall": "Call venue",
+  "venueNotFoundTitle": "We lost that one",
+  "venueNotFoundMessage": "This venue isn't taking bookings right now. Have a look at what else is open.",
+  "venueNotFoundAction": "Back to search",
+  "amenityOutdoor": "Outdoor seating",
+  "amenityShisha": "Shisha",
+  "amenityNileView": "Nile view",
+  "amenityValet": "Valet parking",
+  "amenityFamilySection": "Family section",
+  "amenityAlcoholFree": "Alcohol-free",
+  "bookTitle": "Book a table",
+  "bookDate": "Date",
+  "bookParty": "Party size",
+  "bookTime": "Time",
+  "bookGuests": "{count, plural, =1{guest} other{guests}}",
+  "@bookGuests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookDecreaseParty": "One fewer guest",
+  "bookIncreaseParty": "One more guest",
+  "bookToday": "Tonight",
+  "@bookToday": {
+    "description": "BookingFlowScreen.jsx t.days[0][0] — the label for today's chip."
+  },
+  "bookConfirmFor": "Confirm for {party} at {time}",
+  "@bookConfirmFor": {
+    "description": "BookingFlowScreen.jsx t.confirm.",
+    "placeholders": {
+      "party": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "bookCancellationPolicy": "Free cancellation up to 2 hours before.",
+  "bookNoSlotsTitle": "No tables that night",
+  "bookNoSlotsMessage": "Nothing free for {party} on that date. Try another night, or a smaller table.",
+  "@bookNoSlotsMessage": {
+    "placeholders": {
+      "party": {
+        "type": "int"
+      }
+    }
+  },
+  "bookClosedTitle": "Closed that day",
+  "bookClosedMessage": "This venue doesn't open on the date you picked.",
+  "bookHolding": "Holding your table…",
+  "bookSlotTakenTitle": "Just booked by someone else",
+  "@bookSlotTakenTitle": {
+    "description": "11-user-flows §3, node M. The slot went between seeing it and confirming it — the one thing the type system cannot prevent."
+  },
+  "bookSlotTakenMessage": "That time went while you were choosing. These are still open.",
+  "bookHoldExpiredTitle": "Your hold ran out",
+  "bookHoldExpiredMessage": "We only hold a table for a few minutes. Pick a time again — it takes a moment.",
+  "bookPickAgain": "Pick another time",
+  "confirmedOverline": "Booking confirmed",
+  "confirmedMessage": "We told {venue} you're coming.",
+  "@confirmedMessage": {
+    "description": "ConfirmationScreen.jsx t.msg.",
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmedDate": "Date",
+  "confirmedTime": "Time",
+  "confirmedGuests": "Guests",
+  "confirmedReference": "Confirmation",
+  "confirmedDone": "Done",
+  "loadingLabel": "Loading",
+  "cuisineLevantine": "Levantine",
+  "cuisineEgyptian": "Egyptian",
+  "cuisineMediterranean": "Mediterranean",
+  "cuisineLebanese": "Lebanese",
+  "cuisineJapanese": "Japanese",
+  "cuisineSushi": "Sushi",
+  "cuisineStreetFood": "Street food",
+  "cuisineCafe": "Cafe",
+  "@cuisineLevantine": {
+    "description": "Cuisine keys come from the API as enum-ish strings (levantine, street_food). Title-casing the key put English on the Arabic screen — found by looking at a golden. Unknown keys are skipped, not shown raw."
+  }
+}

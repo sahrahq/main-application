@@ -486,6 +486,19 @@ class SahraApi {
     return SearchResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `GET /v1/restaurants/{idOrSlug}`
+  ///
+  /// Public restaurant profile, by id or slug
+  Future<RestaurantProfileResponse> profile({
+    required String idOrSlug,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/restaurants/$idOrSlug',
+    );
+    return RestaurantProfileResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `GET /v1/restaurants/{id}/availability`
   ///
   /// Bookable slots for a date and party size

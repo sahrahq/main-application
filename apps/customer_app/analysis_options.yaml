@@ -1,0 +1,23 @@
+# ENGINEERING-STANDARDS §8. `--fatal-infos` in CI, so an info-level lint that
+# is allowed to linger is a lint that gets ignored forever.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    # Generated and COMMITTED — riverpod_generator and gen-l10n. Formatting or
+    # linting generated output makes it differ from what the generator
+    # produced, which the drift check then correctly reports as tampering.
+    # Learned the hard way with tokens.g.dart.
+    - lib/**/*.g.dart
+    - lib/localization/generated/**
+  errors:
+    # The async-gap bug that actually crashes Flutter apps in production.
+    use_build_context_synchronously: error
+
+linter:
+  rules:
+    - prefer_const_constructors
+    - require_trailing_commas
+    - avoid_dynamic_calls
+    - unawaited_futures
+    - use_build_context_synchronously

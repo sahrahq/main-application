@@ -3,6 +3,7 @@ import { Logger } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 import { validateSecrets } from "./shared/config/secrets.validation";
+import { corsOptionsFor } from "./shared/config/cors.options";
 
 async function bootstrap(): Promise<void> {
   // Before anything can serve traffic: refuse to start on a weak or
@@ -10,6 +11,12 @@ async function bootstrap(): Promise<void> {
   validateSecrets();
 
   const app = await NestFactory.create(AppModule);
+
+  // Browser origins (doc 07 §3 — the admin surface is Flutter Web, and the
+  // customer app is developed in Chrome). The policy itself lives in
+  // cors.options.ts and is unit-tested there; "allow anything in dev" is one
+  // typo away from "allow anything".
+  app.enableCors(corsOptionsFor(process.env.NODE_ENV, process.env.CORS_ORIGINS));
 
   // Validation and the error envelope are registered as providers in
   // ErrorsModule, not here — see the note in that file. Configuring them at

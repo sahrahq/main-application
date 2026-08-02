@@ -90,6 +90,37 @@ Applies beyond goldens. Any future artefact — a rendered report, a diff view, 
 screenshot pipeline — carries the same obligation before anyone is asked to
 trust their eyes on it.
 
+## A declared contract nobody compiles against is a comment
+
+`@ApiOkResponse({ type: X })` is what puts a response shape into the OpenAPI
+document and therefore into the generated Dart client. TypeScript does not read
+decorators, so nothing was checking that the handler returned an `X`.
+
+**Five endpoints were lying**, and every one would have thrown a null cast in
+the client on its first real call:
+
+| endpoint | declared | returned |
+|---|---|---|
+| `POST /reservations/holds` | `ReservationResponse` | no `restaurantId`, no `source` |
+| `POST /reservations/holds/:id/confirm` | same | same |
+| `POST /auth/login`, `verify-otp`, `refresh` | `TokenPairResponse` | **no `user` at all** |
+| `GET /auth/me` | `UserResponse` | 3 of its 7 fields |
+| `POST /owner/…/reservations` | `ReservationResponse` | `Date` where the DTO says `string` |
+
+The spec was RIGHT the whole time — `openapi:export --check` reported "current"
+after every fix, because the DTOs always described what doc 06 specifies. The
+IMPLEMENTATIONS had drifted from their own declarations, and 195 e2e tests were
+green throughout, because those tests assert on named fields rather than shape.
+
+**RULE: every handler with a declared response type annotates its return type**,
+so `tsc` is held to the same contract the decorator advertises. Enforced by
+`src/shared/api/response-contract.spec.ts`, a source scan — the annotation does
+not survive to runtime, so there is nothing else to check at runtime.
+
+Broken on purpose, both directions: dropping the annotation and then dropping a
+required field, `tsc` says **nothing**. Restoring the annotation with the same
+field missing: `error TS2741: Property 'restaurantId' is missing`.
+
 ## Suspect the guards at least as much as the code
 
 Across the setup day and two waves, the components have almost always been
@@ -97,6 +128,17 @@ right on the first run and the things WATCHING them have almost always been
 wrong. That is the better failure distribution — a broken guard is caught by
 the next guard, a broken component is caught by a diner — but it means a green
 suite is evidence about the code only if the guards themselves are checked.
+
+**A test that needs a real socket must prove it opened one.**
+`TestWidgetsFlutterBinding` installs an `HttpOverrides` that answers **400 to
+every request** and never opens a connection. Nothing announces this but a
+warning in the output. A "live" integration test written under `flutter test`
+therefore does not fail — it PASSES, against a fabricated 400, having touched
+no server. The only reason `live_api_test.dart` failed instead of lying was
+that its assertions name a specific error code; a loose
+`throwsA(isA<Failure>())` would have been green forever while proving the
+opposite of what it claims. `HttpOverrides.global = null` restores the real
+client, and the test asserts on codes that only a real server produces.
 
 **A guard that COMPUTES its expected number instead of OBSERVING it is broken
 by construction.** It cannot detect the failure it exists to detect, because
@@ -599,7 +641,11 @@ Kept as a running list rather than stopping the wave for each.
 | wave 1 | `mezze` icon reads as a command-key glyph at 28px |
 | wave 1 | `shisha` icon is hard to parse at small sizes — the hose dominates |
 | wave 2 | The mashrabiya lattice reads as rounded squares below ~40px tile; the eight-point star only resolves at larger tiles |
-| wave 3 | The party stepper uses `x` and `plus` as minus/plus. `x` is a close glyph, not a minus — a `minus` icon is missing from the set |
+| wave 3 | ~~The party stepper uses `x` as a minus~~ — RETIRED. `minus` is now in the icon set (Material fallback `Icons.remove`) |
+| screens | The venue name overflows the hero's trailing padding in Arabic only — Reem Kufi's glyph advance at 24px. Latin is correctly inset |
+| screens | On DARK, the photo placeholder well (`night-border → night-overlay`) is close enough to `surface-page` that the 280px hero blends into the body. It reads clearly on light |
+| screens | The photo placeholder's two composed tokens land a shade off the reference (`#4A392C → night-border #413024`, `#2C2018 → night-overlay #31251C`) — nearest committed members of the same family, rather than two new tokens for one component |
+| screens | The mashrabiya lattice at a 76px thumbnail is ~2×2 tiles and reads as rounded squares — confirms the wave-2 flag at a real call site |
 
 ## What looking has found so far
 
@@ -611,6 +657,10 @@ Kept as a running list rather than stopping the wave for each.
 | 2 | `SkeletonCard` stretched to whatever height was offered — a card with a large empty region under the text. No assertion covers "too tall" |
 | 3 | **The Material icon font was never loaded in tests.** 15 of 22 icons fall back to Material, so every one was rendering as an empty box — in goldens a human was supposed to be reviewing. The font guard only checked the four SAHRA families |
 | 3 | Arabic-Indic numerals in test data, where DESIGN-RULES requires Latin in both locales. Nothing enforces this at the caller |
+| screens | **A phone number rendered `0000 2735 2 20+` and opening hours rendered `23:30 – 18:00`** — Latin segment-runs reversed by the bidi algorithm inside an Arabic paragraph. The strings were correct; only the layout was wrong, so no assertion could see it. Fixed with U+2066/U+2069 isolates (`ltrRun`) |
+| screens | The venue meta line read `Levantine · $$$ · Zamalek` on a fully Arabic screen — cuisine keys were being title-cased instead of looked up. Same shape as the amenity bug, one screen over |
+| screens | `neighborhood` is a single `VARCHAR(80)` column, so it is Latin in both locales. A SCHEMA finding, not a client one — CLAUDE.md rule 5 is bilingual by column, and this column predates it |
+| screens | The result-row meta wrapped, leaving the `·` separator hanging at the start of the second line — and mirrored to the end of it in Arabic |
 
 None of these could fail a test: a missing glyph still has width, an outlined
 star still renders, and a button of the wrong height still passes every

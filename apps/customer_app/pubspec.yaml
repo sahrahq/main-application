@@ -1,0 +1,63 @@
+name: sahra_customer_app
+description: >
+  SAHRA — restaurant reservations for Egypt/MENA. Diner-facing app: discover,
+  book, waitlist, reviews, loyalty. Arabic (RTL) is the primary locale.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+# NOTHING HERE IS OUTSIDE THE APPROVED STACK.
+#
+# doc 07 §3 names the choice for every concern below and DEVELOPMENT.md §2
+# repeats them; doc 08 §5 is the platform table. A package that is not in one
+# of those is not added quietly — CLAUDE.md says stop and ask, and that has
+# held: there is no map package (the reference's MapCard is Leaflet, and C-2.4
+# map view is P1) and no uuid package (Idempotency-Key is generated in
+# core/utils over Random.secure, ~15 lines).
+dependencies:
+  flutter:
+    sdk: flutter
+  # doc 07 §3 — "Arabic parity is a launch gate". Without the global delegates
+  # an `ar` locale still lays out left-to-right.
+  flutter_localizations:
+    sdk: flutter
+  # Required as a DIRECT dependency by `flutter gen-l10n`, which generates
+  # AppLocalizations from the ARB files. Part of the localization toolchain
+  # doc 07 §3 chose, not a separate capability.
+  intl: any
+
+  # doc 07 §3: state management and DI in one graph. §5: "one @riverpod
+  # notifier per screen, side-effects only in notifiers, never in widgets".
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # doc 07 §3: navigation. Deep-link native (`sahra.app/r/{slug}`), web URLs.
+  go_router: ^14.6.2
+
+  # doc 07 §2 core/network: "Dio client, interceptors (auth, retry, locale,
+  # idempotency)". The generated client depends on none of this — it takes a
+  # SahraTransport port and this app supplies the Dio-backed implementation.
+  dio: ^5.7.0
+
+  sahra_design_system:
+    path: ../../packages/sahra_design_system
+  sahra_api_client:
+    path: ../../packages/sahra_api_client
+  sahra_localization:
+    path: ../../packages/sahra_localization
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.6.3
+  sahra_lints:
+    path: ../../packages/sahra_lints
+
+flutter:
+  uses-material-design: true
+  generate: true

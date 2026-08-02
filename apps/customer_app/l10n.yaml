@@ -1,0 +1,15 @@
+# ARB → AppLocalizations.
+#
+# `arb-dir` holds the MERGED ARB that tool/merge_arb.dart produces; the
+# hand-written halves are in localization/source/ (this app's screen copy) and
+# packages/sahra_localization (the backend error vocabulary both apps share).
+#
+# `output-dir` is a `generated/` folder on purpose: packages/sahra_lints skips
+# any path containing `/generated/`, and without that the no-hardcoded-strings
+# scanner would read the generated Arabic and fail on every line of it.
+arb-dir: lib/localization
+template-arb-file: app_en.arb
+output-dir: lib/localization/generated
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

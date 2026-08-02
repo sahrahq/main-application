@@ -2,7 +2,6 @@
   "@@locale": "ar",
   "@@x-review-status": "UNREVIEWED",
   "@@x-note": "مكتوبة كمحاولة أولى من الهندسة — لسه محتاجة مراجعة كاملة من متحدث مصري أصلي. Written by engineering as a best attempt. NOT yet reviewed by a native Egyptian speaker — see docs/decisions/2026-08-02-a11y-manual-pass-launch-blocker.md",
-
   "errAccountUnavailable": "الحساب ده مش متاح دلوقتي. كلّم خدمة العملاء لو سمحت.",
   "errBadRequest": "فيه حاجة في الطلب مش مظبوطة. حاول تاني.",
   "errBookingsOutsideNewHours": "فيه حجوزات مؤكدة هتقع بره المواعيد دي.",
@@ -46,14 +45,23 @@
   "errUnauthenticated": "سجّل دخولك وحاول تاني.",
   "errUnprocessable": "مقدرناش ننفّذ ده. راجع البيانات وحاول تاني.",
   "errValidationFailed": "فيه بيانات لسه مش مظبوطة.",
-
   "errOffline": "إنت مش متصل بالإنترنت. هنحاول تاني أول ما ترجع.",
   "errUnknown": "حصل خطأ. حاول تاني لو سمحت.",
-
   "actionRetry": "حاول تاني",
   "actionDismiss": "تمام",
   "errorReference": "رقم مرجعي {requestId}",
   "@errorReference": {
-    "placeholders": { "requestId": { "type": "String" } }
-  }
+    "placeholders": {
+      "requestId": {
+        "type": "String"
+      }
+    }
+  },
+  "errTitleOffline": "إنت أوفلاين",
+  "errTitleNetwork": "ده أخد وقت طويل",
+  "errTitleAuth": "محتاج حساب للخطوة دي",
+  "errTitleConflict": "في حاجة اتغيرت دلوقتي",
+  "errTitleValidation": "راجع ده تاني",
+  "errTitleServer": "سهرة تعبانة شوية",
+  "errTitleUnknown": "في حاجة غلط"
 }

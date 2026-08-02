@@ -68,7 +68,7 @@ export class OwnerVenueConfigController {
   async listTables(
     @CurrentUser() user: AuthedUser,
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
-  ) {
+  ): Promise<TableResponse[]> {
     return this.tables.list(await this.ownerIdOf(user), restaurantId);
   }
 
@@ -80,7 +80,7 @@ export class OwnerVenueConfigController {
     @CurrentUser() user: AuthedUser,
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Body() dto: CreateTableDto,
-  ) {
+  ): Promise<TableResponse> {
     return this.tables.create(await this.ownerIdOf(user), restaurantId, dto);
   }
 
@@ -91,7 +91,7 @@ export class OwnerVenueConfigController {
     @CurrentUser() user: AuthedUser,
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Param('tableId', ParseUUIDPipe) tableId: string,
-  ) {
+  ): Promise<TableResponse> {
     return this.tables.get(await this.ownerIdOf(user), restaurantId, tableId);
   }
 
@@ -109,7 +109,7 @@ export class OwnerVenueConfigController {
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Param('tableId', ParseUUIDPipe) tableId: string,
     @Body() dto: UpdateTableDto,
-  ) {
+  ): Promise<TableResponse> {
     return this.tables.update(await this.ownerIdOf(user), restaurantId, tableId, dto);
   }
 
@@ -123,7 +123,7 @@ export class OwnerVenueConfigController {
     @CurrentUser() user: AuthedUser,
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Param('tableId', ParseUUIDPipe) tableId: string,
-  ) {
+  ): Promise<RemoveTableResponse> {
     return this.tables.remove(await this.ownerIdOf(user), restaurantId, tableId);
   }
 
@@ -149,7 +149,7 @@ export class OwnerVenueConfigController {
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Body() dto: CreateWalkInDto,
     @Headers('idempotency-key') idempotencyKey?: string,
-  ) {
+  ): Promise<ReservationResponse> {
     if (!idempotencyKey || !UUID_V4.test(idempotencyKey)) {
       throw new BadRequestException({
         code: 'invalid_idempotency_key',
@@ -159,11 +159,31 @@ export class OwnerVenueConfigController {
       });
     }
 
-    return this.walkIns.create(await this.ownerIdOf(user), restaurantId, {
+    // Mapped, not returned raw. The service hands back a Prisma row whose
+    // times are `Date`; `ReservationResponse` declares ISO-8601 strings, and
+    // `JSON.stringify` would have silently produced them anyway — which is
+    // exactly why nothing caught the mismatch until the return type was
+    // declared. Now the shape is the compiler's business.
+    const r = await this.walkIns.create(await this.ownerIdOf(user), restaurantId, {
       ...dto,
       startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
       idempotencyKey,
     });
+
+    return {
+      id: r.id,
+      code: r.code,
+      restaurantId: r.restaurantId,
+      userId: r.userId,
+      guestName: r.guestName,
+      guestPhone: r.guestPhone,
+      status: r.status,
+      source: r.source,
+      startsAt: r.startsAt.toISOString(),
+      endsAt: r.endsAt.toISOString(),
+      partySize: r.partySize,
+      holdExpiresAt: r.holdExpiresAt?.toISOString() ?? null,
+    };
   }
 
   // ───────────────────────────────────────────── opening hours / shifts (R-2.4) ──
@@ -174,7 +194,7 @@ export class OwnerVenueConfigController {
   async listShifts(
     @CurrentUser() user: AuthedUser,
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
-  ) {
+  ): Promise<ShiftResponse[]> {
     return this.shifts.list(await this.ownerIdOf(user), restaurantId);
   }
 
@@ -186,7 +206,7 @@ export class OwnerVenueConfigController {
     @CurrentUser() user: AuthedUser,
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Body() dto: CreateShiftDto,
-  ) {
+  ): Promise<ShiftResponse> {
     return this.shifts.create(await this.ownerIdOf(user), restaurantId, dto);
   }
 
@@ -197,7 +217,7 @@ export class OwnerVenueConfigController {
     @CurrentUser() user: AuthedUser,
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Param('shiftId', ParseUUIDPipe) shiftId: string,
-  ) {
+  ): Promise<ShiftResponse> {
     return this.shifts.get(await this.ownerIdOf(user), restaurantId, shiftId);
   }
 
@@ -217,7 +237,7 @@ export class OwnerVenueConfigController {
     @Param('shiftId', ParseUUIDPipe) shiftId: string,
     @Body() dto: UpdateShiftDto,
     @Query('force') force?: string,
-  ) {
+  ): Promise<ShiftWriteResponse> {
     return this.shifts.update(
       await this.ownerIdOf(user), restaurantId, shiftId, dto, { force: force === 'true' },
     );
@@ -233,7 +253,7 @@ export class OwnerVenueConfigController {
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Param('shiftId', ParseUUIDPipe) shiftId: string,
     @Query('force') force?: string,
-  ) {
+  ): Promise<RemoveShiftResponse> {
     return this.shifts.remove(
       await this.ownerIdOf(user), restaurantId, shiftId, { force: force === 'true' },
     );

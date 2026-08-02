@@ -22,7 +22,7 @@ export class AvailabilityController {
     @Param("id", ParseUUIDPipe) id: string,
     @Query("date") date: string,
     @Query("party_size") partySize: string,
-  ) {
+  ): Promise<AvailabilityResponse> {
     if (!ISO_DATE.test(date ?? "")) {
       throw new BadRequestException({
         code: "invalid_date",

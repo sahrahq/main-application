@@ -30,7 +30,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Create an account (phone is the primary identity)' })
   @ApiResponse({ status: 201, description: '{ userId, otpRequired: true }' })
   @ApiResponse({ status: 409, description: 'phone_exists | email_exists' })
-  register(@Body() dto: RegisterDto, @Req() req: Request) {
+  register(@Body() dto: RegisterDto, @Req() req: Request): Promise<RegisterResponse> {
     return this.auth.register({
       phone: dto.phone,
       fullName: dto.fullName,
@@ -47,7 +47,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Access + refresh token pair' })
   @ApiResponse({ status: 400, description: 'invalid_otp | otp_expired' })
   @ApiResponse({ status: 429, description: 'too_many_attempts' })
-  verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request) {
+  verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request): Promise<TokenPairResponse> {
     return this.auth.verifyOtp(dto.userId, dto.code, ctxOf(req));
   }
 
@@ -66,7 +66,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Password login' })
   @ApiResponse({ status: 200, description: 'Access + refresh token pair' })
   @ApiResponse({ status: 401, description: 'invalid_credentials | account_unavailable' })
-  login(@Body() dto: LoginDto, @Req() req: Request) {
+  login(@Body() dto: LoginDto, @Req() req: Request): Promise<TokenPairResponse> {
     return this.auth.login(dto.identifier, dto.password, ctxOf(req));
   }
 
@@ -80,7 +80,7 @@ export class AuthController {
       'revoked token revokes the entire family and returns 401.',
   })
   @ApiResponse({ status: 401, description: 'invalid_refresh_token | token_reuse_detected' })
-  refresh(@Body() dto: RefreshDto, @Req() req: Request) {
+  refresh(@Body() dto: RefreshDto, @Req() req: Request): Promise<TokenPairResponse> {
     return this.auth.refresh(dto.refreshToken, ctxOf(req));
   }
 
@@ -96,7 +96,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'The caller identified by the access token' })
-  me(@CurrentUser() user: AuthedUser) {
-    return { id: user.id, roles: user.roles, locale: user.locale };
+  // Returned only { id, roles, locale } while `UserResponse` declares phone,
+  // fullName, email and status as well — so the generated client threw a null
+  // cast on `phone`. The JWT deliberately carries only what authorisation
+  // needs (doc 09 §1.1), so the profile is read from the database rather than
+  // widening the claims: a token is not a place to cache a display name.
+  me(@CurrentUser() user: AuthedUser): Promise<UserResponse> {
+    return this.auth.profile(user.id);
   }
 }

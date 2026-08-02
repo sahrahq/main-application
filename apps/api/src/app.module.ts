@@ -8,6 +8,7 @@ import { AuditModule } from "./shared/audit/audit.module";
 import { ReservationsModule } from "./modules/reservations/reservations.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { RestaurantsModule } from "./modules/restaurants/restaurants.module";
+import { PublicRestaurantsModule } from "./modules/restaurants/public-restaurants.module";
 import { AvailabilityModule } from "./modules/availability/availability.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { SearchModule } from "./modules/search/search.module";
@@ -39,6 +40,11 @@ import { SearchModule } from "./modules/search/search.module";
     SearchModule,
     AdminModule,
     ReservationsModule,
+    // LAST, and it has to stay last: its `GET /restaurants/:idOrSlug` is a
+    // wildcard that would shadow /restaurants/search and
+    // /restaurants/:id/availability if registered before them. Guarded by
+    // test/public-restaurant.e2e-spec.ts, not by this comment.
+    PublicRestaurantsModule,
   ],
 })
 export class AppModule {}

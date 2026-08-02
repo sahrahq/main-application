@@ -24,7 +24,7 @@ class AdminRestaurantResponse {
         id: json['id'] as String,
         nameAr: json['nameAr'] as String,
         nameEn: json['nameEn'] as String,
-        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as Map<String, dynamic>,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
         slug: json['slug'] as String,
         status: json['status'] as String,
       );
@@ -33,7 +33,7 @@ class AdminRestaurantResponse {
   final String id;
   final String nameAr;
   final String nameEn;
-  final Map<String, dynamic>? neighborhood;
+  final String? neighborhood;
   final String slug;
   final String status;
 
@@ -172,13 +172,13 @@ class BookRowResponse {
 
   factory BookRowResponse.fromJson(Map<String, dynamic> json) => BookRowResponse(
         code: json['code'] as String,
-        guestName: json['guestName'] == null ? null : json['guestName'] as Map<String, dynamic>,
-        guestPhone: json['guestPhone'] == null ? null : json['guestPhone'] as Map<String, dynamic>,
+        guestName: json['guestName'] == null ? null : json['guestName'] as String,
+        guestPhone: json['guestPhone'] == null ? null : json['guestPhone'] as String,
         id: json['id'] as String,
-        occasion: json['occasion'] == null ? null : json['occasion'] as Map<String, dynamic>,
+        occasion: json['occasion'] == null ? null : json['occasion'] as String,
         partySize: (json['partySize'] as num).toInt(),
         source: json['source'] as String,
-        specialRequests: json['specialRequests'] == null ? null : json['specialRequests'] as Map<String, dynamic>,
+        specialRequests: json['specialRequests'] == null ? null : json['specialRequests'] as String,
         startsAt: json['startsAt'] as String,
         status: json['status'] as String,
         tables: (json['tables'] as List<dynamic>).map((e) => e as String).toList(),
@@ -186,14 +186,14 @@ class BookRowResponse {
       );
 
   final String code;
-  final Map<String, dynamic>? guestName;
-  final Map<String, dynamic>? guestPhone;
+  final String? guestName;
+  final String? guestPhone;
   final String id;
-  final Map<String, dynamic>? occasion;
+  final String? occasion;
   final int partySize;
   /// app | walk_in | phone — which door it came through.
   final String source;
-  final Map<String, dynamic>? specialRequests;
+  final String? specialRequests;
   final String startsAt;
   final String status;
   final List<String> tables;
@@ -352,7 +352,7 @@ class CreateShiftDto {
         active: json['active'] == null ? null : json['active'] as bool,
         closesAt: json['closesAt'] as String,
         dayOfWeek: json['dayOfWeek'] == null ? null : (json['dayOfWeek'] as num).toInt(),
-        defaultTurnMinutes: json['defaultTurnMinutes'] == null ? null : json['defaultTurnMinutes'] as Map<String, dynamic>,
+        defaultTurnMinutes: json['defaultTurnMinutes'] == null ? null : (json['defaultTurnMinutes'] as Map<String, dynamic>).map((k, v) => MapEntry(k, (v as num).toInt())),
         isRamadan: json['isRamadan'] == null ? null : json['isRamadan'] as bool,
         nameAr: json['nameAr'] as String,
         nameEn: json['nameEn'] as String,
@@ -365,7 +365,8 @@ class CreateShiftDto {
   final String closesAt;
   /// 0=Sunday. Exactly one of this or specificDate.
   final int? dayOfWeek;
-  final Map<String, dynamic>? defaultTurnMinutes;
+  /// Party-size band → turn minutes. A bare `type: object` here would generate Map<String, dynamic> in the client, so the value type is declared.
+  final Map<String, int>? defaultTurnMinutes;
   /// Flag only — Maghrib anchoring is not implemented yet
   final bool? isRamadan;
   final String nameAr;
@@ -534,6 +535,49 @@ class LogoutDto {
   Map<String, dynamic> toJson() => <String, dynamic>{
         if (allDevices != null) 'allDevices': allDevices!,
         'refreshToken': refreshToken,
+      };
+}
+
+class OpeningHoursResponse {
+  const OpeningHoursResponse({
+    required this.closesAt,
+    this.dayOfWeek,
+    required this.nameAr,
+    required this.nameEn,
+    required this.opensAt,
+    required this.spansMidnight,
+    this.specificDate,
+  });
+
+  factory OpeningHoursResponse.fromJson(Map<String, dynamic> json) => OpeningHoursResponse(
+        closesAt: json['closes_at'] as String,
+        dayOfWeek: json['day_of_week'] == null ? null : (json['day_of_week'] as num).toInt(),
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        opensAt: json['opens_at'] as String,
+        spansMidnight: json['spans_midnight'] as bool,
+        specificDate: json['specific_date'] == null ? null : json['specific_date'] as String,
+      );
+
+  final String closesAt;
+  /// 0=Sunday; null on a one-off date
+  final int? dayOfWeek;
+  final String nameAr;
+  final String nameEn;
+  /// HH:MM on the restaurant's wall clock.
+  final String opensAt;
+  final bool spansMidnight;
+  /// YYYY-MM-DD; null on a weekly row
+  final String? specificDate;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'closes_at': closesAt,
+        if (dayOfWeek != null) 'day_of_week': dayOfWeek!,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        'opens_at': opensAt,
+        'spans_midnight': spansMidnight,
+        if (specificDate != null) 'specific_date': specificDate!,
       };
 }
 
@@ -723,9 +767,9 @@ class ReservationResponse {
   factory ReservationResponse.fromJson(Map<String, dynamic> json) => ReservationResponse(
         code: json['code'] as String,
         endsAt: json['endsAt'] as String,
-        guestName: json['guestName'] == null ? null : json['guestName'] as Map<String, dynamic>,
-        guestPhone: json['guestPhone'] == null ? null : json['guestPhone'] as Map<String, dynamic>,
-        holdExpiresAt: json['holdExpiresAt'] == null ? null : json['holdExpiresAt'] as Map<String, dynamic>,
+        guestName: json['guestName'] == null ? null : json['guestName'] as String,
+        guestPhone: json['guestPhone'] == null ? null : json['guestPhone'] as String,
+        holdExpiresAt: json['holdExpiresAt'] == null ? null : json['holdExpiresAt'] as String,
         id: json['id'] as String,
         partySize: (json['partySize'] as num).toInt(),
         restaurantId: json['restaurantId'] as String,
@@ -733,14 +777,14 @@ class ReservationResponse {
         startsAt: json['startsAt'] as String,
         status: json['status'] as String,
         tables: json['tables'] == null ? null : (json['tables'] as List<dynamic>).map((e) => ReservationTableResponse.fromJson(e as Map<String, dynamic>)).toList(),
-        userId: json['userId'] == null ? null : json['userId'] as Map<String, dynamic>,
+        userId: json['userId'] == null ? null : json['userId'] as String,
       );
 
   final String code;
   final String endsAt;
-  final Map<String, dynamic>? guestName;
-  final Map<String, dynamic>? guestPhone;
-  final Map<String, dynamic>? holdExpiresAt;
+  final String? guestName;
+  final String? guestPhone;
+  final String? holdExpiresAt;
   final String id;
   final int partySize;
   final String restaurantId;
@@ -748,7 +792,7 @@ class ReservationResponse {
   final String startsAt;
   final String status;
   final List<ReservationTableResponse>? tables;
-  final Map<String, dynamic>? userId;
+  final String? userId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'code': code,
@@ -783,6 +827,112 @@ class ReservationTableResponse {
       };
 }
 
+class RestaurantProfileResponse {
+  const RestaurantProfileResponse({
+    this.addressAr,
+    this.addressEn,
+    required this.amenities,
+    required this.bookingMode,
+    required this.city,
+    required this.cuisines,
+    this.descriptionAr,
+    this.descriptionEn,
+    required this.hours,
+    required this.id,
+    this.lat,
+    this.lng,
+    required this.nameAr,
+    required this.nameEn,
+    this.neighborhood,
+    this.phone,
+    this.policies,
+    this.priceBand,
+    required this.rating,
+    required this.ratingCount,
+    required this.slug,
+    required this.timezone,
+    this.website,
+  });
+
+  factory RestaurantProfileResponse.fromJson(Map<String, dynamic> json) => RestaurantProfileResponse(
+        addressAr: json['address_ar'] == null ? null : json['address_ar'] as String,
+        addressEn: json['address_en'] == null ? null : json['address_en'] as String,
+        amenities: (json['amenities'] as List<dynamic>).map((e) => e as String).toList(),
+        bookingMode: json['booking_mode'] as String,
+        city: json['city'] as String,
+        cuisines: (json['cuisines'] as List<dynamic>).map((e) => e as String).toList(),
+        descriptionAr: json['description_ar'] == null ? null : json['description_ar'] as String,
+        descriptionEn: json['description_en'] == null ? null : json['description_en'] as String,
+        hours: (json['hours'] as List<dynamic>).map((e) => OpeningHoursResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        id: json['id'] as String,
+        lat: json['lat'] == null ? null : (json['lat'] as num).toDouble(),
+        lng: json['lng'] == null ? null : (json['lng'] as num).toDouble(),
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
+        phone: json['phone'] == null ? null : json['phone'] as String,
+        policies: json['policies'] == null ? null : json['policies'] as Map<String, dynamic>,
+        priceBand: json['price_band'] == null ? null : (json['price_band'] as num).toInt(),
+        rating: (json['rating'] as num).toDouble(),
+        ratingCount: (json['rating_count'] as num).toInt(),
+        slug: json['slug'] as String,
+        timezone: json['timezone'] as String,
+        website: json['website'] == null ? null : json['website'] as String,
+      );
+
+  final String? addressAr;
+  final String? addressEn;
+  final List<String> amenities;
+  /// instant | request
+  final String bookingMode;
+  final String city;
+  final List<String> cuisines;
+  final String? descriptionAr;
+  final String? descriptionEn;
+  final List<OpeningHoursResponse> hours;
+  final String id;
+  final double? lat;
+  final double? lng;
+  final String nameAr;
+  final String nameEn;
+  final String? neighborhood;
+  final String? phone;
+  final Map<String, dynamic>? policies;
+  final int? priceBand;
+  final double rating;
+  final int ratingCount;
+  final String slug;
+  /// IANA zone every wall-clock time here is in.
+  final String timezone;
+  final String? website;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (addressAr != null) 'address_ar': addressAr!,
+        if (addressEn != null) 'address_en': addressEn!,
+        'amenities': amenities.map((e) => e).toList(),
+        'booking_mode': bookingMode,
+        'city': city,
+        'cuisines': cuisines.map((e) => e).toList(),
+        if (descriptionAr != null) 'description_ar': descriptionAr!,
+        if (descriptionEn != null) 'description_en': descriptionEn!,
+        'hours': hours.map((e) => e.toJson()).toList(),
+        'id': id,
+        if (lat != null) 'lat': lat!,
+        if (lng != null) 'lng': lng!,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        if (neighborhood != null) 'neighborhood': neighborhood!,
+        if (phone != null) 'phone': phone!,
+        if (policies != null) 'policies': policies!,
+        if (priceBand != null) 'price_band': priceBand!,
+        'rating': rating,
+        'rating_count': ratingCount,
+        'slug': slug,
+        'timezone': timezone,
+        if (website != null) 'website': website!,
+      };
+}
+
 class RestaurantResponse {
   const RestaurantResponse({
     required this.city,
@@ -799,24 +949,24 @@ class RestaurantResponse {
 
   factory RestaurantResponse.fromJson(Map<String, dynamic> json) => RestaurantResponse(
         city: json['city'] as String,
-        descriptionAr: json['descriptionAr'] == null ? null : json['descriptionAr'] as Map<String, dynamic>,
-        descriptionEn: json['descriptionEn'] == null ? null : json['descriptionEn'] as Map<String, dynamic>,
+        descriptionAr: json['descriptionAr'] == null ? null : json['descriptionAr'] as String,
+        descriptionEn: json['descriptionEn'] == null ? null : json['descriptionEn'] as String,
         id: json['id'] as String,
         nameAr: json['nameAr'] as String,
         nameEn: json['nameEn'] as String,
-        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as Map<String, dynamic>,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
         priceBand: json['priceBand'] == null ? null : (json['priceBand'] as num).toInt(),
         slug: json['slug'] as String,
         status: json['status'] as String,
       );
 
   final String city;
-  final Map<String, dynamic>? descriptionAr;
-  final Map<String, dynamic>? descriptionEn;
+  final String? descriptionAr;
+  final String? descriptionEn;
   final String id;
   final String nameAr;
   final String nameEn;
-  final Map<String, dynamic>? neighborhood;
+  final String? neighborhood;
   final int? priceBand;
   final String slug;
   final String status;
@@ -846,13 +996,13 @@ class SearchResponse {
   factory SearchResponse.fromJson(Map<String, dynamic> json) => SearchResponse(
         availabilityFiltered: json['availability_filtered'] as bool,
         estimatedTotal: (json['estimated_total'] as num).toInt(),
-        nextCursor: json['next_cursor'] == null ? null : json['next_cursor'] as Map<String, dynamic>,
+        nextCursor: json['next_cursor'] == null ? null : json['next_cursor'] as String,
         results: (json['results'] as List<dynamic>).map((e) => SearchResultResponse.fromJson(e as Map<String, dynamic>)).toList(),
       );
 
   final bool availabilityFiltered;
   final int estimatedTotal;
-  final Map<String, dynamic>? nextCursor;
+  final String? nextCursor;
   final List<SearchResultResponse> results;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -884,7 +1034,7 @@ class SearchResultResponse {
         id: json['id'] as String,
         nameAr: json['name_ar'] as String,
         nameEn: json['name_en'] as String,
-        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as Map<String, dynamic>,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
         nextAvailable: json['next_available'] == null ? null : (json['next_available'] as List<dynamic>).map((e) => e as String).toList(),
         priceBand: json['price_band'] == null ? null : (json['price_band'] as num).toInt(),
         rating: (json['rating'] as num).toDouble(),
@@ -897,7 +1047,7 @@ class SearchResultResponse {
   final String id;
   final String nameAr;
   final String nameEn;
-  final Map<String, dynamic>? neighborhood;
+  final String? neighborhood;
   /// Local HH:MM teasers. A HINT, not an offer — no absolute instant is given precisely so no client can treat one as bookable.
   final List<String>? nextAvailable;
   final int? priceBand;
@@ -939,27 +1089,28 @@ class ShiftResponse {
         active: json['active'] as bool,
         closesAt: json['closesAt'] as String,
         dayOfWeek: json['dayOfWeek'] == null ? null : (json['dayOfWeek'] as num).toInt(),
-        defaultTurnMinutes: json['defaultTurnMinutes'] as Map<String, dynamic>,
+        defaultTurnMinutes: (json['defaultTurnMinutes'] as Map<String, dynamic>).map((k, v) => MapEntry(k, (v as num).toInt())),
         id: json['id'] as String,
         isRamadan: json['isRamadan'] as bool,
         nameAr: json['nameAr'] as String,
         nameEn: json['nameEn'] as String,
         opensAt: json['opensAt'] as String,
         spansMidnight: json['spansMidnight'] as bool,
-        specificDate: json['specificDate'] == null ? null : json['specificDate'] as Map<String, dynamic>,
+        specificDate: json['specificDate'] == null ? null : json['specificDate'] as String,
       );
 
   final bool active;
   final String closesAt;
   final int? dayOfWeek;
-  final Map<String, dynamic> defaultTurnMinutes;
+  /// Party-size band → turn minutes, e.g. {"1-2":90}.
+  final Map<String, int> defaultTurnMinutes;
   final String id;
   final bool isRamadan;
   final String nameAr;
   final String nameEn;
   final String opensAt;
   final bool spansMidnight;
-  final Map<String, dynamic>? specificDate;
+  final String? specificDate;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'active': active,
@@ -1165,7 +1316,7 @@ class UpdateShiftDto {
         active: json['active'] == null ? null : json['active'] as bool,
         closesAt: json['closesAt'] == null ? null : json['closesAt'] as String,
         dayOfWeek: json['dayOfWeek'] == null ? null : (json['dayOfWeek'] as num).toInt(),
-        defaultTurnMinutes: json['defaultTurnMinutes'] == null ? null : json['defaultTurnMinutes'] as Map<String, dynamic>,
+        defaultTurnMinutes: json['defaultTurnMinutes'] == null ? null : (json['defaultTurnMinutes'] as Map<String, dynamic>).map((k, v) => MapEntry(k, (v as num).toInt())),
         isRamadan: json['isRamadan'] == null ? null : json['isRamadan'] as bool,
         nameAr: json['nameAr'] == null ? null : json['nameAr'] as String,
         nameEn: json['nameEn'] == null ? null : json['nameEn'] as String,
@@ -1178,7 +1329,8 @@ class UpdateShiftDto {
   final String? closesAt;
   /// 0=Sunday. Exactly one of this or specificDate.
   final int? dayOfWeek;
-  final Map<String, dynamic>? defaultTurnMinutes;
+  /// Party-size band → turn minutes. A bare `type: object` here would generate Map<String, dynamic> in the client, so the value type is declared.
+  final Map<String, int>? defaultTurnMinutes;
   /// Flag only — Maghrib anchoring is not implemented yet
   final bool? isRamadan;
   final String? nameAr;
@@ -1257,7 +1409,7 @@ class UserResponse {
   });
 
   factory UserResponse.fromJson(Map<String, dynamic> json) => UserResponse(
-        email: json['email'] == null ? null : json['email'] as Map<String, dynamic>,
+        email: json['email'] == null ? null : json['email'] as String,
         fullName: json['fullName'] as String,
         id: json['id'] as String,
         locale: json['locale'] as String,
@@ -1266,7 +1418,7 @@ class UserResponse {
         status: json['status'] as String,
       );
 
-  final Map<String, dynamic>? email;
+  final String? email;
   final String fullName;
   final String id;
   final String locale;

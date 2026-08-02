@@ -105,5 +105,85 @@ void main() {
       ''';
       expect(() => generator.generate(weird), throwsA(isA<StateError>()));
     });
+
+    // ── the one that got through ───────────────────────────────────────────
+    //
+    // `@ApiPropertyOptional({ nullable: true })` with no `type` makes Nest
+    // emit `{"nullable":true,"type":"object"}` — byte-identical to a genuine
+    // free-form map. The generator had ONE deliberate exception for
+    // `type: object` (defaultTurnMinutes is really a map), and that exception
+    // silently swallowed 28 string, number and date fields across the whole
+    // client: SearchResponse.next_cursor, ReservationResponse.holdExpiresAt
+    // and UserResponse.email were all `Map<String, dynamic>`.
+    //
+    // Nobody argued for the escape hatch. The framework created it. So the
+    // rule is now: a map must SAY what it maps to.
+    test('a bare `type: object` property is a hard error, not a map', () {
+      const bare = '''
+      {"paths":{},"components":{"schemas":{
+        "X":{"properties":{"maybeName":{"type":"object","nullable":true}}}}}}
+      ''';
+      expect(
+        () => generator.generate(bare),
+        throwsA(isA<StateError>().having((e) => e.message, 'message', contains('additionalProperties'))),
+      );
+    });
+
+    test('a map that declares its value type is fine, and is typed', () {
+      const declared = '''
+      {"paths":{},"components":{"schemas":{
+        "X":{"properties":{"turns":{"type":"object","additionalProperties":{"type":"integer"}}}}}}}
+      ''';
+      final out = generator.generate(declared)['models.g.dart']!;
+      expect(out, contains('Map<String, int>?'));
+    });
+
+    test('`additionalProperties: true` is a deliberate free-form object', () {
+      // `policies` really is open-ended JSON. The difference between this and
+      // the case above is not the resulting type — it is that somebody typed
+      // the words. A decision is allowed; an accident is not.
+      const freeForm = '''
+      {"paths":{},"components":{"schemas":{
+        "X":{"properties":{"policies":{"type":"object","additionalProperties":true}}}}}}
+      ''';
+      final out = generator.generate(freeForm)['models.g.dart']!;
+      expect(out, contains('Map<String, dynamic>? policies'));
+    });
+  });
+
+  group('no field in the committed client is an untyped map', () {
+    // The census: count what the scan actually READ, never what it should
+    // have found. A regex that silently matches nothing would otherwise report
+    // a clean bill of health for a file it never opened.
+    test('every generated field has a real Dart type', () {
+      final models = File('lib/src/generated/models.g.dart').readAsStringSync();
+      final fields = RegExp(r'^  final ([\w<>, ?]+) (\w+);$', multiLine: true)
+          .allMatches(models)
+          .map((m) => '${m.group(1)} ${m.group(2)}')
+          .toList();
+
+      expect(
+        fields.length,
+        greaterThan(100),
+        reason: 'Only ${fields.length} fields parsed out of a ${models.length}-byte file — '
+            'the scanner is broken, not the client.',
+      );
+
+      // `policies` is the ONE field allowed to be free-form, and it is named
+      // here rather than pattern-matched: an allowance that grows by itself is
+      // the escape hatch coming back.
+      const deliberatelyFreeForm = <String>{'Map<String, dynamic>? policies'};
+
+      final maps = fields
+          .where((f) => f.startsWith('Map<String, dynamic>'))
+          .where((f) => !deliberatelyFreeForm.contains(f))
+          .toList();
+      expect(
+        maps,
+        isEmpty,
+        reason: '${maps.length} field(s) are untyped maps. A `Map<String, dynamic>` '
+            'here compiles at every call site and fails at runtime:\n  ${maps.join('\n  ')}',
+      );
+    });
   });
 }

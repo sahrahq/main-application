@@ -73,6 +73,17 @@ class SahraIcon extends StatelessWidget {
     'tag',
     'ticket',
     'globe',
+    // Added while building the booking path.
+    //
+    // `minus` retires a wave-3 cosmetic flag: the party stepper was using `x`
+    // as a minus, and `x` is a CLOSE glyph — "remove this", not "one fewer".
+    // The reference writes the HTML entity `&minus;`, which has no icon at
+    // all, so there was nothing to draw from.
+    'minus',
+    'map-pin',
+    'chevron-down',
+    // Directional. See the note on _material below — this one MIRRORS.
+    'arrow-back',
   ];
 
   static const Map<String, IconData> _material = <String, IconData>{
@@ -91,6 +102,19 @@ class SahraIcon extends StatelessWidget {
     'tag': Icons.local_offer_outlined,
     'ticket': Icons.confirmation_number_outlined,
     'globe': Icons.language,
+    'minus': Icons.remove,
+    'map-pin': Icons.place_outlined,
+    'chevron-down': Icons.keyboard_arrow_down,
+    // `Icons.arrow_back` carries `matchTextDirection: true`, so Flutter FLIPS
+    // it under `Directionality.rtl` and an Arabic screen gets a back arrow
+    // pointing right — which is what `VenueDetailScreen.jsx` does by hand
+    // (`name={ar ? 'arrow-right' : 'arrow-left'}`).
+    //
+    // Asserted in icon_direction_test.dart rather than trusted: the flag is a
+    // property of a Material constant that a future SDK could change, and a
+    // back arrow pointing the wrong way is the exact "mirrors but reads wrong"
+    // failure ENGINEERING-STANDARDS lists as un-catchable by any other test.
+    'arrow-back': Icons.arrow_back,
   };
 
   @override

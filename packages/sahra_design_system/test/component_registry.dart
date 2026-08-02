@@ -301,6 +301,151 @@ final Map<String, Widget Function(Cell)> componentGoldens = <String, Widget Func
         label: _label(cell, en: 'are going', ar: 'رايحين'),
       ),
 
+  // ══ DISCOVERED while building the customer booking path ═════════════════
+  //
+  // Six pieces the three screens repeat that are not among the sixteen. Each
+  // gets the same harness as a planned component — the alternative is a
+  // "just this once" inline widget, and there is never only one of those.
+
+  'Photo/placeholder': (cell) => const SizedBox(
+        width: 320,
+        child: SahraPhoto(height: 180, radius: 16),
+      ),
+  'Photo/with-overlay-text': (cell) => SizedBox(
+        width: 320,
+        child: SahraPhoto(
+          height: 180,
+          radius: 16,
+          gradientOverlay: true,
+          label: _label(cell, en: 'TONIGHT', ar: 'الليلة'),
+        ),
+      ),
+
+  'PhotoIconButton/row': (cell) => SizedBox(
+        width: 260,
+        // Over a photo, because that is the only place it appears and a
+        // golden of it on a plain surface would prove nothing about the one
+        // contrast case no guideline can check.
+        child: SahraPhoto(
+          height: 120,
+          radius: 16,
+          child: Padding(
+            padding: SahraSpace.all(SahraSpace.s3),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                SahraPhotoIconButton(
+                  icon: 'arrow-back',
+                  semanticLabel: _label(cell, en: 'Back', ar: 'رجوع'),
+                  onPressed: _noop,
+                ),
+                SahraPhotoIconButton(
+                  icon: 'heart',
+                  active: true,
+                  semanticLabel: _label(cell, en: 'Saved', ar: 'محفوظ'),
+                  onPressed: _noop,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+
+  'SectionLabel/three': (cell) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          SahraSectionLabel(_label(cell, en: 'Date', ar: 'التاريخ')),
+          SizedBox(height: SahraSpace.s3),
+          SahraSectionLabel(_label(cell, en: 'Party size', ar: 'عدد الأفراد')),
+          SizedBox(height: SahraSpace.s3),
+          SahraSectionLabel(_label(cell, en: 'Time', ar: 'الوقت')),
+        ],
+      ),
+
+  'PartyStepper/mid': (cell) => SahraPartyStepper(
+        value: 4,
+        onChanged: (_) {},
+        unitLabel: _label(cell, en: 'guests', ar: 'أفراد'),
+        decreaseLabel: _label(cell, en: 'One fewer guest', ar: 'فرد أقل'),
+        increaseLabel: _label(cell, en: 'One more guest', ar: 'فرد زيادة'),
+      ),
+  'PartyStepper/at-minimum': (cell) => SahraPartyStepper(
+        value: 1,
+        onChanged: (_) {},
+        unitLabel: _label(cell, en: 'guest', ar: 'فرد'),
+        decreaseLabel: _label(cell, en: 'One fewer guest', ar: 'فرد أقل'),
+        increaseLabel: _label(cell, en: 'One more guest', ar: 'فرد زيادة'),
+      ),
+
+  'DateStrip/week': (cell) => SizedBox(
+        width: 380,
+        child: SahraDateStrip(
+          selectedId: '2026-08-05',
+          onSelected: (_) {},
+          days: <SahraDay>[
+            SahraDay(
+              id: '2026-08-05',
+              label: _label(cell, en: 'Tonight', ar: 'الليلة'),
+              number: '5',
+              semanticLabel: _label(cell, en: 'Tonight, 5 August', ar: 'الليلة، 5 أغسطس'),
+            ),
+            SahraDay(
+              id: '2026-08-06',
+              label: _label(cell, en: 'Thu', ar: 'الخميس'),
+              number: '6',
+              semanticLabel: _label(cell, en: 'Thursday 6 August', ar: 'الخميس 6 أغسطس'),
+            ),
+            SahraDay(
+              id: '2026-08-07',
+              label: _label(cell, en: 'Fri', ar: 'الجمعة'),
+              number: '7',
+              semanticLabel: _label(cell, en: 'Friday 7 August', ar: 'الجمعة 7 أغسطس'),
+            ),
+            SahraDay(
+              id: '2026-08-08',
+              label: _label(cell, en: 'Sat', ar: 'السبت'),
+              number: '8',
+              semanticLabel: _label(cell, en: 'Saturday 8 August', ar: 'السبت 8 أغسطس'),
+            ),
+          ],
+        ),
+      ),
+
+  'ResultRow/available': (cell) => SizedBox(
+        width: 380,
+        child: SahraResultRow(
+          name: _label(cell, en: 'Layali Lounge', ar: 'ليالي لاونج'),
+          rating: 4.8,
+          reviews: 312,
+          meta: _label(cell, en: r'Levantine · $$$', ar: r'شامي · $$$'),
+          availability: _label(cell, en: 'Next: 21:00', ar: 'القادم: 21:00'),
+          saveLabel: _label(cell, en: 'Save Layali Lounge', ar: 'احفظ ليالي لاونج'),
+          onSave: _noop,
+          onTap: _noop,
+          semanticLabel: _label(
+            cell,
+            en: 'Layali Lounge, rated 4.8 from 312 reviews, Levantine, next table 21:00',
+            ar: 'ليالي لاونج، تقييم 4.8 من 312 مراجعة، شامي، أقرب طاولة 21:00',
+          ),
+        ),
+      ),
+  'ResultRow/no-availability': (cell) => SizedBox(
+        width: 380,
+        child: SahraResultRow(
+          name: _label(cell, en: 'El Fishawy', ar: 'الفيشاوي'),
+          rating: 4.5,
+          reviews: 2841,
+          meta: _label(cell, en: r'Egyptian · $', ar: r'مصري · $'),
+          onTap: _noop,
+          semanticLabel: _label(
+            cell,
+            en: 'El Fishawy, rated 4.5 from 2841 reviews, Egyptian',
+            ar: 'الفيشاوي، تقييم 4.5 من 2841 مراجعة، مصري',
+          ),
+        ),
+      ),
+
   'Button/sizes': (cell) => Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
@@ -345,6 +490,23 @@ const Set<String> exportedComponents = <String>{
   'BookingWidget',
   'DiningTrail',
   'RestaurantCard',
+  // Discovered while building the customer booking path — not part of the
+  // original sixteen, held to the same bar. Counted SEPARATELY: the sixteen
+  // came from the design package, these came from the screens.
+  'Photo',
+  'PhotoIconButton',
+  'SectionLabel',
+  'PartyStepper',
+  'DateStrip',
+  'ResultRow',
+};
+
+/// The sixteen from the design package, as distinct from what building the
+/// screens turned up. Kept apart so "16 of 16 done" stays a true statement.
+const Set<String> designPackageComponents = <String>{
+  'Button', 'Icon', 'Mashrabiya', 'Badge', 'Chip', 'Input', 'Avatar',
+  'RatingStars', 'Skeleton', 'EmptyState', 'SearchBar', 'TabBar',
+  'AvatarStack', 'BookingWidget', 'DiningTrail', 'RestaurantCard',
 };
 
 /// Entries with no tap action BY DESIGN — a disabled control, or a purely
@@ -370,6 +532,10 @@ const Set<String> nonInteractiveGoldens = <String>{
   // Wave 3 display-only.
   'DiningTrail/visits',
   'RestaurantCard/plain',
+  // Discovered components with no tap action.
+  'Photo/placeholder', 'Photo/with-overlay-text',
+  'SectionLabel/three',
+  'ResultRow/no-availability',
 };
 
 /// A real callback: a null one disables the button, and a disabled control

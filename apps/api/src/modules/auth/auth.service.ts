@@ -1,7 +1,7 @@
 import { Injectable, ConflictException, UnauthorizedException, Logger } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../shared/prisma/prisma.service';
-import { TokenService, TokenPair } from './token.service';
+import { TokenService, TokenPair, subjectOf } from './token.service';
 import { OtpService } from './otp/otp.service';
 
 /**
@@ -119,7 +119,7 @@ export class AuthService {
     }
 
     return this.tokens.issuePair(
-      { id: user.id, locale: user.locale },
+      subjectOf(user),
       user.roles.map((r) => r.role.name),
       ctx,
     );
@@ -147,14 +147,53 @@ export class AuthService {
         // pending → active. Never downgrade a suspended account by verifying.
         status: user.status === 'pending' ? 'active' : user.status,
       },
-      select: { id: true, locale: true },
+      select: { id: true, phone: true, email: true, fullName: true, locale: true, status: true },
     });
 
     return this.tokens.issuePair(
-      activated,
+      subjectOf(activated),
       user.roles.map((r) => r.role.name),
       ctx,
     );
+  }
+
+  /**
+   * The caller's own profile — `GET /auth/me` (doc 06 §3 `/me`).
+   *
+   * Read from the database rather than from the access token. The JWT carries
+   * only what AUTHORISATION needs (`sub`, `roles`, `locale`, doc 09 §1.1);
+   * widening it to hold a display name would put stale profile data in a
+   * credential that lives for fifteen minutes and cannot be revoked early.
+   */
+  async profile(userId: string): Promise<{
+    id: string;
+    phone: string;
+    email: string | null;
+    fullName: string;
+    locale: string;
+    status: string;
+    roles: string[];
+  }> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: { roles: { include: { role: true } } },
+    });
+    if (!user) {
+      throw new UnauthorizedException({
+        code: 'unauthenticated',
+        message: 'Your session has expired. Please sign in again.',
+        message_ar: 'انتهت جلستك. سجّل الدخول من جديد.',
+      });
+    }
+    return {
+      id: user.id,
+      phone: user.phone,
+      email: user.email,
+      fullName: user.fullName,
+      locale: user.locale,
+      status: user.status,
+      roles: user.roles.map((r) => r.role.name),
+    };
   }
 
   /** Re-send a phone-verification code. Rate limits live in OtpService. */

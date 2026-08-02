@@ -4,10 +4,67 @@ import { ConfigService } from '@nestjs/config';
 import { randomBytes, createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 
+/**
+ * doc 06 §2 shows the login response carrying the user alongside the tokens:
+ *
+ *   { "access_token", "expires_in", "refresh_token",
+ *     "user": { "id", "full_name", "locale", "roles" } }
+ *
+ * It did not, and `TokenPairResponse` declared `user` required — so the
+ * generated Dart client would have thrown a null cast on every sign-in. Found
+ * by annotating controller return types, which put `tsc` on the same contract
+ * the OpenAPI decorators advertise. See the note in reservations.controller.ts.
+ */
+export interface TokenUser {
+  id: string;
+  phone: string;
+  email: string | null;
+  fullName: string;
+  locale: string;
+  status: string;
+  roles: string[];
+}
+
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
+  user: TokenUser;
+}
+
+/** Everything `issuePair` needs to build both the claims and the user block. */
+export interface TokenSubject {
+  id: string;
+  phone: string;
+  email: string | null;
+  fullName: string;
+  locale: string;
+  status: string;
+}
+
+/**
+ * Narrow a Prisma `User` row to what `issuePair` needs.
+ *
+ * A function rather than an inline literal at each call site, because the
+ * three of them drifting is exactly how `user` went missing from the response
+ * in the first place.
+ */
+export function subjectOf(u: {
+  id: string;
+  phone: string;
+  email: string | null;
+  fullName: string;
+  locale: string;
+  status: string;
+}): TokenSubject {
+  return {
+    id: u.id,
+    phone: u.phone,
+    email: u.email,
+    fullName: u.fullName,
+    locale: u.locale,
+    status: u.status,
+  };
 }
 
 export interface AccessClaims {
@@ -49,7 +106,7 @@ export class TokenService {
   }
 
   async issuePair(
-    user: { id: string; locale: string },
+    user: TokenSubject,
     roles: string[],
     ctx: { userAgent?: string; ip?: string } = {},
     familyId?: string,
@@ -72,7 +129,20 @@ export class TokenService {
       },
     });
 
-    return { accessToken, refreshToken: raw, expiresIn: ACCESS_TTL_SECONDS };
+    return {
+      accessToken,
+      refreshToken: raw,
+      expiresIn: ACCESS_TTL_SECONDS,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        email: user.email,
+        fullName: user.fullName,
+        locale: user.locale,
+        status: user.status,
+        roles,
+      },
+    };
   }
 
   /**
@@ -123,7 +193,7 @@ export class TokenService {
 
     const roles = existing.user.roles.map((r) => r.role.name);
     const pair = await this.issuePair(
-      { id: existing.user.id, locale: existing.user.locale },
+      subjectOf(existing.user),
       roles,
       ctx,
       existing.familyId, // stay in the same family

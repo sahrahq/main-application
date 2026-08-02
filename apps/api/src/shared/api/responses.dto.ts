@@ -21,7 +21,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class UserResponse {
   @ApiProperty() id!: string;
   @ApiProperty() phone!: string;
-  @ApiPropertyOptional({ nullable: true }) email?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) email?: string | null;
   @ApiProperty() fullName!: string;
   @ApiProperty() locale!: string;
   @ApiProperty() status!: string;
@@ -74,11 +74,11 @@ export class SearchResultResponse {
   @ApiProperty() name_en!: string;
   @ApiProperty() name_ar!: string;
   @ApiProperty({ type: [String] }) cuisines!: string[];
-  @ApiPropertyOptional({ nullable: true }) neighborhood?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) neighborhood?: string | null;
   @ApiPropertyOptional({ type: 'integer', nullable: true }) price_band?: number | null;
   @ApiProperty() rating!: number;
   @ApiProperty({ type: 'integer' }) rating_count!: number;
-  @ApiPropertyOptional() distance_km?: number;
+  @ApiPropertyOptional({ type: 'number' }) distance_km?: number;
 
   @ApiPropertyOptional({
     type: [String],
@@ -91,9 +91,60 @@ export class SearchResultResponse {
 
 export class SearchResponse {
   @ApiProperty({ type: [SearchResultResponse] }) results!: SearchResultResponse[];
-  @ApiPropertyOptional({ nullable: true }) next_cursor?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) next_cursor?: string | null;
   @ApiProperty({ type: 'integer' }) estimated_total!: number;
   @ApiProperty() availability_filtered!: boolean;
+}
+
+// ─────────────────────────────────────────────────── public venue profile ──
+
+export class OpeningHoursResponse {
+  @ApiPropertyOptional({ type: 'integer', nullable: true, description: '0=Sunday; null on a one-off date' })
+  day_of_week?: number | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string', description: 'YYYY-MM-DD; null on a weekly row' })
+  specific_date?: string | null;
+  @ApiProperty() name_en!: string;
+  @ApiProperty() name_ar!: string;
+  @ApiProperty({ description: "HH:MM on the restaurant's wall clock." }) opens_at!: string;
+  @ApiProperty() closes_at!: string;
+  @ApiProperty() spans_midnight!: boolean;
+}
+
+/**
+ * doc 06 §3 `/restaurants/:idOrSlug`. snake_case to match the search result
+ * item in the same section — this is the same entity a diner just tapped.
+ *
+ * NOT present, because the schema has nowhere to put them yet: photos (no
+ * image table, R-2.2) and menus (no menu tables, R-2.3). They are omitted
+ * rather than returned empty, because an empty array reads as "this venue has
+ * no photos" instead of "this platform cannot store photos yet".
+ */
+export class RestaurantProfileResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() slug!: string;
+  @ApiProperty() name_en!: string;
+  @ApiProperty() name_ar!: string;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) description_en?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) description_ar?: string | null;
+  @ApiProperty({ type: [String] }) cuisines!: string[];
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) neighborhood?: string | null;
+  @ApiProperty() city!: string;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) address_en?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) address_ar?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'number' }) lat?: number | null;
+  @ApiPropertyOptional({ nullable: true, type: 'number' }) lng?: number | null;
+  @ApiPropertyOptional({ type: 'integer', nullable: true }) price_band?: number | null;
+  @ApiProperty() rating!: number;
+  @ApiProperty({ type: 'integer' }) rating_count!: number;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) phone?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) website?: string | null;
+  @ApiProperty({ type: [String] }) amenities!: string[];
+  @ApiPropertyOptional({ type: 'object', additionalProperties: true, nullable: true })
+  policies?: Record<string, unknown> | null;
+  @ApiProperty({ description: 'IANA zone every wall-clock time here is in.' })
+  timezone!: string;
+  @ApiProperty({ description: 'instant | request' }) booking_mode!: string;
+  @ApiProperty({ type: [OpeningHoursResponse] }) hours!: OpeningHoursResponse[];
 }
 
 // ───────────────────────────────────────────────────────────── reservations ──
@@ -106,15 +157,15 @@ export class ReservationResponse {
   @ApiProperty() id!: string;
   @ApiProperty() code!: string;
   @ApiProperty() restaurantId!: string;
-  @ApiPropertyOptional({ nullable: true }) userId?: string | null;
-  @ApiPropertyOptional({ nullable: true }) guestName?: string | null;
-  @ApiPropertyOptional({ nullable: true }) guestPhone?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) userId?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) guestName?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) guestPhone?: string | null;
   @ApiProperty({ type: 'integer' }) partySize!: number;
   @ApiProperty() startsAt!: string;
   @ApiProperty() endsAt!: string;
   @ApiProperty() status!: string;
   @ApiProperty() source!: string;
-  @ApiPropertyOptional({ nullable: true }) holdExpiresAt?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) holdExpiresAt?: string | null;
   @ApiPropertyOptional({ type: [ReservationTableResponse] })
   tables?: ReservationTableResponse[];
 }
@@ -127,11 +178,11 @@ export class RestaurantResponse {
   @ApiProperty() status!: string;
   @ApiProperty() nameEn!: string;
   @ApiProperty() nameAr!: string;
-  @ApiPropertyOptional({ nullable: true }) descriptionEn?: string | null;
-  @ApiPropertyOptional({ nullable: true }) descriptionAr?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) descriptionEn?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) descriptionAr?: string | null;
   @ApiPropertyOptional({ type: 'integer', nullable: true }) priceBand?: number | null;
   @ApiProperty() city!: string;
-  @ApiPropertyOptional({ nullable: true }) neighborhood?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) neighborhood?: string | null;
 }
 
 export class TableResponse {
@@ -157,11 +208,13 @@ export class ShiftResponse {
   @ApiProperty() nameEn!: string;
   @ApiProperty() nameAr!: string;
   @ApiPropertyOptional({ type: 'integer', nullable: true }) dayOfWeek?: number | null;
-  @ApiPropertyOptional({ nullable: true }) specificDate?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) specificDate?: string | null;
   @ApiProperty() opensAt!: string;
   @ApiProperty() closesAt!: string;
   @ApiProperty() spansMidnight!: boolean;
-  @ApiProperty({ type: Object }) defaultTurnMinutes!: Record<string, number>;
+  @ApiProperty({ type: 'object', additionalProperties: { type: 'integer' },
+    description: 'Party-size band → turn minutes, e.g. {"1-2":90}.' })
+  defaultTurnMinutes!: Record<string, number>;
   @ApiProperty() isRamadan!: boolean;
   @ApiProperty() active!: boolean;
 }
@@ -195,10 +248,10 @@ export class BookRowResponse {
   @ApiProperty() status!: string;
   @ApiProperty({ description: 'app | walk_in | phone — which door it came through.' })
   source!: string;
-  @ApiPropertyOptional({ nullable: true }) guestName?: string | null;
-  @ApiPropertyOptional({ nullable: true }) guestPhone?: string | null;
-  @ApiPropertyOptional({ nullable: true }) specialRequests?: string | null;
-  @ApiPropertyOptional({ nullable: true }) occasion?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) guestName?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) guestPhone?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) specialRequests?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) occasion?: string | null;
   @ApiProperty({ type: [String] }) tables!: string[];
 }
 
@@ -217,7 +270,7 @@ export class AdminRestaurantResponse {
   @ApiProperty() nameEn!: string;
   @ApiProperty() nameAr!: string;
   @ApiProperty() city!: string;
-  @ApiPropertyOptional({ nullable: true }) neighborhood?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) neighborhood?: string | null;
 }
 
 // ──────────────────────────────────────────────────────────────────── error ──
@@ -234,7 +287,7 @@ export class ApiErrorBody {
   @ApiProperty() message_ar!: string;
   @ApiPropertyOptional({ type: [ErrorDetailResponse] })
   details?: ErrorDetailResponse[];
-  @ApiPropertyOptional() retry_after?: number;
+  @ApiPropertyOptional({ type: 'number' }) retry_after?: number;
   @ApiProperty() request_id!: string;
 }
 

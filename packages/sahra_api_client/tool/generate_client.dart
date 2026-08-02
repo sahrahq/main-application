@@ -126,11 +126,45 @@ _Type _typeOf(Map<String, dynamic> schema, String where) {
         toJson: '%s.map((e) => ${inner.encode('e')}).toList()',
       );
     case 'object':
-      // A DECLARED free-form object — `defaultTurnMinutes` is genuinely a map
-      // of party-band to minutes. This is NOT the `dynamic` escape hatch: the
-      // spec says object, so a map is the honest type. An operation with no
-      // response schema at all still throws below.
-      return const _Type('Map<String, dynamic>', fromJson: '%s as Map<String, dynamic>');
+      // A map must SAY WHAT IT MAPS TO.
+      //
+      // `type: object` alone is not a declaration of intent, because Nest
+      // emits it for `@ApiPropertyOptional({ nullable: true })` with no
+      // explicit type — indistinguishable from a genuine free-form object.
+      // That is how 28 string, number and date fields became
+      // `Map<String, dynamic>` in the first generated client, including
+      // `SearchResponse.next_cursor` and `ReservationResponse.holdExpiresAt`.
+      // Nobody argued for the escape hatch; the framework produced it
+      // silently, which is worse.
+      //
+      // `additionalProperties` is how OpenAPI spells "map of X", so requiring
+      // it costs a real map nothing and gives back a real value type.
+      final values = schema['additionalProperties'];
+      if (values is Map) {
+        final inner = _typeOf(values.cast<String, dynamic>(), '$where{}');
+        return _Type(
+          'Map<String, ${inner.dart}>',
+          fromJson: '(%s as Map<String, dynamic>)'
+              '.map((k, v) => MapEntry(k, ${inner.decode('v')}))',
+        );
+      }
+      if (values == true) {
+        // `additionalProperties: true` is OpenAPI's explicit "free-form
+        // object". Someone TYPED that — `policies` really is open-ended JSON —
+        // which is the difference between a deliberate map and a field whose
+        // type went missing. Both look like `type: object` in the spec; only
+        // this one is a decision.
+        return const _Type('Map<String, dynamic>', fromJson: '%s as Map<String, dynamic>');
+      }
+      throw StateError(
+        'Bare `type: object` at $where.\n'
+        'Either it is a real map — then declare its values:\n'
+        "    @ApiProperty({ type: 'object', additionalProperties: { type: 'integer' } })\n"
+        'or it is a field that lost its type, which is what\n'
+        '`@ApiPropertyOptional({ nullable: true })` produces with no `type:`.\n'
+        'Give it one. This generator will not emit Map<String, dynamic> for a\n'
+        'field that is really a string.',
+      );
   }
 
   throw StateError(
