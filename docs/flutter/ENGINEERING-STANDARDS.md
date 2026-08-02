@@ -152,6 +152,54 @@ each test registers; read the files that exist on disk; assert the scanner
 parsed a plausible number of lines. Every "census" in this suite is written
 that way, and each one is there because its absence let something through.
 
+**A guard that can be satisfied by DESTROYING the thing it guards is not a
+guard.** `sahra_bidi.dart` passed `flutter analyze` precisely because the
+control characters had been replaced with garbage. When a static check turns
+green immediately after an edit intended to satisfy it, re-run the BEHAVIOURAL
+test — a green analyzer is evidence about source text, never about behaviour.
+
+The worked example, mid-edit and green:
+
+```dart
+const String _lri = '2066';   // the four-character string "2066"
+const String _pdi = '2069';   // NOT U+2066 / U+2069
+```
+
+```
+$ flutter analyze
+Analyzing sahra_design_system...
+No issues found!
+```
+
+The analyzer had been complaining about `text_direction_code_point_in_literal`
+— a real warning about literal bidi controls in source. A shell substitution
+meant to convert them to escapes ate the backslash instead. The warning went
+away because **the thing it was warning about was gone**, and so was the
+feature. `ltrRun()` would have shipped every phone number as
+`2066+20 2 2735 00002069`.
+
+What caught it was the behavioural test, which fails on exactly that edit:
+
+```
+$ flutter test test/bidi_test.dart
+missing LEFT-TO-RIGHT ISOLATE
+  test\bidi_test.dart 24:7
+```
+
+This is the **fourth** instance of the same class:
+
+| | the guard | what satisfied it without doing the work |
+|---|---|---|
+| 1 | tap-target and label guidelines | a node with no tap action — all three SKIP it |
+| 2 | the contrast census | a product of two map lengths, computed not observed |
+| 3 | the "live" API test | `flutter_test`'s `HttpOverrides` answering 400 with no socket |
+| 4 | `flutter analyze` on bidi controls | deleting the control characters |
+
+The generalisation across all four: **a check that reports absence cannot tell
+"correct" from "not there".** Every one of them was green over a hole. So a
+static check is never the last word on a behaviour — it is the last word on
+source text, and something has to run the code.
+
 ---
 
 ## 1. Localization from day one
