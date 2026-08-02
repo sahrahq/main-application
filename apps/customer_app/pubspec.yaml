@@ -57,6 +57,8 @@ dev_dependencies:
   riverpod_generator: ^2.6.3
   sahra_lints:
     path: ../../packages/sahra_lints
+  sahra_test_harness:
+    path: ../../packages/sahra_test_harness
 
 flutter:
   uses-material-design: true
