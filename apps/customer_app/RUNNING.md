@@ -1,0 +1,226 @@
+# Running the customer app against a local backend
+
+Windows, PowerShell, from the repo root. Four terminals — the first three stay
+open.
+
+## 0. Once, if you have not already
+
+```powershell
+pnpm install
+cd apps\customer_app
+flutter pub get
+cd ..\..
+```
+
+`apps\api\.env` must exist with a working `DATABASE_URL` / `DIRECT_URL`
+(Supabase) — copy `apps\api\.env.example` and fill it in. `env\web.json` is
+already written for you and points at `http://localhost:3000`.
+
+---
+
+## 1. Infrastructure — Redis and Meilisearch
+
+```powershell
+docker compose up -d
+```
+
+Postgres is **not** here; it comes from Supabase. Expect two containers,
+`sahra-redis` and `sahra-meilisearch`, both healthy:
+
+```powershell
+docker ps --format "{{.Names}}`t{{.Status}}"
+```
+
+> **If you skip Meilisearch**, everything still runs — and search answers
+> **503**, which is the correct outage behaviour and one of the four states the
+> app is built to show. Worth doing once on purpose.
+
+## 2. Seed five Cairo restaurants
+
+```powershell
+cd apps\api
+pnpm seed
+```
+
+Expect:
+
+```
+  Layali Lounge  6 tables, 1 shift(s)  4f743baa-…
+  Sequoia        7 tables, 2 shift(s)  81edce98-…
+  Zooba          4 tables, 1 shift(s)  27de39d3-…
+  Kazoku         1 tables, 1 shift(s)  83d5701d-…
+  El Fishawy     5 tables, 1 shift(s)  781119c8-…
+Indexed 5 venue(s) for search.
+
+5 venues ready.
+```
+
+It is **idempotent** — re-run it any time. `pnpm seed --reset` additionally
+deletes those five venues' reservations, which is how you get your tables back
+after an evening of testing.
+
+The five are chosen so the screens differ, not to fill a list:
+
+| Venue | What it is there to show |
+|---|---|
+| **Layali Lounge** (Zamalek) | The ordinary case. Six tables, dinner 18:00–23:30 |
+| **Sequoia** (Zamalek) | Lunch AND dinner as separate shifts on the same day |
+| **Zooba** (Downtown) | **Closed on Mondays** — pick a Monday and see the empty state |
+| — | Verified against the running API: Sequoia gives **15 slots** on a Tuesday (12:00–22:00, lunch and dinner unioned); Kazoku gives none on a Monday and six on a Tuesday |
+| **Kazoku** (Maadi) | **ONE two-top.** Book it, then try again → `slot_taken`. Open **Tue–Sat only** |
+| **El Fishawy** (Khan el-Khalili) | Runs to 02:00, past midnight |
+
+## 3. The API
+
+```powershell
+cd apps\api
+pnpm start:dev
+```
+
+Wait for `SAHRA API on :3000 — docs at /api/docs`. Sanity check in a browser:
+<http://localhost:3000/v1/restaurants/search?q=layali>
+
+## 4. The app, in Chrome
+
+```powershell
+cd apps\customer_app
+flutter run -d chrome --dart-define-from-file=env/web.json
+```
+
+Chrome opens on the search screen.
+
+> The `--dart-define-from-file` matters. Without it the app uses the Android
+> emulator's host alias `10.0.2.2`, and in a browser every request fails as
+> "offline".
+
+---
+
+# What to expect, screen by screen
+
+### Search — `/`
+
+Opens on **"Where are you eating tonight?"** with a lantern. That is the
+"you have not searched yet" state, deliberately different from "nothing
+matched".
+
+Type `layali`, or `zooba`, or `sushi`. Also try:
+
+- **`كشري`** — Arabic
+- **`koshary`** — the same thing in Latin
+- **`5an`** — franco-Arabic; `5` is the Arabic خ
+
+Each result row shows `★ 4.8 (312) · Levantine · $$$ · Zamalek`. Tap **Tonight**
+and the list is re-filtered by **real availability** — venues with nothing free
+disappear entirely, and the survivors gain a terracotta `Next: 21:00` badge. The
+header changes from "5 places" to "3 places open tonight", and it only says
+"open tonight" when the server actually did the availability pass.
+
+**Switch to Arabic** with your browser/OS language, or run with
+`--dart-define=FLUTTER_WEB_USE_SKIA=true` and change the system language — the
+whole app mirrors, the fonts change to Reem Kufi and IBM Plex Sans Arabic, and
+the venue names come back in Arabic from the same response.
+
+### Venue detail — `/r/layali-lounge-zamalek`
+
+The URL is the real deep link (doc 07 §3), so you can paste it straight into the
+address bar.
+
+A 280px hero with a mashrabiya-latticed placeholder — **that is the designed
+no-photo state, not a broken image**. Under it: description, amenity badges,
+tonight's hours, address, phone, and a sticky **Book a table** bar.
+
+### Booking — tap "Book a table"
+
+A seven-day strip starting at **Tonight**, a party stepper, and the real
+bookable times for that venue, date and party size. Pick a time; the button
+becomes **Confirm for 2 at 19:30**.
+
+### Confirmation
+
+A perforated ticket with the venue, date, time, party size and a code like
+`SAH-7K2M`. That reservation is **really in Postgres** — check it:
+
+```powershell
+curl "http://localhost:3000/v1/owner/restaurants/<id>/reservations?date=2026-08-03"
+```
+
+---
+
+# The four failures worth provoking
+
+These are the ones users actually hit, so they are worth seeing rather than
+trusting.
+
+**1. Nothing found** — search `zzz no such venue`. A lantern, "Nothing matches
+that", "Try a nearby area, or a different night", and a **Start over** button.
+Not a spinner, not a blank list.
+
+**2. Search is down** — `docker stop sahra-meilisearch`, then search anything.
+"SAHRA is having a moment" with a **Try again** button and a `req_…` reference
+in the fine print you could quote to support. Note it does **not** say "nothing
+found": an outage and an empty result are different facts.
+`docker start sahra-meilisearch` to recover.
+
+**3. The slot is taken while you are choosing** — the one the type system
+cannot prevent. Two browser windows side by side:
+
+1. Both on **Kazoku** (one two-top), same date, same time. Pick a
+   **Tuesday–Saturday** — Kazoku does not open Sunday or Monday, and an empty
+   slot list is the wrong experiment.
+2. Confirm in window A.
+3. Confirm in window B.
+
+Window B gets **"Just booked by someone else — that time went while you were
+choosing. These are still open."**, and the slot list **behind the banner has
+already refreshed**, so the alternatives offered are real. It does not dead-end.
+
+**4. Offline mid-booking** — Chrome DevTools → Network → **Offline**, then
+Confirm. The failure appears next to the button that failed. Do it *between* the
+hold and the confirm and you get a **hold, not a booking** — the table is off the
+market for five minutes and then released by the sweeper. The customer app
+deliberately does not queue bookings (doc 07 §3): a booking that syncs later is
+a promise the engine never made.
+
+---
+
+# What will NOT work yet
+
+Stated plainly so you are not hunting for it:
+
+| | Why |
+|---|---|
+| **Any photograph** | No image table in the schema (R-2.2). Every venue shows the mashrabiya placeholder — the reference's own no-photo state |
+| **Menu, prices** | No menu tables (R-2.3) |
+| **Map** | The reference uses Leaflet; C-2.4 is P1 and no map package is in the doc 08 stack |
+| **The Collections / Lists / Events chips** | P1/P2. Only `Tonight` ships, and it is wired to the real filter |
+| **"Notify me" on a full slot** | Waitlist is C-3.6, P1 — `/waitlists` does not exist |
+| **Save / heart, share** | Favourites are C-2.7; not built |
+| **Sign in** | Booking works as a guest today. There is no auth screen yet |
+| **Add to calendar, invite friends** | No implementation — so the buttons are absent rather than dead |
+| **Load more results** | `next_cursor` is carried but unused: page two has **not** been availability-filtered, so "more" needs a product decision first |
+| **Neighbourhood in Arabic** | `neighborhood` is one `VARCHAR(80)` column, so it reads `Zamalek` even in Arabic. A schema fix, logged in `docs/decisions/2026-08-02-customer-booking-path-scope.md` |
+
+---
+
+# If something goes wrong
+
+| Symptom | Cause |
+|---|---|
+| Every screen says "You're offline" | The API is not running, or you started Flutter without `--dart-define-from-file=env/web.json` |
+| Search 503s, everything else works | Meilisearch is down. `docker compose up -d meilisearch`, then `cd apps\api; pnpm seed` |
+| Search returns nothing but the API has venues | Indexed but not seeded, or seeded before Meilisearch was up. Re-run `pnpm seed` |
+| "No tables that night" everywhere | You picked a day the venue is closed — Zooba is dark on Mondays, Kazoku on Sunday and Monday |
+| A booking 400s with `missing_idempotency_key` | A CORS preflight is stripping the header. Check `CORS_ORIGINS` is unset in dev so the loopback policy applies |
+
+## Running the tests yourself
+
+```powershell
+cd apps\customer_app
+flutter test --exclude-tags live      # 180 — no server needed
+flutter test --tags live              # needs the API from step 3, seeded
+flutter test --tags golden            # the pictures
+```
+
+The `live` suite is the one that walks search → detail → slots → hold → confirm
+over a real socket. It is excluded from CI on purpose; it is your end-to-end
+check, not CI's.
