@@ -486,3 +486,94 @@ describe('a booking the RESTAURANT cancelled does not silently vanish', () => {
     expect((mineList.body as { id: string }[]).map((r) => r.id)).toContain(other);
   });
 });
+
+describe('a booking made through the API belongs to the diner who made it', () => {
+  /**
+   * FOUND BY AN END-TO-END JOURNEY, and nothing else could have found it.
+   *
+   * `ReservationsService.createHold` has always accepted and stored a
+   * `userId`, and `confirmHold` has always checked it. The CONTROLLER never
+   * passed one. So every reservation ever created through the HTTP API had
+   * `user_id = NULL`, and a diner's own booking would never appear here — the
+   * "my bookings" screen would be permanently empty for real bookings while
+   * every unit test around it passed.
+   *
+   * The confirmation screen hid it, because that renders the response body
+   * rather than looking the reservation up.
+   */
+  let venueId = '';
+  let bookedId = '';
+
+  beforeAll(async () => {
+    venueId = restaurantId;
+    await prisma.$executeRaw`
+      INSERT INTO shifts (restaurant_id, name_en, name_ar, day_of_week,
+                          opens_at, closes_at, spans_midnight,
+                          default_turn_minutes, active, created_at, updated_at)
+      SELECT ${venueId}::uuid, 'Dinner', 'العشاء', d,
+             '18:00'::time, '23:00'::time, false,
+             '{"1-2":90}'::jsonb, true, now(), now()
+        FROM generate_series(0, 6) AS d`;
+  });
+
+  afterAll(async () => {
+    if (bookedId) {
+      await prisma.$executeRaw`DELETE FROM reservation_tables WHERE reservation_id = ${bookedId}::uuid`;
+      await prisma.$executeRaw`DELETE FROM reservations WHERE id = ${bookedId}::uuid`;
+    }
+    await prisma.$executeRaw`DELETE FROM shifts WHERE restaurant_id = ${venueId}::uuid`;
+  });
+
+  it('appears in the diner\'s own upcoming list', async () => {
+    const date = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const slots = await request(http as never)
+      .get(`/v1/restaurants/${venueId}/availability?date=${date}&party_size=2`)
+      .expect(200);
+    expect(slots.body.slots.length).toBeGreaterThan(0);
+
+    const hold = await request(http as never)
+      .post('/v1/reservations/holds')
+      .set(...auth(mine.token))
+      .set('idempotency-key', randomUUID())
+      .send({ restaurantId: venueId, startsAt: slots.body.slots[0].startsAt, partySize: 2 })
+      .expect(201);
+
+    const confirmed = await request(http as never)
+      .post(`/v1/reservations/holds/${hold.body.id}/confirm`)
+      .set(...auth(mine.token))
+      .set('idempotency-key', randomUUID())
+      .send({})
+      .expect(200);
+
+    bookedId = confirmed.body.id as string;
+    expect(confirmed.body.userId).toBe(mine.id);
+
+    const list = await request(http as never)
+      .get('/v1/reservations?status=upcoming')
+      .set(...auth(mine.token))
+      .expect(200);
+
+    expect((list.body as { id: string }[]).map((r) => r.id)).toContain(bookedId);
+  }, 60_000);
+
+  it('and a GUEST booking still works, belonging to nobody', async () => {
+    // Booking is still open without an account. Enforcing "account required to
+    // book" (doc 02 C-1.6) is a product decision, not something to slip in
+    // through a guard — and the shipped customer app books as a guest today.
+    const date = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
+    const slots = await request(http as never)
+      .get(`/v1/restaurants/${venueId}/availability?date=${date}&party_size=2`)
+      .expect(200);
+
+    const hold = await request(http as never)
+      .post('/v1/reservations/holds')
+      .set('idempotency-key', randomUUID())
+      .send({ restaurantId: venueId, startsAt: slots.body.slots[0].startsAt, partySize: 2 })
+      .expect(201);
+
+    expect(hold.body.userId).toBeNull();
+
+    await prisma.$executeRaw`DELETE FROM reservation_tables WHERE reservation_id = ${hold.body.id}::uuid`;
+    await prisma.$executeRaw`DELETE FROM reservations WHERE id = ${hold.body.id}::uuid`;
+  }, 60_000);
+});

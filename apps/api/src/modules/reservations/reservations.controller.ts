@@ -1,17 +1,33 @@
 import {
   Body, Controller, Headers, HttpCode, Post, Param, ParseUUIDPipe, BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiHeader, ApiOkResponse, ApiOperation, ApiResponse, ApiTags,
+  ApiBearerAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiResponse, ApiTags,
 } from '@nestjs/swagger';
 import { ReservationsService, HOLD_TTL_MINUTES } from './reservations.service';
 import { CreateHoldDto } from './dto/create-hold.dto';
 import { ConfirmHoldDto } from '../restaurants/dto/restaurant.dto';
 import { ReservationResponse } from '../../shared/api/responses.dto';
+import { OptionalJwtAuthGuard } from '../../shared/auth/optional-jwt-auth.guard';
+import { CurrentUser } from '../../shared/auth/current-user.decorator';
+import type { AuthedUser } from '../../shared/auth/jwt.strategy';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+/**
+ * OPTIONAL auth, not none and not required.
+ *
+ * Booking stayed open to guests (doc 02 C-1.6 makes browsing open; enforcing
+ * "account required to book" is a separate product decision), but the identity
+ * of a caller who HAS a token was being thrown away: the service has always
+ * accepted a `userId` and this controller never passed one, so every
+ * reservation created through the API had `user_id = NULL` and would never
+ * appear in that diner's own `GET /reservations`.
+ */
 @ApiTags('reservations')
+@ApiBearerAuth()
+@UseGuards(OptionalJwtAuthGuard)
 @Controller('reservations')
 export class ReservationsController {
   constructor(private readonly reservations: ReservationsService) {}
@@ -45,6 +61,7 @@ export class ReservationsController {
   // advertises, so the next mismatch is a compile error in this file.
   async createHold(
     @Body() dto: CreateHoldDto,
+    @CurrentUser() user?: AuthedUser,
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<ReservationResponse> {
     if (!idempotencyKey || !UUID_RE.test(idempotencyKey)) {
@@ -57,6 +74,8 @@ export class ReservationsController {
 
     const r = await this.reservations.createHold({
       restaurantId: dto.restaurantId,
+      // The whole point of the optional guard. Null for a genuine guest.
+      userId: user?.id ?? null,
       partySize: dto.partySize,
       startsAt: new Date(dto.startsAt),
       seatingPref: dto.seatingPref ?? null,
@@ -100,6 +119,7 @@ export class ReservationsController {
   async confirm(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ConfirmHoldDto,
+    @CurrentUser() user?: AuthedUser,
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<ReservationResponse> {
     if (!idempotencyKey || !UUID_RE.test(idempotencyKey)) {
@@ -112,6 +132,9 @@ export class ReservationsController {
 
     const r = await this.reservations.confirmHold({
       holdId: id,
+      // `confirmHold` refuses to let one diner confirm another's hold. It has
+      // always been able to; nothing was ever telling it who was asking.
+      userId: user?.id ?? null,
       specialRequests: dto.specialRequests ?? null,
       occasion: dto.occasion ?? null,
       idempotencyKey,

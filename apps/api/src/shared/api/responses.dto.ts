@@ -298,6 +298,25 @@ export class RemoveShiftResponse {
   @ApiProperty({ type: [String] }) reservationsOutsideHours!: string[];
 }
 
+/** doc 06 §4 — what a venue gets back after cancelling a booking. */
+export class CancelledReservationResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() code!: string;
+  @ApiProperty({ description: 'Always `cancelled_by_restaurant`.' }) status!: string;
+  @ApiProperty() cancelled_at!: string;
+  @ApiProperty({ description: 'Shown to the diner verbatim.' }) cancel_reason!: string;
+  @ApiProperty() starts_at!: string;
+  @ApiProperty({ type: 'integer' }) party_size!: number;
+
+  @ApiProperty({
+    description:
+      'True when the table this booking held is now available again. Released ' +
+      'by trg_resv_propagate, which flips reservation_tables.active off for ' +
+      'any status outside held|pending|confirmed|seated.',
+  })
+  table_released!: boolean;
+}
+
 // ───────────────────────────────────────────────────────── owner: the book ──
 
 export class BookRowResponse {

@@ -216,6 +216,70 @@ class BookRowResponse {
       };
 }
 
+class CancelReservationDto {
+  const CancelReservationDto({
+    required this.reason,
+  });
+
+  factory CancelReservationDto.fromJson(Map<String, dynamic> json) => CancelReservationDto(
+        reason: json['reason'] as String,
+      );
+
+  /// REQUIRED. Shown to the diner verbatim.
+  final String reason;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'reason': reason,
+      };
+}
+
+class CancelledReservationResponse {
+  const CancelledReservationResponse({
+    required this.cancelReason,
+    required this.cancelledAt,
+    required this.code,
+    required this.id,
+    required this.partySize,
+    required this.startsAt,
+    required this.status,
+    required this.tableReleased,
+  });
+
+  factory CancelledReservationResponse.fromJson(Map<String, dynamic> json) => CancelledReservationResponse(
+        cancelReason: json['cancel_reason'] as String,
+        cancelledAt: json['cancelled_at'] as String,
+        code: json['code'] as String,
+        id: json['id'] as String,
+        partySize: (json['party_size'] as num).toInt(),
+        startsAt: json['starts_at'] as String,
+        status: json['status'] as String,
+        tableReleased: json['table_released'] as bool,
+      );
+
+  /// Shown to the diner verbatim.
+  final String cancelReason;
+  final String cancelledAt;
+  final String code;
+  final String id;
+  final int partySize;
+  final String startsAt;
+  /// Always `cancelled_by_restaurant`.
+  final String status;
+  /// True when the table this booking held is now available again. Released by trg_resv_propagate, which flips reservation_tables.active off for any status outside held|pending|confirmed|seated.
+  final bool tableReleased;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'cancel_reason': cancelReason,
+        'cancelled_at': cancelledAt,
+        'code': code,
+        'id': id,
+        'party_size': partySize,
+        'starts_at': startsAt,
+        'status': status,
+        'table_released': tableReleased,
+      };
+}
+
 class ConfirmHoldDto {
   const ConfirmHoldDto({
     this.occasion,

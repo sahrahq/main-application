@@ -189,6 +189,63 @@
         ],
         "type": "object"
       },
+      "CancelReservationDto": {
+        "properties": {
+          "reason": {
+            "description": "REQUIRED. Shown to the diner verbatim.",
+            "example": "Burst pipe in the kitchen — we are so sorry.",
+            "maxLength": 300,
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
+      "CancelledReservationResponse": {
+        "properties": {
+          "cancel_reason": {
+            "description": "Shown to the diner verbatim.",
+            "type": "string"
+          },
+          "cancelled_at": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "party_size": {
+            "type": "integer"
+          },
+          "starts_at": {
+            "type": "string"
+          },
+          "status": {
+            "description": "Always `cancelled_by_restaurant`.",
+            "type": "string"
+          },
+          "table_released": {
+            "description": "True when the table this booking held is now available again. Released by trg_resv_propagate, which flips reservation_tables.active off for any status outside held|pending|confirmed|seated.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "status",
+          "cancelled_at",
+          "cancel_reason",
+          "starts_at",
+          "party_size",
+          "table_released"
+        ],
+        "type": "object"
+      },
       "ConfirmHoldDto": {
         "properties": {
           "occasion": {
@@ -1908,6 +1965,64 @@
         ]
       }
     },
+    "/v1/owner/reservations/{id}/cancel": {
+      "post": {
+        "operationId": "OwnerReservationActionsController_cancel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelReservationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelledReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "validation_failed — a reason is REQUIRED"
+          },
+          "403": {
+            "description": "not_an_owner"
+          },
+          "404": {
+            "description": "reservation_not_found — ALSO returned for another venue's reservation, deliberately, and byte-identical to an id that exists for nobody."
+          },
+          "409": {
+            "description": "invalid_status_transition — already settled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a booking, as the restaurant",
+        "tags": [
+          "owner:reservations"
+        ]
+      }
+    },
     "/v1/owner/restaurants": {
       "get": {
         "operationId": "OwnerRestaurantsController_listMine",
@@ -2772,6 +2887,11 @@
             "description": "slot_taken | pacing_limit_reached"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Hold a table for 5 minutes",
         "tags": [
           "reservations"
@@ -2828,6 +2948,11 @@
             "description": "hold_expired | invalid_status_transition"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Confirm a held table",
         "tags": [
           "reservations"

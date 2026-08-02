@@ -165,6 +165,21 @@ class SahraApi {
     return TokenPairResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `POST /v1/owner/reservations/{id}/cancel`
+  ///
+  /// Cancel a booking, as the restaurant
+  Future<CancelledReservationResponse> cancel({
+    required String id,
+    required CancelReservationDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/owner/reservations/$id/cancel',
+      body: body.toJson(),
+    );
+    return CancelledReservationResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `GET /v1/owner/restaurants`
   ///
   /// List my restaurants

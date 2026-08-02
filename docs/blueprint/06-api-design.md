@@ -184,12 +184,34 @@ re-implement the rule.
 | `/owner/restaurants/:id/reservations` | POST | Walk-in/phone entry `{guest_name, guest_phone?, party_size, starts_at}` |
 | `/owner/reservations/:id/accept` / `decline` | POST | request-mode |
 | `/owner/reservations/:id/seat` / `no-show` / `complete` / `transfer` | POST | State machine guarded; 409 invalid transition |
+| `/owner/reservations/:id/cancel` | POST | `{reason}` — **REQUIRED**. Sets `cancelled_by_restaurant`, frees the table. 409 if already settled; 404 for another venue's reservation |
 | `/owner/restaurants/:id/waitlist` | GET, POST `.../offer` | Console view |
 | `/owner/restaurants/:id/staff` | CRUD | Invite by phone; roles manager/host/viewer |
 | `/owner/restaurants/:id/analytics` | GET | `?from&to&metrics=covers,occupancy,no_show_rate,lead_time` (Pro gates depth) |
 | `/owner/restaurants/:id/promotions` | CRUD | |
 | `/owner/restaurants/:id/reviews/:reviewId/reply` | POST | |
 | `/owner/subscription` | GET/POST/PATCH | Plan, invoices |
+
+### The cancel row was missing, and that had a consequence
+
+**This table had no cancel row until 2026-08-02.** `accept`, `decline`, `seat`,
+`no-show`, `complete` and `transfer` were all here; the one action a venue
+takes when a pipe bursts was not.
+
+Its absence is why the diner-side acknowledgement model in §3 — a migration, a
+partial index, an endpoint and six tests — shipped **ahead of anything that
+could set `cancelled_by_restaurant`.** Correct machinery for an event that
+could not occur. Worth recording, because the gap was invisible from either
+side on its own: the diner half was complete and tested, the venue half was
+simply absent, and nothing compares the two.
+
+**The reason is REQUIRED**, which no other action here demands. It is what the
+diner ends up staring at, and "cancelled" with no explanation is worse than a
+phone call: it says something went wrong, gives them nothing to do about it,
+and leaves nobody to be annoyed with except us.
+
+**Cancelling frees the table**, via `trg_resv_propagate` — asserted against the
+availability endpoint and by re-booking the slot, not by reading the trigger.
 
 ## 5. Admin APIs (`/admin/...`, role: admin/support/moderator; every call audit-logged)
 
