@@ -165,6 +165,34 @@ class SahraApi {
     return TokenPairResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `DELETE /v1/devices`
+  ///
+  /// Revoke this handset — call on sign-out
+  Future<void> revoke({
+    required RevokeDeviceDto body,
+  }) async {
+    await _transport.send(
+      method: 'DELETE',
+      path: '/v1/devices',
+      body: body.toJson(),
+    );
+    return;
+  }
+
+  /// `POST /v1/devices`
+  ///
+  /// Register this handset for push
+  Future<DeviceResponse> register2({
+    required RegisterDeviceDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/devices',
+      body: body.toJson(),
+    );
+    return DeviceResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `POST /v1/owner/reservations/{id}/cancel`
   ///
   /// Cancel a booking, as the restaurant

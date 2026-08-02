@@ -529,6 +529,22 @@
         ],
         "type": "object"
       },
+      "DeviceResponse": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "registered": {
+            "description": "Always true; the call is an upsert.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "registered"
+        ],
+        "type": "object"
+      },
       "ErrorDetailResponse": {
         "properties": {
           "field": {
@@ -565,6 +581,10 @@
           "allDevices": {
             "default": false,
             "type": "boolean"
+          },
+          "deviceToken": {
+            "description": "FCM token to revoke — send it on sign-out",
+            "type": "string"
           },
           "refreshToken": {
             "type": "string"
@@ -716,6 +736,36 @@
         },
         "required": [
           "refreshToken"
+        ],
+        "type": "object"
+      },
+      "RegisterDeviceDto": {
+        "properties": {
+          "locale": {
+            "default": "ar",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "type": "string"
+          },
+          "platform": {
+            "enum": [
+              "android",
+              "ios",
+              "web"
+            ],
+            "type": "string"
+          },
+          "token": {
+            "description": "FCM registration token",
+            "maxLength": 4096,
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "platform"
         ],
         "type": "object"
       },
@@ -1101,6 +1151,18 @@
           "nameEn",
           "nameAr",
           "city"
+        ],
+        "type": "object"
+      },
+      "RevokeDeviceDto": {
+        "properties": {
+          "token": {
+            "description": "The token to stop pushing to",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
         ],
         "type": "object"
       },
@@ -1962,6 +2024,71 @@
         "summary": "Verify the phone code; activates the account",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/v1/devices": {
+      "delete": {
+        "operationId": "DevicesController_revoke",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeDeviceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Revoked (idempotent)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke this handset — call on sign-out",
+        "tags": [
+          "devices"
+        ]
+      },
+      "post": {
+        "operationId": "DevicesController_register",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register this handset for push",
+        "tags": [
+          "devices"
         ]
       }
     },

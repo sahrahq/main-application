@@ -139,6 +139,8 @@ model User {
   reservations     Reservation[]
   refreshTokens    RefreshToken[]
   auditLogs        AuditLog[]
+  devices          Device[]
+  notifications    Notification[]
 
   @@index([status], map: "idx_users_status")
   @@map("users")
@@ -293,6 +295,51 @@ model Restaurant {
 
   @@index([status, city, neighborhood], map: "idx_restaurants_status_neighborhood")
   @@map("restaurants")
+}
+
+// ─────────────────────────────────────────────────────────── notifications ──
+
+/// Where a push COULD be sent right now. Addresses rot; see the migration.
+model Device {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  /// FCM registration token. UNIQUE so a reinstall MOVES it between users.
+  token      String    @unique
+  platform   String    @db.VarChar(16)
+  locale     String    @default("ar") @db.VarChar(5)
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  /// Set on sign-out. A live token on a signed-out user pushes that person's
+  /// reservation to whoever holds the handset next.
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_devices_live")
+  @@map("devices")
+}
+
+/// The RECORD that a diner was owed a message, independent of delivery.
+model Notification {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  /// Machine-readable, like the doc 06 §1 error codes: the CLIENT owns copy.
+  type          String    @db.VarChar(60)
+  data          Json      @default("{}") @db.JsonB
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// A push left the building. Null while unsent.
+  sentAt        DateTime? @map("sent_at") @db.Timestamptz(6)
+  /// The diner saw it.
+  readAt        DateTime? @map("read_at") @db.Timestamptz(6)
+  /// For the operator, not the diner.
+  deliveryError String?   @map("delivery_error")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_notifications_user")
+  @@index([createdAt], map: "idx_notifications_unsent")
+  @@map("notifications")
 }
 
 // ────────────────────────────────────────────────────────────────── shifts ──

@@ -114,7 +114,7 @@ export class AuthController {
   @HttpCode(204)
   @ApiOperation({ summary: 'Revoke this refresh token, or every one for the user' })
   async logout(@Body() dto: LogoutDto): Promise<void> {
-    await this.auth.logout(dto.refreshToken, dto.allDevices === true);
+    await this.auth.logout(dto.refreshToken, dto.allDevices === true, dto.deviceToken);
   }
 
   @Get('me')

@@ -15,6 +15,7 @@ import { OtpService } from '../src/modules/auth/otp/otp.service';
 import { InMemoryOtpStore } from '../src/modules/auth/otp/stores/in-memory-otp.store';
 import { InMemoryRateLimiter } from '../src/modules/auth/otp/stores/in-memory-rate-limiter';
 import { RecordingOtpDelivery } from '../src/modules/auth/otp/delivery/recording-otp.delivery';
+import { DevicesService } from '../src/modules/notifications/devices.service';
 import { PrismaService } from '../src/shared/prisma/prisma.service';
 import { resetOtpState } from './support/otp-budget';
 
@@ -33,7 +34,10 @@ const tokens = new TokenService(prisma as unknown as PrismaService, new JwtServi
 // is exercised end to end without Redis or a carrier.
 const otpDelivery = new RecordingOtpDelivery();
 const otp = new OtpService(new InMemoryOtpStore(), new InMemoryRateLimiter(), otpDelivery);
-const auth = new AuthService(prisma as unknown as PrismaService, tokens, otp);
+// Real DevicesService — signing out has to revoke push tokens too, and a
+// stub here would let that regress unnoticed.
+const devices = new DevicesService(prisma as unknown as PrismaService);
+const auth = new AuthService(prisma as unknown as PrismaService, tokens, otp, devices);
 
 const PHONE = `010${Date.now().toString().slice(-8)}`;
 const PASSWORD = 'correct-horse-battery-staple';

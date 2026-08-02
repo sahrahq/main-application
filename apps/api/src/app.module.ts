@@ -12,6 +12,7 @@ import { PublicRestaurantsModule } from "./modules/restaurants/public-restaurant
 import { AvailabilityModule } from "./modules/availability/availability.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { SearchModule } from "./modules/search/search.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 
 @Module({
   imports: [
@@ -34,6 +35,9 @@ import { SearchModule } from "./modules/search/search.module";
     ErrorsModule,
     PrismaModule,
     AuditModule,
+    // Global — the event that causes a notification lives in whichever
+    // module it happens in, so this is imported once rather than everywhere.
+    NotificationsModule,
     AuthModule,
     RestaurantsModule,
     AvailabilityModule,

@@ -3,6 +3,7 @@ import * as argon2 from 'argon2';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { TokenService, TokenPair, subjectOf } from './token.service';
 import { OtpService } from './otp/otp.service';
+import { DevicesService } from '../notifications/devices.service';
 import type { OtpPurpose } from './otp/otp.ports';
 
 /**
@@ -38,6 +39,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly tokens: TokenService,
     private readonly otp: OtpService,
+    private readonly devices: DevicesService,
   ) {}
 
   /**
@@ -334,18 +336,37 @@ export class AuthService {
     return this.tokens.rotate(refreshToken, ctx);
   }
 
-  async logout(refreshToken: string, allDevices: boolean): Promise<void> {
-    if (!allDevices) {
-      await this.tokens.revoke(refreshToken);
-      return;
-    }
+  async logout(
+    refreshToken: string,
+    allDevices: boolean,
+    deviceToken?: string,
+  ): Promise<void> {
+    // Resolve the user FIRST, whichever branch runs. Revoking a push token
+    // needs an owner: without one, anybody who guessed a token could silence
+    // a diner's cancellation notices.
     const record = await this.prisma.refreshToken.findUnique({
       where: { tokenHash: TokenService.hash(refreshToken) },
       select: { userId: true },
     });
+
+    if (!allDevices) {
+      await this.tokens.revoke(refreshToken);
+      // The push half of signing out. A token left live sends this person's
+      // reservations to whoever holds the handset next.
+      if (record && deviceToken) await this.devices.revoke(record.userId, deviceToken);
+      return;
+    }
+
     // Unknown token on an all-devices logout is a no-op, not an error: the
     // caller wanted to be logged out and they are.
-    if (record) await this.tokens.revokeAllForUser(record.userId);
+    if (record) {
+      await this.tokens.revokeAllForUser(record.userId);
+      // "Log out all devices" has to mean all devices, not just all sessions.
+      // Leaving the push tokens live would keep notifying handsets the diner
+      // has explicitly disowned — which is the exact case somebody uses this
+      // button for.
+      await this.devices.revokeAllForUser(record.userId);
+    }
   }
 
   private invalidCredentials(): UnauthorizedException {

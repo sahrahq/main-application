@@ -9,6 +9,8 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { OwnerCancellationService } from './owner-cancellation.service';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 import { CancelledReservationResponse } from '../../shared/api/responses.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { isValidTimeZone, utcToZonedHhmm } from '../../shared/time/timezone';
 
 /**
  * doc 06 §4 — actions on a single reservation, from the venue's side.
@@ -28,6 +30,7 @@ export class OwnerReservationActionsController {
   constructor(
     private readonly cancellation: OwnerCancellationService,
     private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Ownership comes from the TOKEN, never from the request. */
@@ -77,6 +80,41 @@ export class OwnerReservationActionsController {
   ): Promise<CancelledReservationResponse> {
     const ownerId = await this.ownerIdOf(user);
     const cancelled = await this.cancellation.cancel(ownerId, id, dto.reason);
+
+    // NOTIFY-1's first real trigger, and the reason it was built.
+    //
+    // AFTER the cancellation has committed, and it can never undo it:
+    // `notify` does not throw. A table that failed to be released because a
+    // push timed out would be strictly worse than a diner who has to open the
+    // app to find out.
+    //
+    // A walk-in has no account, so there is nobody to tell — the venue took
+    // that booking at the podium and can say so at the podium.
+    if (cancelled.user_id) {
+      const venue = await this.prisma.restaurant.findUnique({
+        where: { id: cancelled.restaurant_id },
+        select: { nameEn: true, nameAr: true, timezone: true },
+      });
+      const tz = isValidTimeZone(venue?.timezone ?? '') ? venue!.timezone : 'Africa/Cairo';
+      const when = new Date(cancelled.starts_at);
+
+      await this.notifications.notify({
+        userId: cancelled.user_id,
+        type: 'reservation_cancelled_by_venue',
+        data: {
+          reservationId: cancelled.id,
+          code: cancelled.code,
+          // Both names: the push is rendered per DEVICE locale, and the device
+          // may not match the account.
+          venue: venue?.nameEn ?? '',
+          venueAr: venue?.nameAr ?? '',
+          reason: cancelled.cancel_reason,
+          // Venue wall clock, so the lock screen never shows a UTC hour.
+          date: when.toISOString().slice(0, 10),
+          time: utcToZonedHhmm(when, tz),
+        },
+      });
+    }
 
     return {
       id: cancelled.id,

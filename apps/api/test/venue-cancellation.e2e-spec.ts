@@ -441,3 +441,144 @@ describe('venue cancels → table freed → diner told → diner acknowledges', 
     expect(row!.cancel_reason).toBe('Burst pipe in the kitchen');
   });
 });
+
+// ─────────────────────────────────────────────── NOTIFY-1 Stage 1, end to end ──
+
+describe('a cancellation produces a notification record', () => {
+  /**
+   * THE FIRST REAL TRIGGER. NOTIFY-1 Stage 1 exists so that this event has
+   * somewhere to go — and it is wired to CANCEL-1 rather than to a synthetic
+   * event precisely because the acknowledgement model already made the mistake
+   * of shipping machinery for a cause that could not occur.
+   *
+   * Delivery is the logging stub for now (Stage 2 swaps in FCM), so what is
+   * asserted here is the RECORD: we owed this diner this message. That claim
+   * has to survive every delivery failure, which is why the two are separate
+   * tables and separate steps.
+   */
+  let reservationId = '';
+
+  afterAll(async () => {
+    if (!reservationId) return;
+    await prisma.$executeRaw`DELETE FROM notifications WHERE user_id = ${diner.id}::uuid`;
+    await prisma.$executeRaw`DELETE FROM devices WHERE user_id = ${diner.id}::uuid`;
+    await prisma.$executeRaw`DELETE FROM reservation_tables WHERE reservation_id = ${reservationId}::uuid`;
+    await prisma.$executeRaw`DELETE FROM reservations WHERE id = ${reservationId}::uuid`;
+  });
+
+  it('records one, addressed to the diner, carrying who and why', async () => {
+    reservationId = await bookTheOnlyTable();
+
+    await request(http as never)
+      .post(`/v1/owner/reservations/${reservationId}/cancel`)
+      .set(...auth(venue.token))
+      .send({ reason: 'Power cut on the whole street' })
+      .expect(200);
+
+    const rows = await prisma.notification.findMany({
+      where: { userId: diner.id, type: 'reservation_cancelled_by_venue' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    expect(rows.length).toBeGreaterThanOrEqual(1);
+    const data = rows[0].data as Record<string, string>;
+    expect(data.reservationId).toBe(reservationId);
+    expect(data.reason).toBe('Power cut on the whole street');
+    expect(data.venue).toBe('Cancelling Venue');
+    // Venue wall clock, so a lock screen never shows a UTC hour.
+    expect(data.time).toMatch(/^\d{2}:\d{2}$/);
+  }, 90_000);
+
+  it('says WHY it could not be delivered, rather than leaving a silent gap', async () => {
+    // The diner has no registered handset. That is not an error — it is the
+    // case the in-app centre exists for — but "we never sent this, and here is
+    // the reason" is a very different record from an empty `sent_at` nobody
+    // can explain six weeks later.
+    const row = await prisma.notification.findFirstOrThrow({
+      where: { userId: diner.id, type: 'reservation_cancelled_by_venue' },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(row.sentAt).toBeNull();
+    expect(row.deliveryError).toBe('no_registered_device');
+  }, 60_000);
+
+  it('and once a handset is registered, delivery is attempted', async () => {
+    await request(http as never)
+      .post('/v1/devices')
+      .set(...auth(diner.token))
+      .send({ token: `tok-${suffix}-a`, platform: 'android', locale: 'ar' })
+      .expect(201);
+
+    const second = await bookTheOnlyTable();
+    await request(http as never)
+      .post(`/v1/owner/reservations/${second}/cancel`)
+      .set(...auth(venue.token))
+      .send({ reason: 'Private event booked the room' })
+      .expect(200);
+
+    const row = await prisma.notification.findFirstOrThrow({
+      where: { userId: diner.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(row.sentAt).not.toBeNull();
+    expect(row.deliveryError).toBeNull();
+
+    await prisma.$executeRaw`DELETE FROM reservation_tables WHERE reservation_id = ${second}::uuid`;
+    await prisma.$executeRaw`DELETE FROM reservations WHERE id = ${second}::uuid`;
+  }, 90_000);
+
+  it('A SIGNED-OUT HANDSET STOPS RECEIVING — the privacy case', async () => {
+    // A push token left attached to a signed-out user sends that person's
+    // reservations to whoever holds the handset next. On a shared or resold
+    // phone that is a privacy incident, not an annoyance.
+    await request(http as never)
+      .delete('/v1/devices')
+      .set(...auth(diner.token))
+      .send({ token: `tok-${suffix}-a` })
+      .expect(204);
+
+    const third = await bookTheOnlyTable();
+    await request(http as never)
+      .post(`/v1/owner/reservations/${third}/cancel`)
+      .set(...auth(venue.token))
+      .send({ reason: 'Chef is unwell' })
+      .expect(200);
+
+    const row = await prisma.notification.findFirstOrThrow({
+      where: { userId: diner.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    // The RECORD is still written — they are still owed the message.
+    expect(row.data).toMatchObject({ reason: 'Chef is unwell' });
+    // Nothing was pushed, because there is nowhere live to push to.
+    expect(row.deliveryError).toBe('no_registered_device');
+
+    await prisma.$executeRaw`DELETE FROM reservation_tables WHERE reservation_id = ${third}::uuid`;
+    await prisma.$executeRaw`DELETE FROM reservations WHERE id = ${third}::uuid`;
+  }, 90_000);
+
+  it('a WALK-IN cancellation notifies nobody, and does not fail trying', async () => {
+    // No account, so there is nobody to tell — the venue took that booking at
+    // the podium and can say so at the podium. What matters is that the
+    // cancellation still succeeds.
+    const before = await prisma.notification.count();
+
+    const walkIn = await request(http as never)
+      .post(`/v1/owner/restaurants/${venue.id}/reservations`)
+      .set(...auth(venue.token))
+      .set('idempotency-key', randomUUID())
+      .send({ partySize: 2, guestName: 'Podium Guest' })
+      .expect(201);
+
+    await request(http as never)
+      .post(`/v1/owner/reservations/${walkIn.body.id}/cancel`)
+      .set(...auth(venue.token))
+      .send({ reason: 'They left before being seated' })
+      .expect(200);
+
+    expect(await prisma.notification.count()).toBe(before);
+
+    await prisma.$executeRaw`DELETE FROM reservation_tables WHERE reservation_id = ${walkIn.body.id}::uuid`;
+    await prisma.$executeRaw`DELETE FROM reservations WHERE id = ${walkIn.body.id}::uuid`;
+  }, 90_000);
+});

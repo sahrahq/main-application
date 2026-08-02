@@ -541,6 +541,27 @@ class CreateWalkInDto {
       };
 }
 
+class DeviceResponse {
+  const DeviceResponse({
+    required this.id,
+    required this.registered,
+  });
+
+  factory DeviceResponse.fromJson(Map<String, dynamic> json) => DeviceResponse(
+        id: json['id'] as String,
+        registered: json['registered'] as bool,
+      );
+
+  final String id;
+  /// Always true; the call is an upsert.
+  final bool registered;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'registered': registered,
+      };
+}
+
 class ErrorDetailResponse {
   const ErrorDetailResponse({
     required this.field,
@@ -585,19 +606,24 @@ class LoginDto {
 class LogoutDto {
   const LogoutDto({
     this.allDevices,
+    this.deviceToken,
     required this.refreshToken,
   });
 
   factory LogoutDto.fromJson(Map<String, dynamic> json) => LogoutDto(
         allDevices: json['allDevices'] == null ? null : json['allDevices'] as bool,
+        deviceToken: json['deviceToken'] == null ? null : json['deviceToken'] as String,
         refreshToken: json['refreshToken'] as String,
       );
 
   final bool? allDevices;
+  /// FCM token to revoke — send it on sign-out
+  final String? deviceToken;
   final String refreshToken;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         if (allDevices != null) 'allDevices': allDevices!,
+        if (deviceToken != null) 'deviceToken': deviceToken!,
         'refreshToken': refreshToken,
       };
 }
@@ -763,6 +789,31 @@ class RefreshDto {
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'refreshToken': refreshToken,
+      };
+}
+
+class RegisterDeviceDto {
+  const RegisterDeviceDto({
+    this.locale,
+    required this.platform,
+    required this.token,
+  });
+
+  factory RegisterDeviceDto.fromJson(Map<String, dynamic> json) => RegisterDeviceDto(
+        locale: json['locale'] == null ? null : json['locale'] as String,
+        platform: json['platform'] as String,
+        token: json['token'] as String,
+      );
+
+  final String? locale;
+  final String platform;
+  /// FCM registration token
+  final String token;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (locale != null) 'locale': locale!,
+        'platform': platform,
+        'token': token,
       };
 }
 
@@ -1188,6 +1239,23 @@ class RestaurantResponse {
         if (priceBand != null) 'priceBand': priceBand!,
         'slug': slug,
         'status': status,
+      };
+}
+
+class RevokeDeviceDto {
+  const RevokeDeviceDto({
+    required this.token,
+  });
+
+  factory RevokeDeviceDto.fromJson(Map<String, dynamic> json) => RevokeDeviceDto(
+        token: json['token'] as String,
+      );
+
+  /// The token to stop pushing to
+  final String token;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'token': token,
       };
 }
 

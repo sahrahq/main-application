@@ -59,6 +59,20 @@ export class LogoutDto {
   @ApiPropertyOptional({ default: false })
   @IsOptional()
   allDevices?: boolean;
+
+  /**
+   * The push token to stop sending to. **The client must supply this.**
+   *
+   * A token left live on a signed-out account pushes that person's
+   * reservations to whoever holds the handset next — on a shared or resold
+   * phone that is a privacy incident, not an annoyance. Optional only because
+   * a client with no push registered has none to give.
+   */
+  @ApiPropertyOptional({ description: 'FCM token to revoke — send it on sign-out' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4096)
+  deviceToken?: string;
 }
 export class VerifyOtpDto {
   @ApiProperty({ format: "uuid" })

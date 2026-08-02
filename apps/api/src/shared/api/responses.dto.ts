@@ -354,6 +354,13 @@ export class AdminRestaurantResponse {
   @ApiPropertyOptional({ nullable: true, type: 'string' }) neighborhood?: string | null;
 }
 
+/** doc 06 §3 — `/devices`. */
+export class DeviceResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty({ description: 'Always true; the call is an upsert.' })
+  registered!: boolean;
+}
+
 // ──────────────────────────────────────────────────────────────────── error ──
 
 export class ErrorDetailResponse {
