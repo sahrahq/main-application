@@ -3,6 +3,7 @@ import * as argon2 from 'argon2';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { TokenService, TokenPair, subjectOf } from './token.service';
 import { OtpService } from './otp/otp.service';
+import type { OtpPurpose } from './otp/otp.ports';
 
 /**
  * argon2id — doc 09 §1.1. Parameters follow OWASP's 2024 guidance
@@ -126,25 +127,83 @@ export class AuthService {
   }
 
   /**
-   * doc 06 §2 — verify the phone and return the first token pair.
+   * doc 06 §2 — send a sign-in code to a phone that already has an account.
    *
-   * Activation happens ONLY here: a `pending` account has an unproven phone,
-   * and phone is the primary identity in Egypt (doc 02 C-1.2).
+   * THE FLOW THAT WAS MISSING (C-1.2, P0). Phone is the primary identity in
+   * Egypt, and until now a diner who registered by phone could never sign in
+   * again: `register` answered 409 `phone_exists`, and `login` demanded a
+   * password they had never set. Not an edge case — the main path.
+   *
+   * `purpose: 'login'`, so the challenge is keyed `otp:login:{userId}` and is
+   * a DIFFERENT challenge from registration's. A code issued to activate an
+   * account cannot sign one in, and vice versa.
+   *
+   * Returns the same `{userId, otpRequired}` shape `register` returns, because
+   * it feeds the same next call. An unknown phone is 401 `invalid_credentials`
+   * per doc 06 §2's error column — which does reveal whether a number has an
+   * account, and is not a leak this endpoint introduces: `register` already
+   * answers 409 `phone_exists` for the same question. Recorded as an open
+   * finding rather than fixed unilaterally at one of the two doors.
    */
-  async verifyOtp(userId: string, code: string, ctx: RequestCtx = {}): Promise<TokenPair> {
+  async requestLoginOtp(
+    phone: string,
+    ctx: RequestCtx = {},
+  ): Promise<{ userId: string; otpRequired: boolean }> {
+    const normalized = normalizePhone(phone);
+    const user = await this.prisma.user.findFirst({
+      where: { phone: normalized, deletedAt: null },
+      select: { id: true, phone: true, status: true },
+    });
+
+    if (!user) throw this.invalidCredentials();
+    this.assertUsable(user.status);
+
+    await this.otp.issue({
+      userId: user.id,
+      phone: user.phone,
+      purpose: 'login',
+      ip: ctx.ip,
+    });
+
+    return { userId: user.id, otpRequired: true };
+  }
+
+  /**
+   * doc 06 §2 — answer a challenge and return a token pair.
+   *
+   * Activation happens here: a `pending` account has an unproven phone, and
+   * phone is the primary identity in Egypt (doc 02 C-1.2). It happens for
+   * EITHER purpose, because answering a code sent to a number proves control
+   * of that number whichever door it came through.
+   */
+  async verifyOtp(
+    userId: string,
+    code: string,
+    ctx: RequestCtx = {},
+    purpose: OtpPurpose = 'phone_verify',
+  ): Promise<TokenPair> {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
       include: { roles: { include: { role: true } } },
     });
     if (!user) throw this.invalidCredentials();
 
-    await this.otp.verify({ userId, purpose: 'phone_verify', code });
+    // BEFORE the code is checked, and this was missing.
+    //
+    // A suspended account with a live challenge could answer it and receive a
+    // full token pair: the status was preserved by the update below but never
+    // acted on. Password login has always refused a suspended account; this
+    // door did not, which made suspension bypassable by anyone who could
+    // request a code. Found while enumerating what protects the OTP flow.
+    this.assertUsable(user.status);
+
+    await this.otp.verify({ userId, purpose, code });
 
     const activated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         phoneVerifiedAt: new Date(),
-        // pending → active. Never downgrade a suspended account by verifying.
+        // pending → active. Never upgrade anything else.
         status: user.status === 'pending' ? 'active' : user.status,
       },
       select: { id: true, phone: true, email: true, fullName: true, locale: true, status: true },
@@ -155,6 +214,17 @@ export class AuthService {
       user.roles.map((r) => r.role.name),
       ctx,
     );
+  }
+
+  /** Suspended and deleted accounts get tokens from no door. */
+  private assertUsable(status: string): void {
+    if (status === 'suspended' || status === 'deleted') {
+      throw new UnauthorizedException({
+        code: 'account_unavailable',
+        message: 'This account is not available. Please contact support.',
+        message_ar: 'الحساب ده مش متاح. كلّم الدعم.',
+      });
+    }
   }
 
   /**

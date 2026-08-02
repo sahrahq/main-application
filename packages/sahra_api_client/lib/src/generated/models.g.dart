@@ -731,6 +731,23 @@ class RemoveTableResponse {
       };
 }
 
+class RequestOtpDto {
+  const RequestOtpDto({
+    required this.phone,
+  });
+
+  factory RequestOtpDto.fromJson(Map<String, dynamic> json) => RequestOtpDto(
+        phone: json['phone'] as String,
+      );
+
+  /// E.164 or local Egyptian (01xxxxxxxxx)
+  final String phone;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'phone': phone,
+      };
+}
+
 class ResendOtpDto {
   const ResendOtpDto({
     required this.userId,
@@ -1440,19 +1457,23 @@ class UserResponse {
 class VerifyOtpDto {
   const VerifyOtpDto({
     required this.code,
+    this.purpose,
     required this.userId,
   });
 
   factory VerifyOtpDto.fromJson(Map<String, dynamic> json) => VerifyOtpDto(
         code: json['code'] as String,
+        purpose: json['purpose'] == null ? null : json['purpose'] as String,
         userId: json['userId'] as String,
       );
 
   final String code;
+  final String? purpose;
   final String userId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'code': code,
+        if (purpose != null) 'purpose': purpose!,
         'userId': userId,
       };
 }

@@ -677,6 +677,19 @@
         ],
         "type": "object"
       },
+      "RequestOtpDto": {
+        "properties": {
+          "phone": {
+            "description": "E.164 or local Egyptian (01xxxxxxxxx)",
+            "example": "+201000000000",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone"
+        ],
+        "type": "object"
+      },
       "ResendOtpDto": {
         "properties": {
           "userId": {
@@ -1344,6 +1357,14 @@
             "minLength": 6,
             "type": "string"
           },
+          "purpose": {
+            "default": "phone_verify",
+            "enum": [
+              "phone_verify",
+              "login"
+            ],
+            "type": "string"
+          },
           "userId": {
             "format": "uuid",
             "type": "string"
@@ -1653,6 +1674,47 @@
           }
         },
         "summary": "Create an account (phone is the primary identity)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/request-otp": {
+      "post": {
+        "operationId": "AuthController_requestOtp",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestOtpDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "202": {
+            "description": "Code sent; continue at /auth/verify-otp"
+          },
+          "401": {
+            "description": "invalid_credentials | account_unavailable"
+          },
+          "429": {
+            "description": "otp_rate_limited"
+          }
+        },
+        "summary": "Send a sign-in code to a registered phone",
         "tags": [
           "auth"
         ]

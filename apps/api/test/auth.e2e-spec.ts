@@ -16,6 +16,7 @@ import { InMemoryOtpStore } from '../src/modules/auth/otp/stores/in-memory-otp.s
 import { InMemoryRateLimiter } from '../src/modules/auth/otp/stores/in-memory-rate-limiter';
 import { RecordingOtpDelivery } from '../src/modules/auth/otp/delivery/recording-otp.delivery';
 import { PrismaService } from '../src/shared/prisma/prisma.service';
+import { resetOtpSendBudget } from './support/otp-budget';
 
 const url = (() => {
   const base = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
@@ -39,6 +40,9 @@ const PASSWORD = 'correct-horse-battery-staple';
 let userId: string;
 
 beforeAll(async () => {
+  // Shared per-IP OTP budget — see support/otp-budget.ts.
+  await resetOtpSendBudget();
+
   await prisma.$connect();
 }, 60_000);
 

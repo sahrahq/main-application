@@ -4,7 +4,9 @@ import {
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AuthService, RequestCtx } from './auth.service';
-import { RegisterDto, LoginDto, RefreshDto, LogoutDto, VerifyOtpDto, ResendOtpDto } from './dto/auth.dto';
+import {
+  RegisterDto, LoginDto, RefreshDto, LogoutDto, VerifyOtpDto, ResendOtpDto, RequestOtpDto,
+} from './dto/auth.dto';
 import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
 import type { AuthedUser } from '../../shared/auth/jwt.strategy';
@@ -48,7 +50,31 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'invalid_otp | otp_expired' })
   @ApiResponse({ status: 429, description: 'too_many_attempts' })
   verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request): Promise<TokenPairResponse> {
-    return this.auth.verifyOtp(dto.userId, dto.code, ctxOf(req));
+    return this.auth.verifyOtp(dto.userId, dto.code, ctxOf(req), dto.purpose ?? 'phone_verify');
+  }
+
+  /**
+   * doc 06 §2 — `/auth/login` with `{phone}`, "→ OTP flow".
+   *
+   * Its own route rather than a second request shape on `/auth/login`: the two
+   * branches return categorically different things — a token pair, or a handle
+   * to an unanswered challenge — and one endpoint returning either would force
+   * a union response, which is a `Map<String, dynamic>` at the client. That is
+   * the escape hatch this project has ruled out, so the deviation from the
+   * doc's single row is deliberate and reported.
+   *
+   * This is the flow C-1.2 (P0) needs and did not have: without it a diner who
+   * registered by phone could never sign in again.
+   */
+  @Post('request-otp')
+  @ApiOkResponse({ type: RegisterResponse })
+  @HttpCode(202)
+  @ApiOperation({ summary: 'Send a sign-in code to a registered phone' })
+  @ApiResponse({ status: 202, description: 'Code sent; continue at /auth/verify-otp' })
+  @ApiResponse({ status: 401, description: 'invalid_credentials | account_unavailable' })
+  @ApiResponse({ status: 429, description: 'otp_rate_limited' })
+  requestOtp(@Body() dto: RequestOtpDto, @Req() req: Request): Promise<RegisterResponse> {
+    return this.auth.requestLoginOtp(dto.phone, ctxOf(req));
   }
 
   @Post('resend-otp')

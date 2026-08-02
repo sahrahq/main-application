@@ -69,6 +69,39 @@ export class VerifyOtpDto {
   @IsString()
   @Matches(/^\d{6}$/, { message: "code must be 6 digits" })
   code!: string;
+
+  /**
+   * WHICH challenge this code answers.
+   *
+   * Challenges are keyed `otp:{purpose}:{userId}`, so a registration code
+   * cannot verify a sign-in and a sign-in code cannot activate an account.
+   * That separation is a security property, not bookkeeping: without it, a
+   * code sent for one purpose is a credential for every purpose.
+   *
+   * Defaults to `phone_verify` so the registration flow is unchanged.
+   */
+  @ApiPropertyOptional({ enum: ["phone_verify", "login"], default: "phone_verify" })
+  @IsOptional()
+  @IsIn(["phone_verify", "login"])
+  purpose?: "phone_verify" | "login";
+}
+
+/**
+ * doc 06 §2 — `/auth/login` with `{phone}` "→ OTP flow".
+ *
+ * Its own route rather than a second shape on `/auth/login`, because the two
+ * branches return categorically different things: a token pair, or a handle to
+ * a challenge that has not been answered yet. One endpoint returning either
+ * would force a union response, and a union response is a
+ * `Map<String, dynamic>` at the client — the escape hatch that is ruled out.
+ *
+ * Named to sit beside `resend-otp`, which is its sibling.
+ */
+export class RequestOtpDto {
+  @ApiProperty({ example: "+201000000000", description: "E.164 or local Egyptian (01xxxxxxxxx)" })
+  @IsString()
+  @Matches(/^(\+?\d{7,20}|0\d{9,11})$/, { message: "phone must be a valid number" })
+  phone!: string;
 }
 
 export class ResendOtpDto {

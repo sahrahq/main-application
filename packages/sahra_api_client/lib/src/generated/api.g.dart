@@ -123,6 +123,20 @@ class SahraApi {
     return RegisterResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `POST /v1/auth/request-otp`
+  ///
+  /// Send a sign-in code to a registered phone
+  Future<RegisterResponse> requestOtp({
+    required RequestOtpDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/auth/request-otp',
+      body: body.toJson(),
+    );
+    return RegisterResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `POST /v1/auth/resend-otp`
   ///
   /// Re-send the phone code (rate limited)
