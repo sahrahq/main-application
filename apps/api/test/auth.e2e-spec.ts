@@ -123,6 +123,48 @@ describe('auth — registration and login', () => {
     });
   }, 60_000);
 
+  /**
+   * `users.email` IS A CONTACT FIELD, NOT A CREDENTIAL.
+   *
+   * `login` used to match `phone OR email`. An address on a record that also
+   * carried a `passwordHash` was therefore a second way in. Diners were safe
+   * only because the customer app happens to send no password at
+   * registration — a property of one client, not a boundary — and collecting
+   * an optional contact email is exactly what stops that accident holding.
+   *
+   * This test sets up the dangerous combination on purpose: a real password
+   * AND a real email on the same row.
+   */
+  describe('email is a contact field, not a credential', () => {
+    const CONTACT_EMAIL = `contact.${Date.now()}@example.com`;
+
+    it('the account really does carry both a password and an email — setup', async () => {
+      // Without this the two assertions below pass on a row with no email at
+      // all, which is the shape of a guard that proves nothing.
+      await prisma.user.update({
+        where: { id: userId },
+        data: { email: CONTACT_EMAIL },
+      });
+      const u = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+      expect(u.email).toBe(CONTACT_EMAIL);
+      expect(u.passwordHash).toBeTruthy();
+    }, 60_000);
+
+    it('logging in BY EMAIL fails, with the correct password', async () => {
+      await expect(auth.login(CONTACT_EMAIL, PASSWORD)).rejects.toMatchObject({
+        response: { code: 'invalid_credentials' },
+      });
+    }, 60_000);
+
+    it('and the same account still logs in by phone — the guard is not just a broken login', async () => {
+      // THE GUARD ON THE GUARD. Deleting the whole lookup would satisfy the
+      // assertion above and break authentication for everyone.
+      const pair = await auth.login(PHONE, PASSWORD);
+      expect(pair.accessToken.split('.')).toHaveLength(3);
+      expect(pair.user.email).toBe(CONTACT_EMAIL);
+    }, 60_000);
+  });
+
   it('gives the same error for an unknown account — no user enumeration', async () => {
     await expect(auth.login('+201555555555', 'whatever')).rejects.toMatchObject({
       response: { code: 'invalid_credentials' },

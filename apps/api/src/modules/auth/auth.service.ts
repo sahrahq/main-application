@@ -147,13 +147,35 @@ export class AuthService {
    * Password login (doc 06 §2). Phone-only login goes through OTP instead and
    * lands with Redis.
    *
+   * ───────────────────────────────────────────────────────────────────────
+   * **`users.email` IS A CONTACT FIELD, NOT A CREDENTIAL.** It identifies
+   * nobody and grants access to nothing.
+   * ───────────────────────────────────────────────────────────────────────
+   *
+   * This lookup used to be `OR: [{ phone }, { email: identifier }]`, so an
+   * address on a record that also carried a `passwordHash` was a second way
+   * in. Diners were safe only because the customer app happens to send no
+   * password at registration — a property of one client, not a boundary. The
+   * moment an optional contact email is collected (see
+   * `docs/decisions/2026-08-02-optional-email-at-signup.md`) that accident
+   * stops holding.
+   *
+   * Removed rather than narrowed. The alternative was to keep the branch for
+   * "accounts where email authentication is intended", but no such concept
+   * exists in this system and inventing one to guard a hole is a second thing
+   * to get wrong. Owners and staff log in by phone, which is what they already
+   * do — nothing in this repository has ever logged in by email.
+   *
+   * When Google or Apple sign-in arrives, it must key off `emailVerifiedAt`
+   * and never off this column.
+   *
    * Runs a dummy verify when the account is missing or has no password, so the
    * response time does not reveal which phone numbers are registered.
    */
   async login(identifier: string, password: string, ctx: RequestCtx = {}): Promise<TokenPair> {
     const asPhone = normalizePhone(identifier);
     const user = await this.prisma.user.findFirst({
-      where: { OR: [{ phone: asPhone }, { email: identifier }], deletedAt: null },
+      where: { phone: asPhone, deletedAt: null },
       include: { roles: { include: { role: true } } },
     });
 

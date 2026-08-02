@@ -563,7 +563,8 @@
       "LoginDto": {
         "properties": {
           "identifier": {
-            "description": "Phone or email",
+            "description": "Phone number, E.164 or local Egyptian. NOT an email.",
+            "example": "+201000000000",
             "type": "string"
           },
           "password": {

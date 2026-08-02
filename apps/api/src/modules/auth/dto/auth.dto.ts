@@ -32,8 +32,27 @@ export class RegisterDto {
 }
 
 export class LoginDto {
-  @ApiProperty({ description: "Phone or email" })
+  /**
+   * A PHONE NUMBER. Not an email — `users.email` is a contact field and
+   * grants access to nothing.
+   *
+   * The pattern is defence in depth behind the service, which no longer looks
+   * up by email at all. It matters because a field that ACCEPTS an address is
+   * a field somebody will eventually match on again; rejecting the shape at
+   * the edge makes the contract say so.
+   *
+   * Still named `identifier` rather than `phone`: renaming is a breaking
+   * change to a published contract, and the name is not the load-bearing part
+   * once an address cannot get past validation. Same expression as
+   * `RegisterDto.phone`, deliberately — two phone patterns that drift is how
+   * one door starts accepting what the other rejects.
+   */
+  @ApiProperty({
+    description: "Phone number, E.164 or local Egyptian. NOT an email.",
+    example: "+201000000000",
+  })
   @IsString()
+  @Matches(/^(\+?\d{7,20}|0\d{9,11})$/, { message: "identifier must be a phone number" })
   @MaxLength(160)
   identifier!: string;
 

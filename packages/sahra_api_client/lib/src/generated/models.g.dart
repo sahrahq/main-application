@@ -593,7 +593,7 @@ class LoginDto {
         password: json['password'] as String,
       );
 
-  /// Phone or email
+  /// Phone number, E.164 or local Egyptian. NOT an email.
   final String identifier;
   final String password;
 
