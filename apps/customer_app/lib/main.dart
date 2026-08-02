@@ -11,7 +11,21 @@ import 'shared/widgets/device_frame.dart';
 void main() => runApp(const ProviderScope(child: SahraApp()));
 
 class SahraApp extends StatelessWidget {
-  const SahraApp({super.key});
+  const SahraApp({this.localeOverride, super.key});
+
+  /// FOR THE JOURNEY WALK-THROUGH ONLY. Production passes nothing.
+  ///
+  /// `forcedLocale()` reads a `--dart-define`, which is fixed for a whole
+  /// process and therefore cannot give one test run both languages. The
+  /// end-of-batch walk-through has to produce Arabic AND English pictures of
+  /// the same journey (CLAUDE.md), so the language has to be a parameter
+  /// somewhere.
+  ///
+  /// It lives here rather than in a test-only copy of this widget because the
+  /// last time a test reassembled the app it got a different app — it skipped
+  /// `LocaleSync` and rendered Arabic venue names in an English run. One
+  /// optional argument is a smaller cost than a second app that drifts.
+  final Locale? localeOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +39,7 @@ class SahraApp extends StatelessWidget {
       // pins it, so Arabic can be reviewed without changing an operating
       // system's language. Half of this product is Arabic; making it awkward
       // to look at is how it stops being looked at.
-      locale: forcedLocale(),
+      locale: localeOverride ?? forcedLocale(),
 
       // ARABIC IS FIRST, and that is not alphabetical ordering.
       // `supportedLocales.first` is what Flutter falls back to when the device

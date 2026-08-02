@@ -52,6 +52,31 @@ void main() {
     expect(untranslated, isEmpty, reason: 'copied, not translated: $untranslated');
   });
 
+  test('no Arabic-Indic numeral appears in any copy', () {
+    // DESIGN-RULES.md: figures are Latin, in Arabic as well as English.
+    // Mixing two numeral systems in one interface is worse than either used
+    // consistently, and the way it creeps back is exactly how it arrived —
+    // somebody types «١٥» into one string by hand while every other figure on
+    // the screen comes from a token or a formatter.
+    //
+    // U+0660–U+0669 is Arabic-Indic; U+06F0–U+06F9 is the Extended (Persian)
+    // set, checked too because it is what several keyboards actually emit.
+    // Written as the glyphs themselves rather than escapes, so the range is
+    // readable to whoever hits this failure.
+    // NOT a raw string: `r'...'` would leave `٠` as six literal
+    // characters and the check would match nothing while looking correct.
+    final indic = RegExp('[٠-٩۰-۹]');
+    final offenders = <String>[];
+    for (final a in <Map<String, dynamic>>[en, ar]) {
+      for (final k in keys(a)) {
+        if (indic.hasMatch(a[k] as String)) offenders.add('$k: ${a[k]}');
+      }
+    }
+    expect(offenders, isEmpty,
+        reason: 'Arabic-Indic numerals — use Latin figures: '
+            '${offenders.join(' | ')}',);
+  });
+
   test('no value is empty', () {
     for (final a in <Map<String, dynamic>>[en, ar]) {
       for (final k in keys(a)) {

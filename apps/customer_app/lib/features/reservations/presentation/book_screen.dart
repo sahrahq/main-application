@@ -105,7 +105,7 @@ class BookScreen extends ConsumerWidget {
                     value: criteria.partySize,
                     onChanged:
                         ref.read(bookingSelectionProvider(restaurantId).notifier).setPartySize,
-                    unitLabel: l10n.bookGuests(criteria.partySize),
+                    unitLabel: l10n.bookGuestsUnit(criteria.partySize),
                     decreaseLabel: l10n.bookDecreaseParty,
                     increaseLabel: l10n.bookIncreaseParty,
                   ),

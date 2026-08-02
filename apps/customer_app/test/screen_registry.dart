@@ -108,9 +108,9 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
   // decision is not survivable, so it gets its own cell in all four.
   'SignIn/pending-slot': ScreenCase(
     build: (_) => SignInScreen(pendingRestaurantId: _venueId, onClose: () {}),
-    overrides: (_) => <Override>[
+    overrides: (cell) => <Override>[
       ..._transport((_, __, ___) => throw offline),
-      pendingBookingProvider(_venueId).overrideWith(() => _ParkedSlot()),
+      pendingBookingProvider(_venueId).overrideWith(() => _ParkedSlot(cell)),
     ],
   ),
   'SignIn/code': ScreenCase(
@@ -254,15 +254,26 @@ class _PastTab extends BookingsView {
   String build() => 'past';
 }
 
+/// THE VENUE NAME FOLLOWS THE LOCALE, and that is the point of this fixture.
+///
+/// An Arabic diner sees «الفيشاوي», not "El Fishawy", so the Arabic cells have
+/// to picture an Arabic name inside an Arabic sentence — that is the layout
+/// that actually ships. The English cells keep the Latin name, which is also
+/// the harder bidi case for anyone who checks the English string inside Arabic
+/// prose separately.
 class _ParkedSlot extends PendingBooking {
+  _ParkedSlot(this.cell);
+
+  final Cell cell;
+
   @override
-  PendingSelection build(String restaurantId) => const PendingSelection(
+  PendingSelection build(String restaurantId) => PendingSelection(
         restaurantId: _venueId,
-        venueName: 'Layali Lounge',
-        startsAt: '2026-08-05T18:00:00.000Z',
-        slotLabel: '21:00',
-        date: '2026-08-05',
-        partySize: 2,
+        venueName: cell.locale.languageCode == 'ar' ? 'الفيشاوي' : 'El Fishawy',
+        startsAt: '2026-08-04T18:00:00.000Z',
+        slotLabel: '20:30',
+        date: '2026-08-04',
+        partySize: 4,
       );
 }
 

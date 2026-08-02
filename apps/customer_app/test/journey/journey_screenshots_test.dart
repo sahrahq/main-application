@@ -1,0 +1,262 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sahra_customer_app/core/auth/session.dart';
+import 'package:sahra_customer_app/localization/generated/app_localizations.dart';
+import 'package:sahra_customer_app/main.dart';
+import 'package:sahra_customer_app/shared/providers/app_providers.dart';
+import 'package:sahra_customer_app/shared/providers/session_providers.dart';
+
+import '../support/fakes.dart';
+
+/// THE WALK-THROUGH, AS PICTURES.
+///
+/// CLAUDE.md requires the app to be walked as a diner at the end of every
+/// batch, in Arabic and English, with a screenshot of every step — because a
+/// written account of what should happen is what let three unreachable screens
+/// ship with 461 passing tests.
+///
+/// This is the same journey `diner_journey_test.dart` asserts, run for the
+/// pictures instead of the assertions, in both languages. It shares that
+/// file's fixtures rather than copying them: two sets of canned responses that
+/// drift apart would mean the walk-through pictures an app the journey test
+/// never walks.
+///
+///     flutter test test/journey/journey_screenshots_test.dart --update-goldens
+///
+/// Output: `test/journey/walkthrough/<locale>/NN-step.png`.
+void main() {
+  for (final locale in <Locale>[const Locale('en'), const Locale('ar')]) {
+    final tag = locale.languageCode;
+
+    testWidgets('walk-through [$tag]', (tester) async {
+      // THE REAL COPY, LOADED FOR THIS LOCALE. Hardcoding Arabic labels in a
+      // test would make the walk-through break every time the (still
+      // UNREVIEWED) Arabic copy is edited — and the point of the walk-through
+      // is to survive long enough to catch something else.
+      final l10n = await AppLocalizations.delegate.load(locale);
+
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      var shot = 0;
+      Future<void> capture(String name) async {
+        shot++;
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile(
+            'walkthrough/$tag/${shot.toString().padLeft(2, '0')}-$name.png',
+          ),
+        );
+      }
+
+      final store = InMemorySessionStore();
+      var signedIn = false;
+
+      final container = ProviderContainer(
+        overrides: <Override>[
+          transportProvider.overrideWithValue(
+            FakeTransport((method, path, query) {
+              if (path.contains('/restaurants/search')) return _searchPage;
+              if (path.endsWith('/availability')) return _availability;
+              if (path.contains('/v1/restaurants/')) return _profile;
+              if (path == '/v1/auth/request-otp') {
+                return <String, Object?>{'otpRequired': true, 'userId': _userId};
+              }
+              if (path == '/v1/auth/verify-otp') return _tokenPair;
+              if (path == '/v1/reservations/holds') {
+                if (!signedIn) throw envelope(401, 'unauthenticated');
+                return _reservation('held');
+              }
+              if (path.endsWith('/confirm')) return _reservation('confirmed');
+              if (path == '/v1/reservations') return <Object>[_myReservation];
+              if (path == '/v1/reservations/$_reservationId') return _myReservation;
+              throw StateError('unstubbed: $method $path');
+            }),
+          ),
+          sessionStoreProvider.overrideWithValue(store),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(currentSessionProvider, (_, next) => signedIn = next != null);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: SahraApp(localeOverride: locale),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await capture('cold-open');
+
+      await tester.enterText(find.byType(TextField).first, 'layali');
+      await tester.pumpAndSettle(const Duration(milliseconds: 600));
+      await capture('search-results');
+
+      final venue = tag == 'ar' ? 'ليالي لاونج' : 'Layali Lounge';
+
+      await tester.tap(find.text(venue).first);
+      await tester.pumpAndSettle();
+      await capture('venue');
+
+      await tester.tap(find.text(l10n.venueBook).last);
+      await tester.pumpAndSettle();
+      await capture('slot-picker');
+
+      await tester.tap(find.text('18:00'));
+      await tester.pumpAndSettle();
+      await capture('slot-chosen');
+
+      await tester.tap(find.textContaining(l10n.bookConfirmFor(2, '18:00')));
+      await tester.pumpAndSettle();
+      await capture('sign-in-wall');
+
+      await tester.enterText(find.byType(TextField).first, '01000000000');
+      await tester.enterText(find.byType(TextField).at(1), 'Nour');
+      await tester.tap(find.text(l10n.signInContinue));
+      await tester.pumpAndSettle();
+      await capture('code-step');
+
+      await tester.enterText(find.byType(TextField).first, '123456');
+      await tester.tap(find.text(l10n.signInVerify));
+      await tester.pumpAndSettle();
+      await capture('confirmed');
+
+      await tester.tap(find.text(l10n.confirmedDone));
+      await tester.pumpAndSettle();
+      await capture('back-on-discover');
+
+      await tester.tap(find.text(l10n.tabBookings));
+      await tester.pumpAndSettle();
+      await capture('my-bookings');
+
+      await tester.tap(find.text(venue).first);
+      await tester.pumpAndSettle();
+      await capture('reservation-detail');
+
+      // ignore: avoid_print
+      print('WALK-THROUGH [$tag]: $shot screenshots in '
+          '${Directory('test/journey/walkthrough/$tag').absolute.path}');
+    }, tags: 'golden', timeout: const Timeout(Duration(minutes: 3)),);
+  }
+}
+
+const String _userId = '99999999-9999-4999-8999-999999999999';
+const String _reservationId = '22222222-2222-4222-8222-222222222222';
+
+final Map<String, Object?> _searchPage = <String, Object?>{
+  'results': <Object>[
+    <String, Object?>{
+      'id': '4f743baa-3054-4fda-90ce-1a602faf1e77',
+      'slug': 'layali-lounge-zamalek',
+      'name_en': 'Layali Lounge',
+      'name_ar': 'ليالي لاونج',
+      'cuisines': <String>['levantine'],
+      'neighborhood': 'Zamalek',
+      'price_band': 3,
+      'rating': 4.8,
+      'rating_count': 312,
+      'next_available': <String>['18:00'],
+    },
+  ],
+  'next_cursor': null,
+  'estimated_total': 1,
+  'availability_filtered': true,
+};
+
+final Map<String, Object?> _profile = <String, Object?>{
+  'id': '4f743baa-3054-4fda-90ce-1a602faf1e77',
+  'slug': 'layali-lounge-zamalek',
+  'name_en': 'Layali Lounge',
+  'name_ar': 'ليالي لاونج',
+  'cuisines': <String>['levantine'],
+  'neighborhood': 'Zamalek',
+  'city': 'Cairo',
+  'rating': 4.8,
+  'rating_count': 312,
+  'phone': '+20 2 2735 0000',
+  'amenities': <String>['outdoor'],
+  'timezone': 'Africa/Cairo',
+  'booking_mode': 'instant',
+  'hours': <Object>[
+    for (var day = 0; day < 7; day++)
+      <String, Object?>{
+        'day_of_week': day,
+        'specific_date': null,
+        'name_en': 'Dinner',
+        'name_ar': 'العشاء',
+        'opens_at': '18:00',
+        'closes_at': '23:30',
+        'spans_midnight': false,
+      },
+  ],
+};
+
+final Map<String, Object?> _availability = <String, Object?>{
+  'date': '2026-08-05',
+  'partySize': 2,
+  'timezone': 'Africa/Cairo',
+  'slots': <Object>[
+    for (final t in <String>['18:00', '18:30', '19:00'])
+      <String, Object?>{
+        'time': t,
+        'startsAt': '2026-08-05T$t:00.000Z',
+        'zones': <String>['indoor'],
+      },
+  ],
+};
+
+final Map<String, Object?> _tokenPair = <String, Object?>{
+  'accessToken': 'journey-access',
+  'refreshToken': 'journey-refresh',
+  'expiresIn': 900,
+  'user': <String, Object?>{
+    'id': _userId,
+    'phone': '+201000000000',
+    'fullName': 'Nour',
+    'roles': <String>['customer'],
+    'status': 'active',
+    'locale': 'en',
+  },
+};
+
+Map<String, Object?> _reservation(String status) => <String, Object?>{
+      'id': _reservationId,
+      'code': 'SAH-7K2M',
+      'restaurantId': '4f743baa-3054-4fda-90ce-1a602faf1e77',
+      'partySize': 2,
+      'startsAt': '2026-08-05T18:00:00.000Z',
+      'endsAt': '2026-08-05T19:30:00.000Z',
+      'status': status,
+      'source': 'app',
+    };
+
+final Map<String, Object?> _myReservation = <String, Object?>{
+  'id': _reservationId,
+  'code': 'SAH-7K2M',
+  'status': 'confirmed',
+  'source': 'app',
+  'starts_at': '2026-08-05T18:00:00.000Z',
+  'ends_at': '2026-08-05T19:30:00.000Z',
+  'date': '2026-08-05',
+  'time': '21:00',
+  'party_size': 2,
+  'needs_acknowledgement': false,
+  'cancelled_by': null,
+  'cancelled_at': null,
+  'cancel_reason': null,
+  'occasion': null,
+  'special_requests': null,
+  'restaurant': <String, Object?>{
+    'id': '4f743baa-3054-4fda-90ce-1a602faf1e77',
+    'slug': 'layali-lounge-zamalek',
+    'name_en': 'Layali Lounge',
+    'name_ar': 'ليالي لاونج',
+    'neighborhood': 'Zamalek',
+    'city': 'Cairo',
+    'timezone': 'Africa/Cairo',
+  },
+};

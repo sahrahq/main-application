@@ -56,6 +56,26 @@ class PendingSelection {
   /// Anything shown to a diner goes through [dateLabel] instead.
   final String date;
   final int partySize;
+
+  /// Whether this selection can be turned into the sentence a diner reads on
+  /// the sign-in screen.
+  ///
+  /// EVERY FIELD HERE IS REQUIRED AND NON-NULLABLE, so this is not guarding
+  /// against a missing field — it is guarding against an EMPTY one. A venue
+  /// with no name, a date the server sent blank, a party size of zero: each is
+  /// individually plausible and each produces a sentence that still reads as
+  /// finished. "Your table: , 4 August at 18:00, 2 guests" is not obviously
+  /// broken to the person reading it; it just looks like the restaurant has no
+  /// name.
+  ///
+  /// The caller renders nothing at all when this is false. A partial sentence
+  /// that reads as complete is worse than no sentence, because nobody reports
+  /// it.
+  bool get canDescribe =>
+      venueName.trim().isNotEmpty &&
+      date.trim().isNotEmpty &&
+      slotLabel.trim().isNotEmpty &&
+      partySize > 0;
 }
 
 /// Keyed by venue, so a diner who wandered between two restaurants before

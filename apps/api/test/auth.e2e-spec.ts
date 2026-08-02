@@ -197,6 +197,103 @@ describe('auth — refresh rotation (doc 09 §1.1)', () => {
     });
   }, 60_000);
 
+  /**
+   * IDEM-1. A dropped response is not a stolen token.
+   *
+   * The commonest refresh replay is a diner on a bad connection retrying with
+   * the only token they still hold, because the rotation response never
+   * arrived. Before this, that signed them out mid-booking and logged it as
+   * theft.
+   */
+  describe('a retried rotation is not reuse', () => {
+    const CLIENT = { ip: '197.44.0.11', userAgent: 'SAHRA/1.0 (Android 13)' };
+
+    it('the SAME client replaying inside the window keeps its session', async () => {
+      const first = await auth.login(PHONE, PASSWORD, CLIENT);
+      const family = (
+        await prisma.refreshToken.findUniqueOrThrow({
+          where: { tokenHash: TokenService.hash(first.refreshToken) },
+        })
+      ).familyId;
+
+      // Rotation succeeds server-side; the response is lost in transit, so the
+      // client never sees `lost` and still holds `first`.
+      const lost = await auth.refresh(first.refreshToken, CLIENT);
+
+      // It retries with the only token it has.
+      const retried = await auth.refresh(first.refreshToken, CLIENT);
+
+      // A working pair, not a 401.
+      expect(retried.refreshToken).toBeTruthy();
+      expect(retried.accessToken.split('.')).toHaveLength(3);
+      expect(retried.user.id).toBe(first.user.id);
+
+      // The family SURVIVED — this is the whole point.
+      const familyOf = await prisma.refreshToken.findUniqueOrThrow({
+        where: { tokenHash: TokenService.hash(retried.refreshToken) },
+      });
+      expect(familyOf.familyId).toBe(family);
+
+      // And the diner can carry on: the token they were handed rotates.
+      const next = await auth.refresh(retried.refreshToken, CLIENT);
+      expect(next.refreshToken).not.toBe(retried.refreshToken);
+
+      // The unheld replacement was retired rather than left live. Two live
+      // tokens from one rotation is the one outcome worse than a 401.
+      const orphan = await prisma.refreshToken.findUniqueOrThrow({
+        where: { tokenHash: TokenService.hash(lost.refreshToken) },
+      });
+      expect(orphan.revokedAt).not.toBeNull();
+    }, 60_000);
+
+    it('a DIFFERENT client replaying the same token still kills the family', async () => {
+      // The security property the grace window must not cost us. Same timing,
+      // same unused replacement — only the caller differs.
+      const stolen = await auth.login(PHONE, PASSWORD, CLIENT);
+      const legit = await auth.refresh(stolen.refreshToken, CLIENT);
+      const family = (
+        await prisma.refreshToken.findUniqueOrThrow({
+          where: { tokenHash: TokenService.hash(legit.refreshToken) },
+        })
+      ).familyId;
+
+      await expect(
+        auth.refresh(stolen.refreshToken, { ip: '102.44.9.9', userAgent: 'curl/8.4' }),
+      ).rejects.toMatchObject({ response: { code: 'token_reuse_detected' } });
+
+      const live = await prisma.refreshToken.count({
+        where: { familyId: family, revokedAt: null },
+      });
+      expect(live).toBe(0);
+    }, 60_000);
+
+    it('a replay AFTER the replacement has been used is theft, same client or not', async () => {
+      // The other half of the discriminator. Once the legitimate client has
+      // exercised its new token, a replay of the old one cannot be a lost
+      // response — somebody received it.
+      const stolen = await auth.login(PHONE, PASSWORD, CLIENT);
+      const legit = await auth.refresh(stolen.refreshToken, CLIENT);
+      await auth.refresh(legit.refreshToken, CLIENT); // the victim carries on
+
+      await expect(auth.refresh(stolen.refreshToken, CLIENT)).rejects.toMatchObject({
+        response: { code: 'token_reuse_detected' },
+      });
+    }, 60_000);
+
+    it('grace needs positive evidence — an unknown IP does not qualify', async () => {
+      // `null === null` must not read as "same client". This is the case the
+      // pre-existing theft test exercises, and it is asserted here explicitly
+      // so nobody later "simplifies" the check into an equality that treats
+      // two unknowns as a match.
+      const first = await auth.login(PHONE, PASSWORD); // no ctx recorded
+      await auth.refresh(first.refreshToken);
+
+      await expect(auth.refresh(first.refreshToken)).rejects.toMatchObject({
+        response: { code: 'token_reuse_detected' },
+      });
+    }, 60_000);
+  });
+
   it('two concurrent refreshes with the same token: exactly one wins', async () => {
     const pair = await auth.login(PHONE, PASSWORD);
 

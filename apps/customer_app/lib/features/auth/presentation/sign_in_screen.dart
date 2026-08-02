@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
@@ -129,7 +130,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     _Header(onClose: widget.onClose),
                     const SizedBox(height: SahraSpace.s6),
                     _Headline(state: state),
-                    if (pending != null) ...<Widget>[
+                    // `canDescribe`, not `!= null`. See PendingSelection: the
+                    // fields are all required, so the risk is an EMPTY one, and
+                    // the sentence must not be built at all rather than built
+                    // with a hole in it.
+                    if (pending != null && pending.canDescribe) ...<Widget>[
                       const SizedBox(height: SahraSpace.s4),
                       _PendingSlotNote(selection: pending),
                     ],
@@ -278,18 +283,23 @@ class _PendingSlotNote extends StatelessWidget {
               Expanded(
                 child: Text(
                   l10n.signInSlotHeld(
-                    // ISOLATED. The venue name is very often Latin text ("Layali
-                    // Lounge") sitting inside an Arabic sentence, and without an
-                    // isolate the bidi algorithm drags the neighbouring comma
-                    // and digits into the Latin run — the exact defect the venue
-                    // screen's phone number had.
+                    // ISOLATED. The venue name is very often Latin text ("El
+                    // Fishawy") sitting inside an Arabic sentence, and without
+                    // an isolate the bidi algorithm drags the neighbouring
+                    // comma and digits into the Latin run — the exact defect
+                    // the venue screen's phone number had.
                     ltrRun(selection.venueName),
-                    // "5 أغسطس", not "2026-08-05". A machine date in the middle
+                    // "4 أغسطس", not "2026-08-04". A machine date in the middle
                     // of a sentence reads as a serial number, and this sentence
                     // exists to reassure someone mid-booking.
                     dayAndMonth(selection.date, context),
                     ltrRun(selection.slotLabel),
-                    l10n.bookGuests(selection.partySize),
+                    // The INT, not a pre-formatted word. `signInSlotHeld` owns
+                    // the plural and puts `#` in it. This used to pass
+                    // `bookGuestsUnit`, which is the noun alone, and the line
+                    // rendered "…at 18:00, guests" — a complete-looking
+                    // sentence with the number missing.
+                    selection.partySize,
                   ),
                   style: text.bodySmall?.copyWith(
                     color: s.textBody,
@@ -425,18 +435,23 @@ class _CodeStep extends ConsumerWidget {
         ),
         // WHERE THE CODE ACTUALLY WENT, while delivery is a stub.
         //
-        // OPS-1: `LoggingOtpDelivery` writes the code to the API log and no SMS
-        // is sent. Without this line the screen asks for a code that, as far as
-        // the person holding the phone can tell, was never sent — and the first
-        // thing they conclude is that the app is broken.
+        // OPS-1: `LoggingOtpDelivery` writes the code to the API console and no
+        // SMS is sent. Without this line the screen asks for a code that, as
+        // far as the person holding the phone can tell, was never sent — and
+        // the first thing they conclude is that the app is broken. That is
+        // exactly what happened on the first real run-through.
         //
-        // It is behind a build flag, not a `kDebugMode` check: a debug build
-        // pointed at a staging API with real delivery would show it wrongly,
-        // and the flag tracks the API's behaviour rather than the client's.
-        if (Env.otpDeliveryIsStubbed) ...<Widget>[
+        // TWO CONDITIONS, not one. `Env.otpDeliveryIsStubbed` tracks the API's
+        // behaviour and is a define anyone can set; `kReleaseMode` makes the
+        // note impossible in a shipped build whatever the defines say. See
+        // `showsOtpDevHint` for why the predicate is a free function.
+        if (showsOtpDevHint(
+          releaseMode: kReleaseMode,
+          stubbed: Env.otpDeliveryIsStubbed,
+        )) ...<Widget>[
           const SizedBox(height: SahraSpace.s5),
           Text(
-            l10n.signInDevHint(ltrRun('STUB DELIVERY')),
+            l10n.signInDevHint(ltrRun('OTP CODE')),
             style: text.bodySmall?.copyWith(color: s.textFaint),
           ),
         ],

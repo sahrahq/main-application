@@ -136,7 +136,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get errTooManyAttempts =>
-      'حاولت كتير والكود مظبطش. استنى ١٥ دقيقة وجرّب تاني — طلب كود جديد مش هيفيد دلوقتي.';
+      'حاولت كتير والكود مظبطش. استنى 15 دقيقة وجرّب تاني — طلب كود جديد مش هيفيد دلوقتي.';
 
   @override
   String get errUnauthenticated => 'سجّل دخولك وحاول تاني.';
@@ -332,19 +332,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get bookTime => 'الوقت';
 
   @override
-  String bookGuests(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'فرد',
-      few: 'أفراد',
-      two: 'فردين',
-      one: 'فرد',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get bookDecreaseParty => 'فرد أقل';
 
   @override
@@ -474,11 +461,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String signInCodeSentTo(String phone) {
-    return 'بعتنا كود من ٦ أرقام على $phone.';
+    return 'بعتنا كود من 6 أرقام على $phone.';
   }
 
   @override
-  String get signInCodeLabel => 'كود من ٦ أرقام';
+  String get signInCodeLabel => 'كود من 6 أرقام';
 
   @override
   String get signInVerify => 'تأكيد';
@@ -497,12 +484,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String signInDevHint(String marker) {
-    return 'في وضع التطوير الكود بيتكتب في لوج الـ API — دوّر على $marker.';
+    return 'الكود لسه مش بيتبعت برسالة. دوّر في كونسول الـ API على بانر $marker.';
   }
 
   @override
-  String signInSlotHeld(String venue, String date, String time, String party) {
-    return 'طاولتك: $venue، $date الساعة $time، $party';
+  String signInSlotHeld(String venue, String date, String time, int party) {
+    String _temp0 = intl.Intl.pluralLogic(
+      party,
+      locale: localeName,
+      other: '# فرد',
+      many: '# فرد',
+      few: '# أفراد',
+      two: 'فردين',
+      one: 'فرد واحد',
+    );
+    return 'طاولتك: $venue، $date الساعة $time، $_temp0';
   }
 
   @override
@@ -670,5 +666,18 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String searchLocationSemantic(String city) {
     return 'بتدوّر في $city';
+  }
+
+  @override
+  String bookGuestsUnit(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'فرد',
+      few: 'أفراد',
+      two: 'فردين',
+      one: 'فرد',
+    );
+    return '$_temp0';
   }
 }

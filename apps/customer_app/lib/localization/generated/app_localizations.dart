@@ -662,12 +662,6 @@ abstract class AppLocalizations {
   /// **'Time'**
   String get bookTime;
 
-  /// No description provided for @bookGuests.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{guest} other{guests}}'**
-  String bookGuests(int count);
-
   /// No description provided for @bookDecreaseParty.
   ///
   /// In en, this message translates to:
@@ -950,17 +944,17 @@ abstract class AppLocalizations {
   /// **'Use a different number'**
   String get signInChangePhone;
 
-  /// Shown only when the OTP delivery stub is in use. The marker is a PLACEHOLDER rather than part of the sentence so the screen can wrap it in a bidi isolate — 'STUB DELIVERY' inside Arabic prose broke across a line with its full stop leading, which the Arabic golden showed and no assertion did.
+  /// DEV BUILDS ONLY — gated by showsOtpDevHint(), false in any release build regardless of dart-defines. The banner name is a PLACEHOLDER so the screen can wrap it in a bidi isolate: as part of the sentence, "OTP CODE" broke across a line in Arabic with the full stop landing before CODE. Found by looking at the walk-through screenshot, not by any assertion.
   ///
   /// In en, this message translates to:
-  /// **'In development the code is written to the API log — look for {marker}.'**
+  /// **'The code is not sent by SMS yet. Look in the API console for the {marker} banner.'**
   String signInDevHint(String marker);
 
-  /// No description provided for @signInSlotHeld.
+  /// The party size is a PLURAL WITH `#` INSIDE THIS MESSAGE, not a separately-formatted word passed in. It used to take `bookGuests`, which is `{count, plural, =1{guest} other{guests}}` — a noun selector with no number in it — and the screen rendered "…at 18:00, guests". The value was present and correct the whole time; the string it was handed had nowhere to put it.
   ///
   /// In en, this message translates to:
-  /// **'Your table: {venue}, {date} at {time}, {party}'**
-  String signInSlotHeld(String venue, String date, String time, String party);
+  /// **'Your table: {venue}, {date} at {time}, {party, plural, =1{1 guest} other{# guests}}'**
+  String signInSlotHeld(String venue, String date, String time, int party);
 
   /// No description provided for @signInSlotNote.
   ///
@@ -1273,6 +1267,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Searching in {city}'**
   String searchLocationSemantic(String city);
+
+  /// THE NOUN ONLY — "guest"/"guests" — with NO number. Correct for SahraPartyStepper, which draws the figure itself in display type and takes the unit beside it. It is NOT a sentence fragment: dropping it into prose loses the count silently, which is exactly what happened on the sign-in screen. Any sentence needs its own plural with `#`.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{guest} other{guests}}'**
+  String bookGuestsUnit(int count);
 }
 
 class _AppLocalizationsDelegate

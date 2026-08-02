@@ -115,6 +115,49 @@ flutter run -d chrome --dart-define-from-file=env/web.json --dart-define=DEVICE_
 
 ---
 
+## 5. Signing in — WHERE THE OTP CODE IS
+
+**No SMS is sent.** Real delivery is the open launch blocker (OPS-1); the API
+runs `LoggingOtpDelivery`, which writes the code to its own console.
+
+After you tap **Send me a code**, look at the terminal running `pnpm start:dev`
+(step 3). The code is in a box of its own:
+
+```
+[Nest] WARN [OtpDelivery]
+[Nest] WARN [OtpDelivery] ┌─────────────────────────────────────────────┐
+[Nest] WARN [OtpDelivery] │  OTP CODE:  296745                          │
+[Nest] WARN [OtpDelivery] │  for +201158806644                          │
+[Nest] WARN [OtpDelivery] │  purpose: login                             │
+[Nest] WARN [OtpDelivery] │  STUB DELIVERY — no SMS was sent (OPS-1)    │
+[Nest] WARN [OtpDelivery] └─────────────────────────────────────────────┘
+```
+
+If the terminal has scrolled, grep the same thing:
+
+```powershell
+# PowerShell, against a captured log
+Select-String -Path api.log -Pattern 'OTP CODE' | Select-Object -Last 1
+```
+
+Two things that will otherwise cost you ten minutes:
+
+- **`purpose` matters.** `phone_verify` is issued when an account is created;
+  `login` when a known number signs in. They are separate challenges under
+  separate keys, so a `phone_verify` code from earlier will not answer a
+  `login` prompt. Take the code whose purpose matches the box you are looking
+  at — in practice, the **last** one.
+- **Three codes per number per ten minutes**, then the phone limiter refuses.
+  Six wrong entries locks the account for fifteen minutes, and asking for a new
+  code does not clear the lock — that is the behaviour, not a bug.
+
+The sign-in screen says all of this on the code step too, in one line. That
+note is **debug-only**: `showsOtpDevHint()` is false in any release build
+regardless of `--dart-define`, and `otp_dev_hint_test.dart` asserts the whole
+truth table.
+
+---
+
 # What to expect, screen by screen
 
 ### Search — `/`

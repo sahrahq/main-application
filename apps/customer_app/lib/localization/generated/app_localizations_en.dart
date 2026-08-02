@@ -341,17 +341,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bookTime => 'Time';
 
   @override
-  String bookGuests(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'guests',
-      one: 'guest',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get bookDecreaseParty => 'One fewer guest';
 
   @override
@@ -507,12 +496,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String signInDevHint(String marker) {
-    return 'In development the code is written to the API log — look for $marker.';
+    return 'The code is not sent by SMS yet. Look in the API console for the $marker banner.';
   }
 
   @override
-  String signInSlotHeld(String venue, String date, String time, String party) {
-    return 'Your table: $venue, $date at $time, $party';
+  String signInSlotHeld(String venue, String date, String time, int party) {
+    String _temp0 = intl.Intl.pluralLogic(
+      party,
+      locale: localeName,
+      other: '# guests',
+      one: '1 guest',
+    );
+    return 'Your table: $venue, $date at $time, $_temp0';
   }
 
   @override
@@ -683,5 +678,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String searchLocationSemantic(String city) {
     return 'Searching in $city';
+  }
+
+  @override
+  String bookGuestsUnit(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'guests',
+      one: 'guest',
+    );
+    return '$_temp0';
   }
 }

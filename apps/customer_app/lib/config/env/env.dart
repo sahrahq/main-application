@@ -51,8 +51,7 @@ class Env {
   ///
   /// It is COSMETIC. Correctness at real device sizes is guaranteed by
   /// `test/layout/viewport_matrix_test.dart`, not by this looking right.
-  static const bool deviceFrame =
-      bool.fromEnvironment('DEVICE_FRAME', defaultValue: true);
+  static const bool deviceFrame = bool.fromEnvironment('DEVICE_FRAME', defaultValue: true);
 
   /// Pin the app to one locale, ignoring the device.
   ///
@@ -65,6 +64,25 @@ class Env {
   static const String forceLocale = String.fromEnvironment('FORCE_LOCALE');
 }
 
+/// Whether the sign-in screen may tell the diner the code is in the server log.
+///
+/// TWO CONDITIONS, AND THE FIRST IS NOT NEGOTIABLE BY CONFIGURATION.
+///
+/// `Env.otpDeliveryIsStubbed` defaults to TRUE, which is correct today and is
+/// also a `--dart-define` anyone can set. On its own it would put "look in the
+/// API console" in front of a real diner the first time somebody shipped a
+/// release without flipping it. `kReleaseMode` closes that: the note cannot
+/// appear in a release build no matter what the defines say.
+///
+/// This mirrors `LoggingOtpDelivery`, which refuses to CONSTRUCT under
+/// `NODE_ENV=production` rather than merely declining to log — the guard is on
+/// the build, not on a value the build can be told.
+///
+/// A FREE FUNCTION rather than an `if` inside the widget, so the truth table
+/// can be asserted directly. A `kReleaseMode` branch inside a build method is
+/// unreachable from a test, which is how a guard ends up believed rather than
+/// known.
+bool showsOtpDevHint({required bool releaseMode, required bool stubbed}) => !releaseMode && stubbed;
+
 /// The locale to run in, or null to follow the device.
-Locale? forcedLocale() =>
-    Env.forceLocale.isEmpty ? null : Locale(Env.forceLocale);
+Locale? forcedLocale() => Env.forceLocale.isEmpty ? null : Locale(Env.forceLocale);
