@@ -66,9 +66,12 @@ The five are chosen so the screens differ, not to fill a list:
 | **Layali Lounge** (Zamalek) | The ordinary case. Six tables, dinner 18:00–23:30 |
 | **Sequoia** (Zamalek) | Lunch AND dinner as separate shifts on the same day |
 | **Zooba** (Downtown) | **Closed on Mondays** — pick a Monday and see the empty state |
-| — | Verified against the running API: Sequoia gives **15 slots** on a Tuesday (12:00–22:00, lunch and dinner unioned); Kazoku gives none on a Monday and six on a Tuesday |
 | **Kazoku** (Maadi) | **ONE two-top.** Book it, then try again → `slot_taken`. Open **Tue–Sat only** |
 | **El Fishawy** (Khan el-Khalili) | Runs to 02:00, past midnight |
+
+Checked against the running API rather than asserted: Sequoia returns **15
+slots** on a Tuesday (12:00–22:00 — lunch and dinner unioned, not just the
+first shift), and Kazoku returns **none** on a Monday and six on a Tuesday.
 
 ## 3. The API
 
@@ -115,10 +118,22 @@ disappear entirely, and the survivors gain a terracotta `Next: 21:00` badge. The
 header changes from "5 places" to "3 places open tonight", and it only says
 "open tonight" when the server actually did the availability pass.
 
-**Switch to Arabic** with your browser/OS language, or run with
-`--dart-define=FLUTTER_WEB_USE_SKIA=true` and change the system language — the
-whole app mirrors, the fonts change to Reem Kufi and IBM Plex Sans Arabic, and
-the venue names come back in Arabic from the same response.
+**To see it in Arabic**, restart with the locale pinned:
+
+```powershell
+flutter run -d chrome --dart-define-from-file=env/web.json --dart-define=FORCE_LOCALE=ar
+```
+
+The whole app mirrors right-to-left, the type switches to Reem Kufi and IBM
+Plex Sans Arabic, and the venue names come back in Arabic **from the same
+response** — the API sends both and the client picks. `FORCE_LOCALE=en` pins
+the other way; omit it and the app follows the browser, which is what a real
+build does.
+
+Worth noticing while you are there: the phone number and the opening hours on
+a venue page read left-to-right inside the Arabic text. That is not free — see
+`ltrRun` in the design system, and the note in ENGINEERING-STANDARDS about what
+they looked like before.
 
 ### Venue detail — `/r/layali-lounge-zamalek`
 

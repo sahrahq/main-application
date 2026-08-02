@@ -1,9 +1,9 @@
+import 'dart:ui';
+
 /// Build-time configuration, from `--dart-define-from-file=env/dev.json`.
 ///
 /// `String.fromEnvironment` is const, so a wrong value is a wrong BUILD rather
 /// than a runtime surprise, and nothing here can be edited by a user.
-library;
-
 class Env {
   const Env._();
 
@@ -24,4 +24,18 @@ class Env {
 
   /// C-4.5, P2.
   static const bool enableLoyalty = bool.fromEnvironment('ENABLE_LOYALTY');
+
+  /// Pin the app to one locale, ignoring the device.
+  ///
+  /// A DEVELOPMENT AND REVIEW affordance, not a product setting: Arabic is
+  /// half of this product and checking it should not require changing your
+  /// operating system's language. Empty means "follow the device", which is
+  /// what a real build does.
+  ///
+  ///     flutter run -d chrome --dart-define=FORCE_LOCALE=ar
+  static const String forceLocale = String.fromEnvironment('FORCE_LOCALE');
 }
+
+/// The locale to run in, or null to follow the device.
+Locale? forcedLocale() =>
+    Env.forceLocale.isEmpty ? null : Locale(Env.forceLocale);
