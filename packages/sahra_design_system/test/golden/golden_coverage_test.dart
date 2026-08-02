@@ -21,8 +21,7 @@ Directory _packageRoot() {
   var dir = Directory.current;
   for (var i = 0; i < 8; i++) {
     final pubspec = File('${dir.path}/pubspec.yaml');
-    if (pubspec.existsSync() &&
-        pubspec.readAsStringSync().contains('name: sahra_design_system')) {
+    if (pubspec.existsSync() && pubspec.readAsStringSync().contains('name: sahra_design_system')) {
       return dir;
     }
     dir = dir.parent;
@@ -36,9 +35,9 @@ void main() {
 
   // THE CENSUS. Everything below iterates `componentGoldens`; an empty
   // registry would make all of it pass while nothing was pictured at all.
-  test('every wave-1 component is registered', () {
+  test('every component built so far is registered', () {
     // The wave is not done until each component has a picture in four cells.
-    expect(exportedComponents.length, 8, reason: 'Wave 1 is Button + 7 roots');
+    expect(exportedComponents.length, 13, reason: 'Waves 1-2 = 13 of 16 components');
   });
 
   test('the registry is populated', () {
@@ -132,8 +131,7 @@ void main() {
       expect(theme.textTheme.bodyMedium!.fontFamily, SahraTokens.fontArabic.family);
     });
 
-    testWidgets('Latin and Arabic use different families in the same theme',
-        (tester) async {
+    testWidgets('Latin and Arabic use different families in the same theme', (tester) async {
       final ar = SahraTheme.light(locale: const Locale('ar')).textTheme.bodyMedium!;
       final en = SahraTheme.light(locale: const Locale('en')).textTheme.bodyMedium!;
       expect(ar.fontFamily, isNot(en.fontFamily));

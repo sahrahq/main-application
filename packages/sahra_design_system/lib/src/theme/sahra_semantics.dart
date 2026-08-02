@@ -33,6 +33,9 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
     required this.success,
     required this.warning,
     required this.error,
+    required this.successOnTint,
+    required this.warningOnTint,
+    required this.errorOnTint,
     required this.brightness,
   });
 
@@ -54,6 +57,9 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
         success: SahraTokens.success,
         warning: SahraTokens.warning,
         error: SahraTokens.error,
+        successOnTint: SahraTokens.successOnTint,
+        warningOnTint: SahraTokens.warningOnTint,
+        errorOnTint: SahraTokens.errorOnTint,
         brightness: Brightness.light,
       );
 
@@ -79,6 +85,9 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
         success: SahraNightTokens.success,
         warning: SahraNightTokens.warning,
         error: SahraNightTokens.error,
+        successOnTint: SahraNightTokens.successOnTint,
+        warningOnTint: SahraNightTokens.warningOnTint,
+        errorOnTint: SahraNightTokens.errorOnTint,
         brightness: Brightness.dark,
       );
 
@@ -108,7 +117,34 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
   final Color success;
   final Color warning;
   final Color error;
+
+  /// Text ON a tinted status badge, as opposed to on a plain surface.
+  ///
+  /// A badge wash is the status colour at [badgeTintAlpha] over the surface,
+  /// which pulls the background toward the text and eats contrast. The
+  /// surface-level `success`/`warning`/`error` cannot survive that — measured
+  /// at every alpha down to 6%, they all fail — so the badge gets its own,
+  /// darker (or on dark, lighter) value.
+  ///
+  /// Targeted at 6:1 rather than 4.5, deliberately. The original badge failure
+  /// happened because a value sat exactly on the threshold and the tint ate
+  /// the margin; rebuilding that trap in the fix would be the same mistake
+  /// twice.
+  final Color successOnTint;
+  final Color warningOnTint;
+  final Color errorOnTint;
+
   final Brightness brightness;
+
+  /// The status-badge wash strength.
+  ///
+  /// The reference uses 12–18%, which is barely visible (1.2:1 against the
+  /// surface) — a host scanning tonight's book would have to READ each badge
+  /// rather than see it. 28% makes the hue legible at a glance while the
+  /// on-tint values keep the label at 6:1.
+  static const double badgeTintAlpha = 0.28;
+
+  Color tintFor(Color status) => status.withValues(alpha: badgeTintAlpha);
 
   /// EVERY token from tokens.json, resolved for this theme, keyed by its exact
   /// JSON name.
@@ -143,6 +179,9 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
     Color? success,
     Color? warning,
     Color? error,
+    Color? successOnTint,
+    Color? warningOnTint,
+    Color? errorOnTint,
     Brightness? brightness,
   }) =>
       SahraSemantics(
@@ -161,6 +200,9 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
         success: success ?? this.success,
         warning: warning ?? this.warning,
         error: error ?? this.error,
+        successOnTint: successOnTint ?? this.successOnTint,
+        warningOnTint: warningOnTint ?? this.warningOnTint,
+        errorOnTint: errorOnTint ?? this.errorOnTint,
         brightness: brightness ?? this.brightness,
       );
 
@@ -183,6 +225,9 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
       success: Color.lerp(success, other.success, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       error: Color.lerp(error, other.error, t)!,
+      successOnTint: Color.lerp(successOnTint, other.successOnTint, t)!,
+      warningOnTint: Color.lerp(warningOnTint, other.warningOnTint, t)!,
+      errorOnTint: Color.lerp(errorOnTint, other.errorOnTint, t)!,
       brightness: t < 0.5 ? brightness : other.brightness,
     );
   }

@@ -40,7 +40,10 @@ jobs:
         run: |
           flutter pub get
           flutter analyze --fatal-infos --fatal-warnings
-          dart format --set-exit-if-changed --line-length 100 lib test tool
+          # Generated output is EXCLUDED: formatting it would rewrite the
+          # layout the generator produced, and the drift test would then
+          # correctly report tampering.
+          dart format --set-exit-if-changed --line-length 100             lib/src/components lib/src/theme lib/src/gallery             lib/sahra_design_system.dart test tool
           flutter test
           flutter test --tags golden
 

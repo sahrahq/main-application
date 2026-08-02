@@ -530,6 +530,16 @@ Also standing, from the same reasoning: **break at least one guard deliberately
 per wave** and report the result. A guard nobody has watched fail is not known
 to work.
 
+## Cosmetic flags — noted, not fixed
+
+Kept as a running list rather than stopping the wave for each.
+
+| Raised | Item |
+|---|---|
+| wave 1 | `mezze` icon reads as a command-key glyph at 28px |
+| wave 1 | `shisha` icon is hard to parse at small sizes — the hose dominates |
+| wave 2 | The mashrabiya lattice reads as rounded squares below ~40px tile; the eight-point star only resolves at larger tiles |
+
 ## What looking has found so far
 
 | Wave | Found by looking, not by any assertion |
@@ -537,6 +547,7 @@ to work.
 | setup | All three Button sizes rendered at the same height — the 48dp minimum was constraining the painted box, not the hit area, so `sm` was not small |
 | 1 | `★` (U+2605) rendered as tofu — Poppins has no such glyph. The rating star is now drawn, not typed |
 | 1 | The drawn star was OUTLINED, which reads as an unearned rating, and gold where the reference says terracotta |
+| 2 | `SkeletonCard` stretched to whatever height was offered — a card with a large empty region under the text. No assertion covers "too tall" |
 
 None of these could fail a test: a missing glyph still has width, an outlined
 star still renders, and a button of the wrong height still passes every

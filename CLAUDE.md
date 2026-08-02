@@ -31,7 +31,7 @@ The blueprint tells you *what the app does and how the data works*. The design p
 
 ## Non-negotiable DESIGN rules (full detail in `docs/design/DESIGN-RULES.md`)
 
-1. **Colors, type, spacing, radii come ONLY from the design tokens** in `docs/design/tokens.json` (75 light + 10 night). Never hardcode a hex value or a raw pixel spacing in a widget — map tokens into the Flutter theme in `packages/sahra_design_system` and reference the theme.
+1. **Colors, type, spacing, radii come ONLY from the design tokens** in `docs/design/tokens.json` (78 light + 13 night). Never hardcode a hex value or a raw pixel spacing in a widget — map tokens into the Flutter theme in `packages/sahra_design_system` and reference the theme.
 2. **Every screen supports RTL** (Arabic). Use `EdgeInsetsDirectional` / `Alignment.*Start/*End` — never hardcode left/right. Test every screen in both directions.
 3. **Every screen supports light AND dark mode** (the 7 night tokens define the dark overrides).
 4. **Minimum 44px touch targets** on every interactive element.

@@ -135,7 +135,8 @@ String _shadowLiteral(String css) {
     final r = int.parse(parts[0]);
     final g = int.parse(parts[1]);
     final b = int.parse(parts[2]);
-    final a = double.parse(parts.length > 3 ? (parts[3].startsWith('.') ? '0${parts[3]}' : parts[3]) : '1');
+    final a = double.parse(
+        parts.length > 3 ? (parts[3].startsWith('.') ? '0${parts[3]}' : parts[3]) : '1');
 
     final lengths = layer
         .replaceRange(rgba.start, rgba.end, '')
@@ -187,6 +188,9 @@ String generate(String jsonSource) {
   b.writeln('//');
   b.writeln('// Editing this file instead of the JSON is the one way to make the design');
   b.writeln('// tokens and the app disagree. tokens_test.dart fails if you do.');
+  // NOTE: this file is deliberately EXCLUDED from `dart format` (see CI and
+  // the package README). Formatting it would rewrite the layout the generator
+  // produced, and the drift test would then correctly report tampering.
   b.writeln("import 'package:flutter/painting.dart';");
   b.writeln();
   b.writeln('/// A CSS font stack, split for Flutter.');

@@ -70,8 +70,7 @@ void main() {
       expect(dir, TextDirection.rtl);
     });
 
-    testWidgets('EdgeInsetsDirectional resolves to the RIGHT edge in Arabic',
-        (tester) async {
+    testWidgets('EdgeInsetsDirectional resolves to the RIGHT edge in Arabic', (tester) async {
       // The property that matters: `start` means right in Arabic. A widget
       // written with EdgeInsets.only(left:) would put padding on the wrong
       // side here and never fail a test.

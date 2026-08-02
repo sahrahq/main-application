@@ -43,6 +43,18 @@ Widget harness(Cell cell, Widget child, {double textScale = 1.0}) => MaterialApp
       ),
     );
 
+/// Advance to a FIXED, reproducible frame.
+///
+/// `pumpAndSettle` never returns for a component with a looping animation —
+/// the Skeleton shimmer repeats forever by design, so "settled" is a state it
+/// never reaches. Pumping a fixed duration instead is deterministic for both:
+/// a controller starts at 0, so 400ms into a 1600ms loop is the same phase on
+/// every run, and a static widget simply ignores the time.
+Future<void> stabilise(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
 /// Four goldens from one call.
 ///
 /// [name] becomes `goldens/<name>.<cell>.png`. Writing the matrix by hand is
@@ -61,7 +73,7 @@ void goldenMatrix(String name, Widget Function(Cell cell) build, {Size? surface}
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(harness(cell, build(cell)));
-      await tester.pumpAndSettle();
+      await stabilise(tester);
 
       await expectLater(
         find.byType(MaterialApp),
@@ -81,7 +93,7 @@ void a11yMatrix(String name, Widget Function(Cell cell) build, {bool interactive
     testWidgets('a11y: $name [${cell.slug}]', (tester) async {
       final handle = tester.ensureSemantics();
       await tester.pumpWidget(harness(cell, build(cell)));
-      await tester.pumpAndSettle();
+      await stabilise(tester);
 
       // THE GUARD ON THE GUARDS. Every tap-target and label guideline below
       // SKIPS a semantics node that has no tap action — so a component whose
@@ -125,7 +137,7 @@ void textScaleMatrix(String name, Widget Function(Cell cell) build, {double scal
   for (final cell in Cell.values) {
     testWidgets('text scale ${scale}x: $name [${cell.slug}]', (tester) async {
       await tester.pumpWidget(harness(cell, build(cell), textScale: scale));
-      await tester.pumpAndSettle();
+      await stabilise(tester);
       expect(
         tester.takeException(),
         isNull,
@@ -134,7 +146,6 @@ void textScaleMatrix(String name, Widget Function(Cell cell) build, {double scal
     });
   }
 }
-
 
 /// Semantics nodes that a screen reader could actually activate.
 List<SemanticsNode> _tappableNodes(WidgetTester tester) {

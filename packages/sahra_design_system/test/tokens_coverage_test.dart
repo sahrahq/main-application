@@ -29,8 +29,8 @@ File _repoFile(String relative) {
 }
 
 Map<String, Map<String, String>> _tokensJson() {
-  final raw = jsonDecode(_repoFile('docs/design/tokens.json').readAsStringSync())
-      as Map<String, dynamic>;
+  final raw =
+      jsonDecode(_repoFile('docs/design/tokens.json').readAsStringSync()) as Map<String, dynamic>;
   return raw.map(
     (k, v) => MapEntry(k, (v as Map<String, dynamic>).cast<String, String>()),
   );
@@ -43,10 +43,10 @@ void main() {
 
   group('tokens.json is fully implemented', () {
     test('the counts CLAUDE.md states are the counts in the file', () {
-      // CLAUDE.md: "75 light + 10 night". If this changes, CLAUDE.md is now
+      // CLAUDE.md: "78 light + 13 night". If this changes, CLAUDE.md is now
       // wrong too — fix both, deliberately.
-      expect(root.length, 75, reason: 'root token count changed');
-      expect(night.length, 10, reason: 'themeNight token count changed');
+      expect(root.length, 78, reason: 'root token count changed');
+      expect(night.length, 13, reason: 'themeNight token count changed');
     });
 
     test('every LIGHT token has a value in the light theme', () {
@@ -67,7 +67,7 @@ void main() {
       expect(missing, isEmpty, reason: 'Missing night tokens: ${missing.join(', ')}');
     });
 
-    test('the dark theme actually differs on all 10 night tokens', () {
+    test('the dark theme actually differs on all 13 night tokens', () {
       // Presence is not enough: a night token mapped to its light value would
       // pass the check above while dark mode quietly stayed light.
       final light = SahraSemantics.light().byToken;

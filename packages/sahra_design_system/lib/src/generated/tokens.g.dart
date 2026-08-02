@@ -1,6 +1,6 @@
 // GENERATED — DO NOT EDIT BY HAND.
 //
-// Source: docs/design/tokens.json (75 light + 10 night)
+// Source: docs/design/tokens.json (78 light + 13 night)
 // Regenerate: dart run tool/generate_tokens.dart
 //
 // Editing this file instead of the JSON is the one way to make the design
@@ -177,6 +177,12 @@ class SahraTokens {
       BoxShadow(color: Color(0x24784828), offset: Offset(0.0, 14.0), blurRadius: 34.0, spreadRadius: 0.0),
       BoxShadow(color: Color(0x12784828), offset: Offset(0.0, 4.0), blurRadius: 8.0, spreadRadius: 0.0),
     ];
+  /// `success-on-tint`: `#2B452D`
+  static const Color successOnTint = Color(0xFF2B452D);
+  /// `warning-on-tint`: `#55391C`
+  static const Color warningOnTint = Color(0xFF55391C);
+  /// `error-on-tint`: `#6D2819`
+  static const Color errorOnTint = Color(0xFF6D2819);
 
   /// Keyed by the token name exactly as it appears in tokens.json.
   /// The coverage test walks this, so a token cannot go unimplemented.
@@ -256,10 +262,13 @@ class SahraTokens {
     'shadow-1': shadow1,
     'shadow-2': shadow2,
     'shadow-3': shadow3,
+    'success-on-tint': successOnTint,
+    'warning-on-tint': warningOnTint,
+    'error-on-tint': errorOnTint,
   };
 }
 
-/// The `themeNight` overrides. Dark mode changes ONLY these 10
+/// The `themeNight` overrides. Dark mode changes ONLY these 13
 /// tokens; everything else — terracotta above all — is shared, which is
 /// why the brand does not shift between themes (DESIGN-RULES.md).
 class SahraNightTokens {
@@ -285,6 +294,12 @@ class SahraNightTokens {
   static const Color warning = Color(0xFFC79054);
   /// `error` → `#DD8270`
   static const Color error = Color(0xFFDD8270);
+  /// `success-on-tint` → `#BDD6BE`
+  static const Color successOnTint = Color(0xFFBDD6BE);
+  /// `warning-on-tint` → `#E6CDB1`
+  static const Color warningOnTint = Color(0xFFE6CDB1);
+  /// `error-on-tint` → `#F0C7BF`
+  static const Color errorOnTint = Color(0xFFF0C7BF);
 
   static const Map<String, Object> byToken = <String, Object>{
     'surface-page': surfacePage,
@@ -297,5 +312,8 @@ class SahraNightTokens {
     'success': success,
     'warning': warning,
     'error': error,
+    'success-on-tint': successOnTint,
+    'warning-on-tint': warningOnTint,
+    'error-on-tint': errorOnTint,
   };
 }

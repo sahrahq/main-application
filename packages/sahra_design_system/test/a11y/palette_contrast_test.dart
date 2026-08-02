@@ -22,7 +22,8 @@ import 'package:sahra_design_system/sahra_design_system.dart';
 
 /// WCAG relative luminance, straight from the spec.
 double _luminance(Color c) {
-  double channel(double v) => v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+  double channel(double v) =>
+      v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
   return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
 }
 
@@ -54,22 +55,23 @@ Map<String, Color> _textsOf(SahraSemantics s) => <String, Color>{
       'error': s.error,
     };
 
-void main() {
-  // THE CENSUS. This file generates its tests from two maps. If either were
-  // empty the file would contain zero assertions and pass — the same
-  // vacuous-pass shape that hid the semantics bug.
-  test('the matrix actually covers the palette', () {
-    final light = SahraSemantics.light();
-    final pairs = _textsOf(light).length * _surfacesOf(light).length * 2;
-    expect(
-      pairs,
-      42,
-      reason: 'The contrast matrix changed size ($pairs pairs). If a token was '
-          'added or removed, update this count deliberately — a shrinking '
-          'matrix is how coverage disappears without anything failing.',
-    );
-  });
+/// Status badges: the label colour and the status the wash is made from.
+Map<String, (Color, Color)> _tintedOf(SahraSemantics s) => <String, (Color, Color)>{
+      'success': (s.successOnTint, s.success),
+      'warning': (s.warningOnTint, s.warning),
+      'error': (s.errorOnTint, s.error),
+    };
 
+/// Incremented as each test is REGISTERED, so the census counts what actually
+/// exists rather than recomputing the expectation.
+///
+/// The first version of this census multiplied map lengths together and
+/// compared the product to a constant — which passed happily while the tests
+/// it was supposed to be counting had failed to generate at all. A census that
+/// recomputes the answer is not a census.
+int _registered = 0;
+
+void main() {
   group('every text token is legible on every surface, in both themes', () {
     for (final entry in <String, SahraSemantics>{
       'light': SahraSemantics.light(),
@@ -83,6 +85,7 @@ void main() {
 
       for (final t in texts.entries) {
         for (final bg in surfaces.entries) {
+          _registered++;
           test('$theme: ${t.key} on ${bg.key}', () {
             final ratio = contrast(t.value, bg.value);
             expect(
@@ -93,6 +96,40 @@ void main() {
                   'Adjust the token in docs/design/tokens.json — the reference '
                   'does not outrank AA (DESIGN-RULES.md).',
             );
+          });
+        }
+      }
+
+      // TINTED STATUS BADGES, as a class.
+      //
+      // The badge failure happened because the wash was only ever checked on
+      // ONE surface. A tint is the status colour blended with whatever is
+      // behind it, so it is a DIFFERENT background on every surface it lands
+      // on — and it has to work on all of them.
+      for (final t in _tintedOf(s).entries) {
+        for (final bg in surfaces.entries) {
+          final wash = Color.alphaBlend(
+            t.value.$2.withValues(alpha: SahraSemantics.badgeTintAlpha),
+            bg.value,
+          );
+
+          _registered++;
+          test('$theme: ${t.key} badge label on its tint over ${bg.key}', () {
+            final ratio = contrast(t.value.$1, wash);
+            expect(
+              ratio,
+              greaterThanOrEqualTo(kBodyTextMin),
+              reason: '$theme ${t.key} badge over ${bg.key} is '
+                  '${ratio.toStringAsFixed(2)}:1',
+            );
+          });
+
+          _registered++;
+          test('$theme: ${t.key} tint is VISIBLE against ${bg.key}', () {
+            // A wash nobody can see is a neutral badge with extra steps —
+            // which is the state this replaced. The point of the colour is to
+            // be seen without being read.
+            expect(contrast(wash, bg.value), greaterThanOrEqualTo(1.35));
           });
         }
       }
@@ -115,6 +152,18 @@ void main() {
         expect(contrast(s.line, s.surfacePage), greaterThanOrEqualTo(1.3));
       });
     }
+  });
+
+  // THE CENSUS, counting what was REGISTERED above rather than recomputing it.
+  // 7 texts x 3 surfaces x 2 themes = 42, plus 3 statuses x 3 surfaces x
+  // 2 themes x 2 checks = 36.
+  test('the matrix actually registered its tests', () {
+    expect(
+      _registered,
+      78,
+      reason: 'Registered $_registered contrast tests, expected 78. A shrinking '
+          'matrix is how coverage disappears without anything failing.',
+    );
   });
 
   group('the measurement itself is right', () {

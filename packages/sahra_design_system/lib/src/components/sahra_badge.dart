@@ -78,20 +78,14 @@ class SahraBadge extends StatelessWidget {
         SahraBadgeVariant.featured => _BadgePalette(s.accent, s.accentContrast),
         // Gold carries ink in both themes — it is too light for night text.
         SahraBadgeVariant.gold => _BadgePalette(s.premium, SahraSemantics.light().textBody),
-        // PROVISIONAL — awaiting a product decision, see the wave-1 report.
-        //
-        // The reference tints these with the SAME hue as the text
-        // (success@14%, warning@18%, error@12%). That recipe cannot reach
-        // 4.5:1: darkening the text to gain contrast also darkens the tint,
-        // because the tint is derived from the text colour. Measured at every
-        // alpha down to 6% — all fail, in both themes.
-        //
-        // Until the visual language is decided, the wash is neutral and the
-        // STATUS is carried by the text colour, which does clear 4.5 with
-        // headroom. Accessible and plain, rather than pretty and unreadable.
-        SahraBadgeVariant.success => _BadgePalette(s.surfaceSunken, s.success),
-        SahraBadgeVariant.warning => _BadgePalette(s.surfaceSunken, s.warning),
-        SahraBadgeVariant.error => _BadgePalette(s.surfaceSunken, s.error),
+        // A status badge has to read at a glance WITHOUT being read: a host
+        // scanning tonight's book needs confirmed and cancelled to differ by
+        // colour, not by word. So the wash is real (28%, ~1.5:1 against the
+        // surface) and the label gets its own on-tint value at 6:1 — the
+        // surface-level status colours cannot survive their own tint.
+        SahraBadgeVariant.success => _BadgePalette(s.tintFor(s.success), s.successOnTint),
+        SahraBadgeVariant.warning => _BadgePalette(s.tintFor(s.warning), s.warningOnTint),
+        SahraBadgeVariant.error => _BadgePalette(s.tintFor(s.error), s.errorOnTint),
         SahraBadgeVariant.neutral => _BadgePalette(s.surfaceSunken, s.textSoft),
       };
 }

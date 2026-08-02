@@ -11,8 +11,7 @@ Directory _lib() {
   var dir = Directory.current;
   for (var i = 0; i < 8; i++) {
     final pubspec = File('${dir.path}/pubspec.yaml');
-    if (pubspec.existsSync() &&
-        pubspec.readAsStringSync().contains('name: sahra_design_system')) {
+    if (pubspec.existsSync() && pubspec.readAsStringSync().contains('name: sahra_design_system')) {
       return Directory('${dir.path}/lib');
     }
     dir = dir.parent;

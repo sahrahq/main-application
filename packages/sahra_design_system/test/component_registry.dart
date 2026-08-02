@@ -159,8 +159,85 @@ final Map<String, Widget Function(Cell)> componentGoldens = <String, Widget Func
 
   // ── RatingStars ─────────────────────────────────────────────────────────
   'RatingStars/with-reviews': (cell) => const SahraRatingStars(rating: 4.8, reviews: 312),
-  'RatingStars/large': (cell) =>
-      const SahraRatingStars(rating: 4.6, reviews: 812, size: 18),
+  'RatingStars/large': (cell) => const SahraRatingStars(rating: 4.6, reviews: 812, size: 18),
+  // ══ WAVE 2 ═══════════════════════════════════════════════════════════════
+
+  'Skeleton/lines': (cell) => const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          SahraSkeleton(width: 220, height: 16),
+          SizedBox(height: 8),
+          SahraSkeleton(width: 160, height: 12),
+        ],
+      ),
+  'Skeleton/card': (cell) => const SahraSkeletonCard(),
+
+  'EmptyState/with-action': (cell) => SizedBox(
+        width: 380,
+        child: SahraEmptyState(
+          icon: 'lantern',
+          title: _label(cell, en: 'Nothing saved yet', ar: 'لسه مافيش حاجة محفوظة'),
+          message: _label(
+            cell,
+            en: 'Tap the heart on a restaurant and it will wait for you here.',
+            ar: 'دوس على القلب في أي مطعم وهتلاقيه مستنيك هنا.',
+          ),
+          actionLabel: _label(cell, en: 'Browse Discover', ar: 'اكتشف'),
+          onAction: _noop,
+        ),
+      ),
+  'EmptyState/bare': (cell) => SizedBox(
+        width: 380,
+        child: SahraEmptyState(
+          icon: 'search',
+          title: _label(cell, en: 'No tables at that time', ar: 'مافيش طاولات في الميعاد ده'),
+        ),
+      ),
+
+  'SearchBar/with-location': (cell) => SizedBox(
+        width: 360,
+        child: SahraSearchBar(
+          hint: _label(cell, en: 'Koshary, Zamalek…', ar: 'كشري، الزمالك…'),
+          location: _label(cell, en: 'Cairo', ar: 'القاهرة'),
+        ),
+      ),
+
+  'TabBar/default': (cell) => SizedBox(
+        width: 380,
+        child: SahraTabBar(
+          activeId: 'discover',
+          onChanged: (_) {},
+          items: <SahraTab>[
+            SahraTab(
+              id: 'discover',
+              label: _label(cell, en: 'Discover', ar: 'اكتشف'),
+              icon: 'compass',
+            ),
+            SahraTab(
+              id: 'search',
+              label: _label(cell, en: 'Search', ar: 'بحث'),
+              icon: 'search',
+            ),
+            SahraTab(
+              id: 'account',
+              label: _label(cell, en: 'Account', ar: 'حسابي'),
+              icon: 'user',
+            ),
+          ],
+        ),
+      ),
+
+  'AvatarStack/overflow': (cell) => SahraAvatarStack(
+        people: <SahraPerson>[
+          SahraPerson(name: _label(cell, en: 'Nour Hassan', ar: 'نور حسن')),
+          SahraPerson(name: _label(cell, en: 'Omar Fathy', ar: 'عمر فتحي')),
+          SahraPerson(name: _label(cell, en: 'Salma Adel', ar: 'سلمى عادل')),
+          SahraPerson(name: _label(cell, en: 'Yara Nabil', ar: 'يارا نبيل')),
+          SahraPerson(name: _label(cell, en: 'Kareem Saad', ar: 'كريم سعد')),
+        ],
+        label: _label(cell, en: 'are going', ar: 'رايحين'),
+      ),
+
   'Button/sizes': (cell) => Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
@@ -189,7 +266,19 @@ final Map<String, Widget Function(Cell)> componentGoldens = <String, Widget Func
 /// registered under. Kept beside the registry so adding a component is one
 /// edit in one file.
 const Set<String> exportedComponents = <String>{
-  'Button', 'Icon', 'Mashrabiya', 'Badge', 'Chip', 'Input', 'Avatar', 'RatingStars',
+  'Button',
+  'Icon',
+  'Mashrabiya',
+  'Badge',
+  'Chip',
+  'Input',
+  'Avatar',
+  'RatingStars',
+  'Skeleton',
+  'EmptyState',
+  'SearchBar',
+  'TabBar',
+  'AvatarStack',
 };
 
 /// Entries with no tap action BY DESIGN — a disabled control, or a purely
@@ -207,7 +296,16 @@ const Set<String> nonInteractiveGoldens = <String>{
   'RatingStars/with-reviews', 'RatingStars/large',
   // A text field's semantics are a textField, not a tappable button.
   'Input/box', 'Input/error', 'Input/line',
+  'SearchBar/with-location',
+  // Wave 2 display-only.
+  'Skeleton/lines', 'Skeleton/card',
+  'EmptyState/bare',
+  'AvatarStack/overflow',
 };
+
+/// A real callback: a null one disables the button, and a disabled control
+/// exposes no tap action — which the a11y guard correctly refuses.
+void _noop() {}
 
 String _label(Cell cell, {required String en, required String ar}) =>
     cell.locale.languageCode == 'ar' ? ar : en;
