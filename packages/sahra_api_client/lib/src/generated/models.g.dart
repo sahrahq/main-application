@@ -628,6 +628,45 @@ class ErrorDetailResponse {
       };
 }
 
+class ImageResponse {
+  const ImageResponse({
+    required this.height,
+    required this.id,
+    required this.isCover,
+    required this.position,
+    required this.urls,
+    required this.width,
+  });
+
+  factory ImageResponse.fromJson(Map<String, dynamic> json) => ImageResponse(
+        height: (json['height'] as num).toInt(),
+        id: json['id'] as String,
+        isCover: json['is_cover'] as bool,
+        position: (json['position'] as num).toInt(),
+        urls: (json['urls'] as Map<String, dynamic>).map((k, v) => MapEntry(k, v as String)),
+        width: (json['width'] as num).toInt(),
+      );
+
+  final int height;
+  final String id;
+  /// The venue hero. Exactly one per owner.
+  final bool isCover;
+  final int position;
+  /// Width in px → public URL. Pick the smallest that fits.
+  final Map<String, String> urls;
+  /// The ORIGINAL's width, for the aspect box.
+  final int width;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'height': height,
+        'id': id,
+        'is_cover': isCover,
+        'position': position,
+        'urls': urls,
+        'width': width,
+      };
+}
+
 class LoginDto {
   const LoginDto({
     required this.identifier,
@@ -1165,6 +1204,7 @@ class RestaurantProfileResponse {
     this.descriptionEn,
     required this.hours,
     required this.id,
+    required this.images,
     this.lat,
     this.lng,
     required this.nameAr,
@@ -1191,6 +1231,7 @@ class RestaurantProfileResponse {
         descriptionEn: json['description_en'] == null ? null : json['description_en'] as String,
         hours: (json['hours'] as List<dynamic>).map((e) => OpeningHoursResponse.fromJson(e as Map<String, dynamic>)).toList(),
         id: json['id'] as String,
+        images: (json['images'] as List<dynamic>).map((e) => ImageResponse.fromJson(e as Map<String, dynamic>)).toList(),
         lat: json['lat'] == null ? null : (json['lat'] as num).toDouble(),
         lng: json['lng'] == null ? null : (json['lng'] as num).toDouble(),
         nameAr: json['name_ar'] as String,
@@ -1217,6 +1258,8 @@ class RestaurantProfileResponse {
   final String? descriptionEn;
   final List<OpeningHoursResponse> hours;
   final String id;
+  /// The venue gallery, cover first then by position. Empty for a venue with no photos — which the client draws as a designed empty state, never as a broken image.
+  final List<ImageResponse> images;
   final double? lat;
   final double? lng;
   final String nameAr;
@@ -1243,6 +1286,7 @@ class RestaurantProfileResponse {
         if (descriptionEn != null) 'description_en': descriptionEn!,
         'hours': hours.map((e) => e.toJson()).toList(),
         'id': id,
+        'images': images.map((e) => e.toJson()).toList(),
         if (lat != null) 'lat': lat!,
         if (lng != null) 'lng': lng!,
         'name_ar': nameAr,
@@ -1358,6 +1402,7 @@ class SearchResponse {
 
 class SearchResultResponse {
   const SearchResultResponse({
+    this.cover,
     required this.cuisines,
     this.distanceKm,
     required this.id,
@@ -1372,6 +1417,7 @@ class SearchResultResponse {
   });
 
   factory SearchResultResponse.fromJson(Map<String, dynamic> json) => SearchResultResponse(
+        cover: json['cover'] == null ? null : ImageResponse.fromJson(json['cover'] as Map<String, dynamic>),
         cuisines: (json['cuisines'] as List<dynamic>).map((e) => e as String).toList(),
         distanceKm: json['distance_km'] == null ? null : (json['distance_km'] as num).toDouble(),
         id: json['id'] as String,
@@ -1385,6 +1431,8 @@ class SearchResultResponse {
         slug: json['slug'] as String,
       );
 
+  /// The venue hero, or null. Fetched for the whole page in ONE query — a search list that asked per row would issue twenty requests over a Cairo mobile connection to render its first screenful.
+  final ImageResponse? cover;
   final List<String> cuisines;
   final double? distanceKm;
   final String id;
@@ -1399,6 +1447,7 @@ class SearchResultResponse {
   final String slug;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
+        if (cover != null) 'cover': cover!.toJson(),
         'cuisines': cuisines.map((e) => e).toList(),
         if (distanceKm != null) 'distance_km': distanceKm!,
         'id': id,

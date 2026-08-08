@@ -77,6 +77,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'That booking has already moved on. Refresh to see where it stands.';
 
   @override
+  String get errImageNotFound => 'We couldn\'t find that photo.';
+
+  @override
+  String get errImageTooLarge =>
+      'That photo is too large. Keep it under 12 MB.';
+
+  @override
+  String get errInvalidImage => 'That file couldn\'t be read as a photo.';
+
+  @override
+  String get errStorageUnavailable =>
+      'We couldn\'t store that photo. Please try again.';
+
+  @override
+  String get errUnsupportedImageType => 'Use a JPEG, PNG or WebP photo.';
+
+  @override
   String get errMissingIdempotencyKey =>
       'Something went wrong sending that. Please try again.';
 
@@ -512,7 +529,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       party,
       locale: localeName,
-      other: '# guests',
+      other: '$party guests',
       one: '1 guest',
     );
     return 'Your table: $venue, $date at $time, $_temp0';
@@ -761,7 +778,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInNameSubmitting => 'Finishing…';
 
   @override
-  String signInNoCodeHelp(String contact) {
-    return 'Code not arriving? Contact us: $contact';
-  }
+  String get signInNoCodeHelp => 'Code not arriving? Contact us:';
+
+  @override
+  String get signInEmailSupport => 'Email SAHRA support';
+
+  @override
+  String get contactCannotOpen =>
+      'Couldn\'t open an app for this — copy it instead.';
+
+  @override
+  String get reservationCallVenue => 'Call the restaurant';
 }

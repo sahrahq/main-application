@@ -98,9 +98,32 @@ describe('Idempotency-Key coverage across mutations', () => {
    *   on retry for a cancellation that in fact succeeded.
    *
    * `PATCH /v1/auth/me` — absolute values again, and no row is created.
+   *
+   * ── AND THE TWO ADDED IN GROUP B ───────────────────────────────────────
+   *
+   * `POST   /v1/admin/restaurants/{restaurantId}/images`
+   * `DELETE /v1/admin/restaurants/{restaurantId}/images/{imageId}`
+   *
+   * The upload genuinely is not idempotent: a replay stores a second copy and
+   * inserts a second row. It carries no key anyway, and the reasoning is about
+   * WHO USES IT rather than about the shape.
+   *
+   * It is an ADMIN endpoint driven by a person watching the response
+   * (doc 10 §3b — venue photos come through us until `management_app` ships).
+   * A duplicate is a visible extra row in a gallery they are already looking
+   * at, deletable in one call. The alternative is a key column on `images` and
+   * a lookup on every upload, to protect a manual operation from a failure
+   * mode its operator can see and undo.
+   *
+   * **If this ever becomes owner-facing or scripted, that argument expires.**
+   * A bulk importer retrying over a bad connection would silently double a
+   * venue's gallery, and at that point the key stops being optional.
+   *
+   * The DELETE is idempotent by nature — the second one 404s.
    */
   it('the mutations WITHOUT a key are the known list, and no more', () => {
     expect(withoutKey.sort()).toEqual([
+      'DELETE /v1/admin/restaurants/{restaurantId}/images/{imageId}',
       'DELETE /v1/devices',
       'DELETE /v1/owner/restaurants/{restaurantId}/shifts/{shiftId}',
       'DELETE /v1/owner/restaurants/{restaurantId}/tables/{tableId}',
@@ -111,6 +134,7 @@ describe('Idempotency-Key coverage across mutations', () => {
       'PATCH /v1/reservations/{id}',
       'POST /v1/admin/restaurants/{id}/approve',
       'POST /v1/admin/restaurants/{id}/reject',
+      'POST /v1/admin/restaurants/{restaurantId}/images',
       'POST /v1/auth/complete-registration',
       'POST /v1/auth/login',
       'POST /v1/auth/logout',

@@ -12,6 +12,7 @@ import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
 
 import '../support/fakes.dart';
+import '../support/fixture_dates.dart';
 
 /// C-1.6: booking requires an account, and the diner comes back to the SAME
 /// table afterwards.
@@ -30,17 +31,17 @@ import '../support/fakes.dart';
 /// and pass while the screen never pushed anything.
 void main() {
   const venueId = '11111111-1111-4111-8111-111111111111';
-  const startsAt = '2026-08-05T18:00:00.000Z';
+  const startsAt = '${kFutureDate}T18:00:00.000Z';
 
   Map<String, Object?> slots(List<String> times) => <String, Object?>{
-        'date': '2026-08-05',
+        'date': kFutureDate,
         'partySize': 2,
         'timezone': 'Africa/Cairo',
         'slots': <Object>[
           for (final t in times)
             <String, Object?>{
               'time': t,
-              'startsAt': '2026-08-05T${t.split(':').first}:${t.split(':').last}:00.000Z',
+              'startsAt': '${kFutureDate}T${t.split(':').first}:${t.split(':').last}:00.000Z',
               'zones': <String>['indoor'],
             },
         ],
@@ -52,7 +53,7 @@ void main() {
     'restaurantId': venueId,
     'partySize': 2,
     'startsAt': startsAt,
-    'endsAt': '2026-08-05T19:30:00.000Z',
+    'endsAt': '${kFutureDate}T19:30:00.000Z',
     'status': 'held',
     'source': 'app',
   };

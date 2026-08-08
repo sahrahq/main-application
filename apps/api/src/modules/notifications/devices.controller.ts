@@ -19,7 +19,7 @@ export class DevicesController {
   @ApiOkResponse({ type: DeviceResponse })
   @HttpCode(201)
   @ApiOperation({ summary: 'Register this handset for push' })
-  async register(
+  async registerDevice(
     @CurrentUser() user: AuthedUser,
     @Body() dto: RegisterDeviceDto,
   ): Promise<DeviceResponse> {

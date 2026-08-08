@@ -8,6 +8,7 @@ import 'package:sahra_customer_app/shared/providers/app_providers.dart';
 import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 
 import '../support/fakes.dart';
+import '../support/fixture_dates.dart';
 
 /// THE WHOLE JOURNEY, COLD LAUNCH TO A BOOKING FOUND AGAIN.
 ///
@@ -302,6 +303,10 @@ final Map<String, Object?> _profile = <String, Object?>{
   'amenities': <String>['outdoor'],
   'timezone': 'Africa/Cairo',
   'booking_mode': 'instant',
+  // REQUIRED by the wire model. A venue with no photos is the ordinary case
+  // (doc 10 §3b — they arrive by hand), and `SahraPhoto` draws the reference's
+  // mashrabiya placeholder for it rather than a broken image.
+  'images': <Object>[],
   'hours': <Object>[
     for (var day = 0; day < 7; day++)
       <String, Object?>{
@@ -317,14 +322,14 @@ final Map<String, Object?> _profile = <String, Object?>{
 };
 
 final Map<String, Object?> _availability = <String, Object?>{
-  'date': '2027-08-05',
+  'date': kFutureDate,
   'partySize': 2,
   'timezone': 'Africa/Cairo',
   'slots': <Object>[
     for (final t in <String>['18:00', '18:30', '19:00'])
       <String, Object?>{
         'time': t,
-        'startsAt': '2027-08-05T$t:00.000Z',
+        'startsAt': '${kFutureDate}T$t:00.000Z',
         'zones': <String>['indoor'],
       },
   ],
@@ -349,8 +354,8 @@ Map<String, Object?> _reservation(String status) => <String, Object?>{
       'code': 'SAH-7K2M',
       'restaurantId': '4f743baa-3054-4fda-90ce-1a602faf1e77',
       'partySize': 2,
-      'startsAt': '2027-08-05T18:00:00.000Z',
-      'endsAt': '2027-08-05T19:30:00.000Z',
+      'startsAt': '${kFutureDate}T18:00:00.000Z',
+      'endsAt': '${kFutureDate}T19:30:00.000Z',
       'status': status,
       'source': 'app',
     };
@@ -360,9 +365,9 @@ final Map<String, Object?> _myReservation = <String, Object?>{
   'code': 'SAH-7K2M',
   'status': 'confirmed',
   'source': 'app',
-  'starts_at': '2027-08-05T18:00:00.000Z',
-  'ends_at': '2027-08-05T19:30:00.000Z',
-  'date': '2027-08-05',
+  'starts_at': '${kFutureDate}T18:00:00.000Z',
+  'ends_at': '${kFutureDate}T19:30:00.000Z',
+  'date': kFutureDate,
   'time': '21:00',
   'party_size': 2,
   'needs_acknowledgement': false,

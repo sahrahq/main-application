@@ -5,6 +5,7 @@ import 'package:sahra_design_system/sahra_design_system.dart';
 import '../../../localization/generated/app_localizations.dart';
 import '../../../routes/routes.dart';
 import '../../../shared/widgets/sahra_async_view.dart';
+import '../../../shared/widgets/venue_image_provider.dart';
 import '../domain/venue.dart';
 import 'amenity_copy.dart';
 import 'venue_meta.dart';
@@ -140,19 +141,30 @@ class _Content extends StatelessWidget {
   }
 }
 
-class _Hero extends StatelessWidget {
+class _Hero extends ConsumerWidget {
   const _Hero({required this.venue});
 
   final VenueProfile venue;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final s = Theme.of(context).sahra;
     final text = Theme.of(context).textTheme;
 
     return SahraPhoto(
+      // FIXED HEIGHT, so the hero reserves its space before a byte arrives and
+      // the controls below it do not jump when the photo lands.
       height: 280,
+      // Full-bleed, so the slot is the screen. The provider picks the smallest
+      // rendition at least this wide at the device's pixel ratio — a 1200px
+      // file on a phone hero, a 400px one on a narrow test viewport.
+      image: venueImageProvider(
+        context,
+        ref,
+        venue.cover,
+        slotWidth: MediaQuery.sizeOf(context).width,
+      ),
       gradientOverlay: true,
       // The controls sit on top, so the centred image glyph would be behind
       // them.

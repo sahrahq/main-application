@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { AvailabilityService } from '../availability/availability.service';
+import { ImagesService, ImageView } from '../images/images.service';
 import { RestaurantIndexPort } from './search.port';
 import { loadLiveRows, RestaurantRowForSearch } from './search-doc';
 
@@ -52,6 +53,8 @@ export interface SearchResultItem {
    * re-validates again under the per-restaurant lock.
    */
   next_available?: string[];
+  /** The venue hero, or null. Fetched for the whole page in one query. */
+  cover?: ImageView | null;
 }
 
 export interface SearchResponse {
@@ -86,6 +89,7 @@ export class RestaurantSearchService {
     private readonly prisma: PrismaService,
     private readonly index: RestaurantIndexPort,
     private readonly availability: AvailabilityService,
+    private readonly images: ImagesService,
   ) {}
 
   async search(q: SearchQuery): Promise<SearchResponse> {
@@ -123,6 +127,15 @@ export class RestaurantSearchService {
     if (wantsAvailability) {
       results = await this.attachAvailability(results, q.date!, q.partySize!);
     }
+
+    // 4. THE COVERS — ONE query for the whole page, after the post-filter.
+    //
+    //    After, so a venue dropped for having nothing bookable does not cost a
+    //    row. One query rather than one per result, because a search list is
+    //    the exact place an N+1 is most expensive: twenty round trips over a
+    //    Cairo mobile connection before the first screenful can draw.
+    const covers = await this.images.coversFor(results.map((r) => r.id));
+    results = results.map((r) => ({ ...r, cover: covers.get(r.id) ?? null }));
 
     return {
       results,

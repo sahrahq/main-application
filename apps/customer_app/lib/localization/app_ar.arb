@@ -21,6 +21,11 @@
   "errInvalidQueryParam": "واحد من الفلاتر دي مش صحيح.",
   "errInvalidSort": "طريقة الترتيب دي مش متاحة.",
   "errInvalidStatusTransition": "الحجز ده اتغيّر بالفعل. حدّث عشان تشوف حالته.",
+  "errImageNotFound": "مالقيناش الصورة دي.",
+  "errImageTooLarge": "الصورة كبيرة أوي. خليها أقل من 12 ميجا.",
+  "errInvalidImage": "مقدرناش نقرا الملف ده كصورة.",
+  "errStorageUnavailable": "مقدرناش نحفظ الصورة. حاول تاني.",
+  "errUnsupportedImageType": "استخدم صورة JPEG أو PNG أو WebP.",
   "errMissingIdempotencyKey": "حصلت مشكلة وإحنا بنبعت. حاول تاني.",
   "errNotAnOwner": "الحساب ده مش مسجّل كصاحب مطعم.",
   "errNotFound": "مالقيناش ده.",
@@ -153,7 +158,7 @@
   "signInResending": "بنبعت…",
   "signInChangePhone": "استخدم رقم تاني",
   "signInDevHint": "الكود لسه مش بيتبعت برسالة. دوّر في كونسول الـ API على بانر {marker}.",
-  "signInSlotHeld": "طاولتك: {venue}، {date} الساعة {time}، {party, plural, =1{فرد واحد} =2{فردين} few{# أفراد} many{# فرد} other{# فرد}}",
+  "signInSlotHeld": "طاولتك: {venue}، {date} الساعة {time}، {party, plural, =1{فرد واحد} =2{فردين} few{{party} أفراد} many{{party} فرد} other{{party} فرد}}",
   "signInSlotNote": "هنكمّل الحجز أول ما تدخل.",
   "signInCancel": "مش دلوقتي",
   "bookingsTitle": "حجوزاتي",
@@ -226,5 +231,8 @@
   "signInNameWhy": "المطعم محتاج اسم للطاولة. مش محتاجين حاجة تانية.",
   "signInNameSubmit": "خلّصنا",
   "signInNameSubmitting": "بنخلّص…",
-  "signInNoCodeHelp": "الكود مش بيوصل؟ كلّمنا: {contact}"
+  "signInNoCodeHelp": "الكود مش بيوصل؟ كلّمنا:",
+  "signInEmailSupport": "ابعت إيميل لدعم سهرة",
+  "contactCannotOpen": "مقدرناش نفتح تطبيق لده — انسخه بدل كده.",
+  "reservationCallVenue": "كلّم المطعم"
 }

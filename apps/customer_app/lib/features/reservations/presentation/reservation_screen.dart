@@ -6,6 +6,7 @@ import '../../../localization/generated/app_localizations.dart';
 import '../../../shared/widgets/sahra_async_view.dart';
 import '../../restaurants/presentation/venue_notifier.dart';
 import '../domain/my_reservation.dart';
+import '../../../shared/widgets/tappable_contact.dart';
 import 'my_reservations_notifier.dart';
 import 'reservation_actions.dart';
 import 'reservation_copy.dart';
@@ -399,10 +400,10 @@ class _Actions extends ConsumerWidget {
 /// already has a provider for, keyed by slug so it is the same cache entry the
 /// venue screen fills.
 ///
-/// It is NOT a dial link. `url_launcher` is not in the approved stack
-/// (doc 07 §3 / doc 08 §5) and CLAUDE.md says stop and ask before adding one,
-/// so the number is selectable text. Tapping it does nothing on purpose —
-/// there is no `tel:` handler pretending to be one.
+/// IT DIALS NOW. `url_launcher` was approved on 2026-08-08 for `tel:` and
+/// `mailto:` together (doc 08 §5), so the number opens the dialler — and stays
+/// readable and copyable where nothing can open it, which is the half that
+/// matters. See `SahraTappableContact`.
 class _VenuePhone extends ConsumerWidget {
   const _VenuePhone({required this.slug});
 
@@ -410,7 +411,7 @@ class _VenuePhone extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final s = Theme.of(context).sahra;
+    final l10n = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
     final phone = ref.watch(venueProfileProvider(slug)).valueOrNull?.phone;
 
@@ -418,13 +419,14 @@ class _VenuePhone extends ConsumerWidget {
     // worse than the silence.
     if (phone == null || phone.isEmpty) return const SizedBox.shrink();
 
-    return SelectableText(
-      // A number set in Arabic prose without an isolate reads with its leading
-      // `+` on the wrong end — the same defect the venue screen's hours had.
-      ltrRun(phone),
+    return SahraTappableContact(
+      display: phone,
+      // Built from the profile's own value, never re-parsed from what is drawn.
+      uri: Uri(scheme: 'tel', path: phone.replaceAll(' ', '')),
+      semanticLabel: l10n.reservationCallVenue,
       textAlign: TextAlign.center,
       style: SahraTypography.numeric(
-        text.bodyMedium!.copyWith(color: s.accentOnSurface, fontWeight: FontWeight.w600),
+        text.bodyMedium!.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }

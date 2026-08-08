@@ -598,6 +598,48 @@
         ],
         "type": "object"
       },
+      "ImageResponse": {
+        "properties": {
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_cover": {
+            "description": "The venue hero. Exactly one per owner.",
+            "type": "boolean"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Width in px → public URL. Pick the smallest that fits.",
+            "example": {
+              "160": "https://…/160.webp",
+              "400": "…",
+              "1200": "…"
+            },
+            "type": "object"
+          },
+          "width": {
+            "description": "The ORIGINAL's width, for the aspect box.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "urls",
+          "width",
+          "height",
+          "position",
+          "is_cover"
+        ],
+        "type": "object"
+      },
       "LoginDto": {
         "properties": {
           "identifier": {
@@ -1098,6 +1140,13 @@
           "id": {
             "type": "string"
           },
+          "images": {
+            "description": "The venue gallery, cover first then by position. Empty for a venue with no photos — which the client draws as a designed empty state, never as a broken image.",
+            "items": {
+              "$ref": "#/components/schemas/ImageResponse"
+            },
+            "type": "array"
+          },
           "lat": {
             "nullable": true,
             "type": "number"
@@ -1157,6 +1206,7 @@
           "rating",
           "rating_count",
           "amenities",
+          "images",
           "timezone",
           "booking_mode",
           "hours"
@@ -1250,6 +1300,15 @@
       },
       "SearchResultResponse": {
         "properties": {
+          "cover": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageResponse"
+              }
+            ],
+            "description": "The venue hero, or null. Fetched for the whole page in ONE query — a search list that asked per row would issue twenty requests over a Cairo mobile connection to render its first screenful.",
+            "nullable": true
+          },
           "cuisines": {
             "items": {
               "type": "string"
@@ -1826,6 +1885,155 @@
         ]
       }
     },
+    "/v1/admin/restaurants/{restaurantId}/images": {
+      "get": {
+        "operationId": "AdminImagesController_listImages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ImageResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A venue's photos, in order",
+        "tags": [
+          "admin:images"
+        ]
+      },
+      "post": {
+        "operationId": "AdminImagesController_upload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Make this the hero. The first photo of a venue becomes one anyway.",
+            "in": "query",
+            "name": "cover",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "invalid_image | image_too_large (>12582912 bytes) | unsupported_image_type (accepted: image/jpeg, image/png, image/webp)"
+          },
+          "404": {
+            "description": "restaurant_not_found"
+          },
+          "503": {
+            "description": "storage_unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin:images"
+        ]
+      }
+    },
+    "/v1/admin/restaurants/{restaurantId}/images/{imageId}": {
+      "delete": {
+        "operationId": "AdminImagesController_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "imageId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted, with every rendition"
+          },
+          "404": {
+            "description": "image_not_found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a photo and every rendition of it",
+        "tags": [
+          "admin:images"
+        ]
+      }
+    },
     "/v1/auth/complete-registration": {
       "post": {
         "operationId": "AuthController_completeRegistration",
@@ -2220,7 +2428,7 @@
         ]
       },
       "post": {
-        "operationId": "DevicesController_register",
+        "operationId": "DevicesController_registerDevice",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -3091,7 +3299,7 @@
     },
     "/v1/reservations": {
       "get": {
-        "operationId": "MyReservationsController_list",
+        "operationId": "MyReservationsController_listMyReservations",
         "parameters": [
           {
             "in": "query",

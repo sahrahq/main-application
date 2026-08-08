@@ -101,6 +101,41 @@ export class AvailabilityResponse {
 
 // ─────────────────────────────────────────────────────────────────── search ──
 
+/**
+ * One stored photo, in every size it exists in.
+ *
+ * `urls` IS A MAP KEYED BY WIDTH — "160", "400", "1200" — rather than three
+ * named fields. The client picks the smallest that fits the slot it is drawing
+ * into; adding a fourth size later is a server change and a client that
+ * already knows how to choose, instead of a schema change and a release.
+ *
+ * NO CLIENT EVER BUILDS ONE OF THESE. The bucket, the CDN in front of it and
+ * the path convention are deployment concerns, and a client that assembled
+ * URLs itself would need re-releasing the day any of them moved.
+ *
+ * `width`/`height` are the ORIGINAL's, and they are not decoration: every
+ * client reserves its box from this ratio before a byte arrives, so a list
+ * does not reflow as photos land.
+ */
+export class ImageResponse {
+  @ApiProperty() id!: string;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: { type: 'string' },
+    description: 'Width in px → public URL. Pick the smallest that fits.',
+    example: { '160': 'https://…/160.webp', '400': '…', '1200': '…' },
+  })
+  urls!: Record<string, string>;
+
+  @ApiProperty({ type: 'integer', description: "The ORIGINAL's width, for the aspect box." })
+  width!: number;
+
+  @ApiProperty({ type: 'integer' }) height!: number;
+  @ApiProperty({ type: 'integer' }) position!: number;
+  @ApiProperty({ description: 'The venue hero. Exactly one per owner.' }) is_cover!: boolean;
+}
+
 export class SearchResultResponse {
   @ApiProperty() id!: string;
   @ApiProperty() slug!: string;
@@ -120,6 +155,16 @@ export class SearchResultResponse {
       'given precisely so no client can treat one as bookable.',
   })
   next_available?: string[];
+
+  @ApiPropertyOptional({
+    type: ImageResponse,
+    nullable: true,
+    description:
+      'The venue hero, or null. Fetched for the whole page in ONE query — a ' +
+      'search list that asked per row would issue twenty requests over a ' +
+      'Cairo mobile connection to render its first screenful.',
+  })
+  cover?: ImageResponse | null;
 }
 
 export class SearchResponse {
@@ -174,6 +219,15 @@ export class RestaurantProfileResponse {
   @ApiProperty({ type: [String] }) amenities!: string[];
   @ApiPropertyOptional({ type: 'object', additionalProperties: true, nullable: true })
   policies?: Record<string, unknown> | null;
+  @ApiProperty({
+    type: [ImageResponse],
+    description:
+      'The venue gallery, cover first then by position. Empty for a venue ' +
+      'with no photos — which the client draws as a designed empty state, ' +
+      'never as a broken image.',
+  })
+  images!: ImageResponse[];
+
   @ApiProperty({ description: 'IANA zone every wall-clock time here is in.' })
   timezone!: string;
   @ApiProperty({ description: 'instant | request' }) booking_mode!: string;

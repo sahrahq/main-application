@@ -212,6 +212,36 @@ abstract class AppLocalizations {
   /// **'That booking has already moved on. Refresh to see where it stands.'**
   String get errInvalidStatusTransition;
 
+  /// No description provided for @errImageNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t find that photo.'**
+  String get errImageNotFound;
+
+  /// No description provided for @errImageTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'That photo is too large. Keep it under 12 MB.'**
+  String get errImageTooLarge;
+
+  /// No description provided for @errInvalidImage.
+  ///
+  /// In en, this message translates to:
+  /// **'That file couldn\'t be read as a photo.'**
+  String get errInvalidImage;
+
+  /// No description provided for @errStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t store that photo. Please try again.'**
+  String get errStorageUnavailable;
+
+  /// No description provided for @errUnsupportedImageType.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a JPEG, PNG or WebP photo.'**
+  String get errUnsupportedImageType;
+
   /// No description provided for @errMissingIdempotencyKey.
   ///
   /// In en, this message translates to:
@@ -962,10 +992,10 @@ abstract class AppLocalizations {
   /// **'The code is not sent by SMS yet. Look in the API console for the {marker} banner.'**
   String signInDevHint(String marker);
 
-  /// The party size is a PLURAL WITH `#` INSIDE THIS MESSAGE, not a separately-formatted word passed in. It used to take `bookGuests`, which is `{count, plural, =1{guest} other{guests}}` — a noun selector with no number in it — and the screen rendered "…at 18:00, guests". The value was present and correct the whole time; the string it was handed had nowhere to put it.
+  /// The party size is a PLURAL WITH ITS OWN {party} PLACEHOLDER INSIDE THIS MESSAGE, not a separately-formatted word passed in. It used to take `bookGuests`, which is `{count, plural, =1{guest} other{guests}}` — a noun selector with no number in it — and the screen rendered "…at 18:00, guests". The value was present and correct the whole time; the string it was handed had nowhere to put it.
   ///
   /// In en, this message translates to:
-  /// **'Your table: {venue}, {date} at {time}, {party, plural, =1{1 guest} other{# guests}}'**
+  /// **'Your table: {venue}, {date} at {time}, {party, plural, =1{1 guest} other{{party} guests}}'**
   String signInSlotHeld(String venue, String date, String time, int party);
 
   /// No description provided for @signInSlotNote.
@@ -1370,7 +1400,7 @@ abstract class AppLocalizations {
   /// **'Searching in {city}'**
   String searchLocationSemantic(String city);
 
-  /// THE NOUN ONLY — "guest"/"guests" — with NO number. Correct for SahraPartyStepper, which draws the figure itself in display type and takes the unit beside it. It is NOT a sentence fragment: dropping it into prose loses the count silently, which is exactly what happened on the sign-in screen. Any sentence needs its own plural with `#`.
+  /// THE NOUN ONLY — "guest"/"guests" — with NO number. Correct for SahraPartyStepper, which draws the figure itself in display type and takes the unit beside it. It is NOT a sentence fragment: dropping it into prose loses the count silently, which is exactly what happened on the sign-in screen. Any sentence needs its own plural interpolating {count} by name — NOT `#`, which gen-l10n emits literally.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{guest} other{guests}}'**
@@ -1400,11 +1430,29 @@ abstract class AppLocalizations {
   /// **'Finishing…'**
   String get signInNameSubmitting;
 
-  /// UNCONDITIONAL on the code step, in both locales. Not gated on the delivery stub and not gated on a failure: a code that does not arrive is the one situation where a diner has no way forward, and the lockout design assumes a human can be reached (see the decision doc). The contact itself is a PLACEHOLDER that FAILS THE BUILD until a real one is supplied — see support_contact.dart and support_contact_test.dart.
+  /// UNCONDITIONAL on the code step, in both locales. Not gated on the delivery stub and not gated on a failure: a code that does not arrive is the one situation where a diner has no way forward, and the lockout design assumes a human can be reached (see the decision doc). The contact itself is a PLACEHOLDER that FAILS THE BUILD until a real one is supplied — see support_contact.dart and support_contact_test.dart. The ADDRESS ITSELF is no longer interpolated here: it is a separate tappable widget, because making the whole sentence a link would give the link the sentence as its accessible name.
   ///
   /// In en, this message translates to:
-  /// **'Code not arriving? Contact us: {contact}'**
-  String signInNoCodeHelp(String contact);
+  /// **'Code not arriving? Contact us:'**
+  String get signInNoCodeHelp;
+
+  /// No description provided for @signInEmailSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Email SAHRA support'**
+  String get signInEmailSupport;
+
+  /// No description provided for @contactCannotOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open an app for this — copy it instead.'**
+  String get contactCannotOpen;
+
+  /// No description provided for @reservationCallVenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Call the restaurant'**
+  String get reservationCallVenue;
 }
 
 class _AppLocalizationsDelegate

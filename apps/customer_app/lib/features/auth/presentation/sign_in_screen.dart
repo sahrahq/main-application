@@ -5,6 +5,7 @@ import 'package:sahra_design_system/sahra_design_system.dart';
 
 import '../../../config/env/env.dart';
 import '../../../config/support_contact.dart';
+import '../../../shared/widgets/tappable_contact.dart';
 import '../../../localization/generated/app_localizations.dart';
 import '../../../shared/widgets/failure_copy.dart';
 import '../../reservations/presentation/pending_booking.dart';
@@ -519,9 +520,20 @@ class _CodeStep extends ConsumerWidget {
           // `SelectionArea` provides selection for the whole step at once, which
           // is both what a diner wants (select the address, or the code label
           // above it) and what stops every line of text becoming a control.
+          // The sentence and the address are SEPARATE widgets now, because
+          // only the address is tappable. Interpolating it into the sentence
+          // would make the whole line a link — including the part that says
+          // what the link is for, which a screen reader would then read as the
+          // link's name.
           Text(
-            l10n.signInNoCodeHelp(ltrRun(SupportContact.value)),
+            l10n.signInNoCodeHelp,
             style: text.bodySmall?.copyWith(color: s.textSoft),
+          ),
+          SahraTappableContact(
+            display: SupportContact.value,
+            uri: SupportContact.mailto,
+            semanticLabel: l10n.signInEmailSupport,
+            style: text.bodySmall,
           ),
         ],
       ),

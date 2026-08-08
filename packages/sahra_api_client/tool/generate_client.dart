@@ -104,6 +104,23 @@ _Type _typeOf(Map<String, dynamic> schema, String where) {
         fromJson: '$name.fromJson(%s as Map<String, dynamic>)', toJson: '%s.toJson()');
   }
 
+  // A NULLABLE OBJECT REFERENCE.
+  //
+  // `@ApiPropertyOptional({ type: Foo, nullable: true })` does not emit a bare
+  // `\` — OpenAPI cannot attach `nullable` or a description to one, so
+  // @nestjs/swagger wraps it: `{allOf: [{\}], nullable: true, description}`.
+  //
+  // Without this rule the generator threw, which was the correct behaviour and
+  // the reason the shape was noticed at all. Handling it here keeps the
+  // no-dynamic rule intact: a single-element `allOf` is exactly one named
+  // type, so it resolves to that type and nothing is widened. A MULTI-element
+  // `allOf` is composition and still throws, because that genuinely has no
+  // single Dart type and guessing one would be the escape hatch by other means.
+  final allOf = schema['allOf'];
+  if (allOf is List && allOf.length == 1 && allOf.first is Map) {
+    return _typeOf((allOf.first as Map).cast<String, dynamic>(), where);
+  }
+
   final type = schema['type'];
   switch (type) {
     case 'string':
@@ -282,6 +299,9 @@ String _api(Map<String, dynamic> paths) {
 
   final seen = <String>{};
 
+  /// Operations deliberately not generated. See the non-JSON body branch.
+  final skipped = <String>[];
+
   for (final path in paths.keys.toList()..sort()) {
     final ops = (paths[path] as Map).cast<String, dynamic>();
     for (final method in ops.keys.toList()..sort()) {
@@ -339,8 +359,29 @@ String _api(Map<String, dynamic> paths) {
       final body = (op['requestBody'] as Map?)?.cast<String, dynamic>();
       _Type? bodyType;
       if (body != null) {
-        final schema = (((body['content'] as Map)['application/json'] as Map)['schema'] as Map)
-            .cast<String, dynamic>();
+        final content = (body['content'] as Map).cast<String, dynamic>();
+        final json = content['application/json'];
+
+        if (json == null) {
+          // ── A NON-JSON BODY. SKIPPED, LOUDLY. ────────────────────────────
+          //
+          // `POST /admin/restaurants/{id}/images` is `multipart/form-data`.
+          // There is no Dart type for a file upload here, and inventing one
+          // would mean teaching `SahraTransport` to build multipart bodies for
+          // an endpoint NO FLUTTER CLIENT CALLS: uploads are admin-only and
+          // there is no admin Flutter surface (doc 10 §3b).
+          //
+          // Skipping is the right answer; skipping SILENTLY is not. A method
+          // that quietly failed to generate is indistinguishable from an
+          // endpoint that does not exist, and the next person to need it would
+          // have no idea why it was missing. So the skip is recorded in the
+          // generated file's header AND pinned by `client_drift_test`, which
+          // fails if the list ever changes without somebody deciding.
+          skipped.add('${method.toUpperCase()} $path — ${content.keys.join(', ')}');
+          continue;
+        }
+
+        final schema = ((json as Map)['schema'] as Map).cast<String, dynamic>();
         bodyType = _typeOf(schema, '$method $path body');
       }
 
@@ -398,6 +439,20 @@ String _api(Map<String, dynamic> paths) {
   }
 
   b.writeln('}');
+
+  // RECORDED IN THE OUTPUT, so a missing method is explained where somebody
+  // looking for it will actually be reading. `client_drift_test` pins this
+  // list; an endpoint that starts being skipped fails there.
+  b.writeln();
+  b.writeln('/// Endpoints in the spec that this client deliberately does NOT expose.');
+  b.writeln('///');
+  b.writeln('/// Their request body is not JSON, so there is no Dart type to generate.');
+  b.writeln('/// Skipping is a decision, not a gap — see the generator.');
+  b.writeln('const List<String> kUngeneratedEndpoints = <String>[');
+  for (final line in skipped) {
+    b.writeln("  '$line',");
+  }
+  b.writeln('];');
   return b.toString();
 }
 

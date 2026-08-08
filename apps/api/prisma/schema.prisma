@@ -110,41 +110,41 @@ enum ReservationSource {
 // ─────────────────────────────────────────────────────────────── users ──
 
 model User {
-  id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   /// A CONTACT FIELD, NOT A CREDENTIAL. It identifies nobody and grants
   /// access to nothing — `AuthService.login` matches on `phone` only, and
   /// `auth.e2e-spec.ts` fails if that ever changes. Future Google/Apple
   /// linking must key off `emailVerifiedAt`, never off this column.
   /// CITEXT — case-insensitive uniqueness enforced by the column type.
-  email             String?    @unique @db.Citext
+  email           String?    @unique @db.Citext
   /// E.164, e.g. +201000000000
-  phone             String     @unique @db.VarChar(20)
-  passwordHash      String?    @map("password_hash")
-  fullName          String     @map("full_name") @db.VarChar(120)
-  avatarUrl         String?    @map("avatar_url")
-  locale            String     @default("ar") @db.Char(2)
-  status            UserStatus @default(pending)
-  emailVerifiedAt   DateTime?  @map("email_verified_at") @db.Timestamptz(6)
-  phoneVerifiedAt   DateTime?  @map("phone_verified_at") @db.Timestamptz(6)
-  noShowCount       Int        @default(0) @map("no_show_count") @db.SmallInt
-  referralCode      String?    @unique @map("referral_code") @db.VarChar(10)
-  referredBy        String?    @map("referred_by") @db.Uuid
-  marketingOptIn    Boolean    @default(false) @map("marketing_opt_in")
-  deletedAt         DateTime?  @map("deleted_at") @db.Timestamptz(6)
-  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  phone           String     @unique @db.VarChar(20)
+  passwordHash    String?    @map("password_hash")
+  fullName        String     @map("full_name") @db.VarChar(120)
+  avatarUrl       String?    @map("avatar_url")
+  locale          String     @default("ar") @db.Char(2)
+  status          UserStatus @default(pending)
+  emailVerifiedAt DateTime?  @map("email_verified_at") @db.Timestamptz(6)
+  phoneVerifiedAt DateTime?  @map("phone_verified_at") @db.Timestamptz(6)
+  noShowCount     Int        @default(0) @map("no_show_count") @db.SmallInt
+  referralCode    String?    @unique @map("referral_code") @db.VarChar(10)
+  referredBy      String?    @map("referred_by") @db.Uuid
+  marketingOptIn  Boolean    @default(false) @map("marketing_opt_in")
+  deletedAt       DateTime?  @map("deleted_at") @db.Timestamptz(6)
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  referrer         User?             @relation("UserReferral", fields: [referredBy], references: [id], onDelete: SetNull)
-  referees         User[]            @relation("UserReferral")
-  roles            UserRole[]        @relation("UserRoleUser")
-  grantedRoles     UserRole[]        @relation("UserRoleGrantedBy")
-  restaurantOwner  RestaurantOwner?  @relation("OwnerUser")
-  verifiedOwners   RestaurantOwner[] @relation("OwnerVerifiedBy")
-  reservations     Reservation[]
-  refreshTokens    RefreshToken[]
-  auditLogs        AuditLog[]
-  devices          Device[]
-  notifications    Notification[]
+  referrer        User?             @relation("UserReferral", fields: [referredBy], references: [id], onDelete: SetNull)
+  referees        User[]            @relation("UserReferral")
+  roles           UserRole[]        @relation("UserRoleUser")
+  grantedRoles    UserRole[]        @relation("UserRoleGrantedBy")
+  restaurantOwner RestaurantOwner?  @relation("OwnerUser")
+  verifiedOwners  RestaurantOwner[] @relation("OwnerVerifiedBy")
+  reservations    Reservation[]
+  refreshTokens   RefreshToken[]
+  auditLogs       AuditLog[]
+  devices         Device[]
+  notifications   Notification[]
 
   @@index([status], map: "idx_users_status")
   @@map("users")
@@ -213,7 +213,6 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-
 model Role {
   id    Int        @id @default(autoincrement()) @db.SmallInt
   name  String     @unique @db.VarChar(30)
@@ -260,37 +259,37 @@ model RestaurantOwner {
 // ───────────────────────────────────────────────────────────── restaurants ──
 
 model Restaurant {
-  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ownerId         String           @map("owner_id") @db.Uuid
-  slug            String           @unique @db.VarChar(80)
-  nameEn          String           @map("name_en") @db.VarChar(160)
-  nameAr          String           @map("name_ar") @db.VarChar(160)
-  descriptionEn   String?          @map("description_en")
-  descriptionAr   String?          @map("description_ar")
+  id              String                                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId         String                                @map("owner_id") @db.Uuid
+  slug            String                                @unique @db.VarChar(80)
+  nameEn          String                                @map("name_en") @db.VarChar(160)
+  nameAr          String                                @map("name_ar") @db.VarChar(160)
+  descriptionEn   String?                               @map("description_en")
+  descriptionAr   String?                               @map("description_ar")
   cuisines        String[]
-  phone           String?          @db.VarChar(20)
-  email           String?          @db.VarChar(160)
+  phone           String?                               @db.VarChar(20)
+  email           String?                               @db.VarChar(160)
   website         String?
-  addressEn       String?          @map("address_en")
-  addressAr       String?          @map("address_ar")
-  neighborhood    String?          @db.VarChar(80)
-  city            String           @default("Cairo") @db.VarChar(80)
+  addressEn       String?                               @map("address_en")
+  addressAr       String?                               @map("address_ar")
+  neighborhood    String?                               @db.VarChar(80)
+  city            String                                @default("Cairo") @db.VarChar(80)
   /// PostGIS GEOGRAPHY(POINT,4326). Prisma cannot type this — reads/writes go
   /// through raw SQL in the restaurants repository.
   location        Unsupported("geography(Point, 4326)")
-  priceBand       Int?             @map("price_band") @db.SmallInt
-  amenities       Json?            @db.JsonB
-  policies        Json?            @db.JsonB
-  bookingMode     BookingMode      @default(instant) @map("booking_mode")
-  slotIntervalMin Int              @default(30) @map("slot_interval_min") @db.SmallInt
-  pacingLimit     Int?             @map("pacing_limit") @db.SmallInt
-  ratingAvg       Decimal          @default(0) @map("rating_avg") @db.Decimal(3, 2)
-  ratingCount     Int              @default(0) @map("rating_count")
-  status          RestaurantStatus @default(draft)
-  timezone        String           @default("Africa/Cairo") @db.VarChar(40)
-  deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz(6)
-  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  priceBand       Int?                                  @map("price_band") @db.SmallInt
+  amenities       Json?                                 @db.JsonB
+  policies        Json?                                 @db.JsonB
+  bookingMode     BookingMode                           @default(instant) @map("booking_mode")
+  slotIntervalMin Int                                   @default(30) @map("slot_interval_min") @db.SmallInt
+  pacingLimit     Int?                                  @map("pacing_limit") @db.SmallInt
+  ratingAvg       Decimal                               @default(0) @map("rating_avg") @db.Decimal(3, 2)
+  ratingCount     Int                                   @default(0) @map("rating_count")
+  status          RestaurantStatus                      @default(draft)
+  timezone        String                                @default("Africa/Cairo") @db.VarChar(40)
+  deletedAt       DateTime?                             @map("deleted_at") @db.Timestamptz(6)
+  createdAt       DateTime                              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime                              @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   owner        RestaurantOwner @relation(fields: [ownerId], references: [id])
   tables       Table[]
@@ -299,6 +298,63 @@ model Restaurant {
 
   @@index([status, city, neighborhood], map: "idx_restaurants_status_neighborhood")
   @@map("restaurants")
+}
+
+/// doc 04 §"images (polymorphic media)".
+///
+/// NO RELATION FIELD, and that is what polymorphic costs. `ownerId` points at
+/// a restaurant, a menu item, a review or a user depending on `ownerType`, and
+/// Prisma cannot express "foreign key into one of four tables" — so there is no
+/// `@relation` and no database-level FK. Reads join by hand.
+///
+/// The alternative was four tables with four upload paths. This is the trade
+/// doc 04 already made; it is recorded here so the missing FK reads as a
+/// consequence rather than an oversight.
+model Image {
+  id        String         @id @default(uuid()) @db.Uuid
+  ownerType ImageOwnerType @map("owner_type")
+  ownerId   String         @map("owner_id") @db.Uuid
+
+  /// The BASE STORAGE KEY, not a fetchable address — `restaurants/<id>/<id>`.
+  /// Renditions are named from it by convention (`/160.webp` and friends) and
+  /// the API composes public URLs in its response. See the migration header.
+  url String
+
+  /// Always NULL. `flutter_blurhash` was declined (doc 08 §5); the column is
+  /// committed schema so it exists.
+  blurhash String? @db.VarChar(50)
+
+  /// The ORIGINAL's pixel dimensions. Every client reserves its box from this
+  /// ratio before a byte arrives, so lists do not reflow as photos land.
+  width  Int
+  height Int
+
+  position Int         @default(0) @db.SmallInt
+  isCover  Boolean     @default(false) @map("is_cover")
+  status   ImageStatus @default(processing)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([ownerType, ownerId, position], map: "idx_images_owner")
+  @@map("images")
+}
+
+enum ImageOwnerType {
+  restaurant
+  menu_item
+  review
+  user
+
+  @@map("image_owner_type")
+}
+
+enum ImageStatus {
+  processing
+  ready
+  rejected
+
+  @@map("image_status")
 }
 
 // ─────────────────────────────────────────────────────────── notifications ──
@@ -349,24 +405,24 @@ model Notification {
 // ────────────────────────────────────────────────────────────────── shifts ──
 
 model Shift {
-  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  restaurantId       String   @map("restaurant_id") @db.Uuid
-  nameEn             String   @map("name_en") @db.VarChar(60)
-  nameAr             String   @map("name_ar") @db.VarChar(60)
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  restaurantId       String    @map("restaurant_id") @db.Uuid
+  nameEn             String    @map("name_en") @db.VarChar(60)
+  nameAr             String    @map("name_ar") @db.VarChar(60)
   /// 0–6 for weekly rows; NULL when the row is date-specific.
-  dayOfWeek          Int?     @map("day_of_week") @db.SmallInt
+  dayOfWeek          Int?      @map("day_of_week") @db.SmallInt
   /// Set for one-off dates; NULL for weekly rows. CHECK enforces exactly one.
   specificDate       DateTime? @map("specific_date") @db.Date
-  opensAt            DateTime @map("opens_at") @db.Time(6)
-  closesAt           DateTime @map("closes_at") @db.Time(6)
-  spansMidnight      Boolean  @default(false) @map("spans_midnight")
+  opensAt            DateTime  @map("opens_at") @db.Time(6)
+  closesAt           DateTime  @map("closes_at") @db.Time(6)
+  spansMidnight      Boolean   @default(false) @map("spans_midnight")
   /// {"1-2":90,"3-4":105,"5+":120} — minutes per party-size band.
-  defaultTurnMinutes Json     @map("default_turn_minutes") @db.JsonB
+  defaultTurnMinutes Json      @map("default_turn_minutes") @db.JsonB
   /// Iftar shifts auto-anchor to Maghrib (doc 05 §1).
-  isRamadan          Boolean  @default(false) @map("is_ramadan")
-  active             Boolean  @default(true)
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  isRamadan          Boolean   @default(false) @map("is_ramadan")
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
@@ -402,45 +458,45 @@ model Table {
 // ──────────────────────────────────────────────────── reservations (hot) ──
 
 model Reservation {
-  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   /// Human-readable, e.g. 'SAH-7K2M'.
-  code           String            @unique @db.VarChar(8)
-  restaurantId   String            @map("restaurant_id") @db.Uuid
+  code                  String            @unique @db.VarChar(8)
+  restaurantId          String            @map("restaurant_id") @db.Uuid
   /// NULL for walk-in / phone bookings taken by staff.
-  userId         String?           @map("user_id") @db.Uuid
-  guestName      String?           @map("guest_name") @db.VarChar(120)
-  guestPhone     String?           @map("guest_phone") @db.VarChar(20)
-  partySize      Int               @map("party_size") @db.SmallInt
-  startsAt       DateTime          @map("starts_at") @db.Timestamptz(6)
+  userId                String?           @map("user_id") @db.Uuid
+  guestName             String?           @map("guest_name") @db.VarChar(120)
+  guestPhone            String?           @map("guest_phone") @db.VarChar(20)
+  partySize             Int               @map("party_size") @db.SmallInt
+  startsAt              DateTime          @map("starts_at") @db.Timestamptz(6)
   /// = startsAt + turn time for the party size.
-  endsAt         DateTime          @map("ends_at") @db.Timestamptz(6)
-  status         ReservationStatus @default(held)
-  source         ReservationSource @default(app)
-  specialRequests String?          @map("special_requests")
-  occasion       String?           @db.VarChar(40)
-  seatingPref    TableZone?        @map("seating_pref")
+  endsAt                DateTime          @map("ends_at") @db.Timestamptz(6)
+  status                ReservationStatus @default(held)
+  source                ReservationSource @default(app)
+  specialRequests       String?           @map("special_requests")
+  occasion              String?           @db.VarChar(40)
+  seatingPref           TableZone?        @map("seating_pref")
   /// Held rows only — now() + 5 min (doc 05 §4).
-  holdExpiresAt  DateTime?         @map("hold_expires_at") @db.Timestamptz(6)
+  holdExpiresAt         DateTime?         @map("hold_expires_at") @db.Timestamptz(6)
   /// Dedupes POST /reservations/holds.
-  idempotencyKey String?           @unique @map("idempotency_key") @db.Uuid
+  idempotencyKey        String?           @unique @map("idempotency_key") @db.Uuid
   /// Dedupes POST /reservations/holds/:id/confirm. doc 06 §1 requires an
   /// Idempotency-Key on holds AND confirms; they are separate mutations with
   /// separate keys, so one column cannot serve both. Not in doc 04 — see
   /// docs/decisions/2026-08-01-confirm-idempotency.md.
-  confirmIdempotencyKey String?    @unique @map("confirm_idempotency_key") @db.Uuid
-  cancelledAt    DateTime?         @map("cancelled_at") @db.Timestamptz(6)
-  cancelReason   String?           @map("cancel_reason")
+  confirmIdempotencyKey String?           @unique @map("confirm_idempotency_key") @db.Uuid
+  cancelledAt           DateTime?         @map("cancelled_at") @db.Timestamptz(6)
+  cancelReason          String?           @map("cancel_reason")
   /// When the diner acknowledged a RESTAURANT-initiated cancellation.
   ///
   /// NULL keeps the reservation visible in their upcoming list regardless of
   /// date: it leaves that list because they saw it, not because the date
   /// passed. A venue cancellation that silently disappears is how a diner
   /// turns up to a restaurant that is not expecting them.
-  cancellationSeenAt DateTime?     @map("cancellation_seen_at") @db.Timestamptz(6)
+  cancellationSeenAt    DateTime?         @map("cancellation_seen_at") @db.Timestamptz(6)
   /// Optimistic-lock counter.
-  version        Int               @default(0)
-  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version               Int               @default(0)
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   restaurant Restaurant         @relation(fields: [restaurantId], references: [id])
   user       User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -460,12 +516,12 @@ model Reservation {
 /// EXCLUDE USING GIST constraint that makes an overlapping allocation
 /// physically unstorable — the third and final anti-double-booking layer.
 model ReservationTable {
-  reservationId String                    @map("reservation_id") @db.Uuid
-  tableId       String                    @map("table_id") @db.Uuid
+  reservationId String                   @map("reservation_id") @db.Uuid
+  tableId       String                   @map("table_id") @db.Uuid
   /// TSTZRANGE [startsAt, endsAt) — set by trigger from the parent reservation.
   during        Unsupported("tstzrange")
   /// Mirrors "reservation status is live" — maintained by trigger.
-  active        Boolean                   @default(true)
+  active        Boolean                  @default(true)
 
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
   table       Table       @relation(fields: [tableId], references: [id])

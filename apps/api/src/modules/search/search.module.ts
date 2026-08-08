@@ -5,6 +5,7 @@ import { MeiliSearchIndex, DEFAULT_INDEX_UID } from './meili-search.index';
 import { DisabledSearchIndex } from './disabled-search.index';
 import { RestaurantSearchService } from './restaurant-search.service';
 import { SearchController } from './search.controller';
+import { ImagesModule } from '../images/images.module';
 
 /**
  * Search wiring (doc 06 §3).
@@ -14,7 +15,7 @@ import { SearchController } from './search.controller';
  * exactly the same shape as the OTP store adapters.
  */
 @Module({
-  imports: [AvailabilityModule],
+  imports: [ImagesModule, AvailabilityModule],
   providers: [
     {
       provide: RestaurantIndexPort,

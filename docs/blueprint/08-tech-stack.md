@@ -104,3 +104,38 @@ flowchart TB
 | Payments | Paymob (cards, wallets, kiosk) + Fawry; Apple Pay later |
 | Hosting | MVP: Fly.io/Railway or ECS Fargate → Growth: ECS → Enterprise: EKS |
 | Observability | Sentry + Grafana Cloud (Prometheus/Loki) |
+| Image processing | `sharp` (server-side resize + WebP, on upload) |
+| Platform intents | `url_launcher` (Flutter — `mailto:` and `tel:`) |
+
+### Approved package additions, and what each one is allowed to cover
+
+The stack table is a gate: CLAUDE.md says stop and ask before adding a
+dependency that is not in it. These two were approved on 2026-08-08, and the
+scope of each is recorded here so the next screen that needs one does not have
+to re-open the question.
+
+**`url_launcher`** — opening a platform intent from a link the user tapped.
+Approved for **both `mailto:` and `tel:`**, deliberately as one decision: the
+support address on the sign-in screen and the venue's phone number on the
+reservation detail are the same capability wearing two schemes, and splitting
+them would mean justifying the second one on its own weeks later.
+
+*Everything it launches must degrade.* A platform with no handler — a desktop
+browser, a tablet with no dialler — has to leave the diner with something they
+can read and copy, not a tap that silently does nothing. The address and the
+number are therefore selectable text FIRST and tappable SECOND, which is the
+order they were built in.
+
+Not approved for arbitrary `https:` links. A web URL opened outside the app is
+a different decision about where a diner ends up.
+
+**`sharp`** — resizing images at UPLOAD time, never at display time
+(doc 10 §Images). Three fixed widths, WebP, originals kept in a bucket path the
+app never requests. It runs only in the API's upload path; nothing on a request
+path resizes anything, because an image transformed per view is an image paid
+for per view.
+
+**Declined at the same time: `flutter_blurhash`.** A designed empty state plus
+explicit dimensions on every image already gives the two things a blurhash
+would buy — no layout jump, and something to look at while loading — without a
+package and without a hash to compute, store and keep in step with the file.

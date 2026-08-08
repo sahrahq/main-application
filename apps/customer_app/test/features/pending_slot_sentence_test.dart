@@ -7,6 +7,7 @@ import 'package:sahra_customer_app/shared/providers/app_providers.dart';
 
 import '../support/fakes.dart';
 import '../support/screen_harness.dart';
+import '../support/fixture_dates.dart';
 
 /// WHAT THE SENTENCE ACTUALLY SAYS.
 ///
@@ -24,9 +25,9 @@ void main() {
   const PendingSelection full = PendingSelection(
     restaurantId: venueId,
     venueName: 'El Fishawy',
-    startsAt: '2026-08-04T18:00:00.000Z',
+    startsAt: '${kFutureDate}T18:00:00.000Z',
     slotLabel: '20:30',
-    date: '2026-08-04',
+    date: kFutureDate,
     partySize: 4,
   );
 
@@ -48,26 +49,44 @@ void main() {
     for (final cell in <Cell>[Cell.enLight, Cell.arLight]) {
       await pump(tester, full, cell);
 
-      // The figure itself. Latin in both locales (DESIGN-RULES.md), so the
-      // same assertion holds for Arabic.
-      expect(
-        find.textContaining('4'),
-        findsWidgets,
-        reason: '[${cell.slug}] the party size is missing from the sentence',
-      );
-
-      // And specifically NOT the shape the defect had: a unit word with
-      // nothing in front of it.
+      // THE SENTENCE FIRST, then assertions about it.
+      //
+      // This used to be `find.textContaining('4')` across the whole screen,
+      // and it was VACUOUS: the fixture was dated the 4th of the month, so
+      // "4 August" satisfied it and the party size was never read at all. The
+      // message rendered "…at 18:00, # guests" for as long as that fixture
+      // held its date, with this test green the entire time.
+      //
+      // Two things had to change. The assertion now reads the SENTENCE rather
+      // than the screen, and it looks for the figure NEXT TO ITS UNIT rather
+      // than anywhere at all — so no other number on the page can stand in
+      // for it.
       final sentence = tester
           .widgetList<Text>(find.byType(Text))
           .map((t) => t.data ?? '')
           .firstWhere((d) => d.contains('20:30'), orElse: () => '');
       expect(sentence, isNotEmpty, reason: '[${cell.slug}] no slot sentence rendered');
+
+      expect(
+        RegExp(r'\b4\s*\S*\s*(guests?|فرد|أفراد)').hasMatch(sentence),
+        isTrue,
+        reason: '[${cell.slug}] the party size is not next to its unit: '
+            '"$sentence"',
+      );
+
+      // And specifically NOT the two shapes the defect took: a unit word with
+      // nothing in front of it, or an unsubstituted ICU marker.
       expect(
         RegExp(r'[,،]\s*(guests?|فرد|أفراد)').hasMatch(sentence),
         isFalse,
         reason: '[${cell.slug}] the unit follows the comma with no figure: '
             '"$sentence"',
+      );
+      expect(
+        sentence.contains('#'),
+        isFalse,
+        reason: '[${cell.slug}] an ICU `#` reached the screen unsubstituted — '
+            'gen-l10n does not replace it: "$sentence"',
       );
     }
   });
@@ -79,23 +98,23 @@ void main() {
       PendingSelection(
         restaurantId: venueId,
         venueName: '',
-        startsAt: '2026-08-04T18:00:00.000Z',
+        startsAt: '${kFutureDate}T18:00:00.000Z',
         slotLabel: '20:30',
-        date: '2026-08-04',
+        date: kFutureDate,
         partySize: 4,
       ),
       PendingSelection(
         restaurantId: venueId,
         venueName: 'El Fishawy',
-        startsAt: '2026-08-04T18:00:00.000Z',
+        startsAt: '${kFutureDate}T18:00:00.000Z',
         slotLabel: '20:30',
-        date: '2026-08-04',
+        date: kFutureDate,
         partySize: 0,
       ),
       PendingSelection(
         restaurantId: venueId,
         venueName: 'El Fishawy',
-        startsAt: '2026-08-04T18:00:00.000Z',
+        startsAt: '${kFutureDate}T18:00:00.000Z',
         slotLabel: '',
         date: '',
         partySize: 4,
@@ -115,8 +134,7 @@ void main() {
     }
   });
 
-  testWidgets('a complete selection DOES render it — the guard is not always-off',
-      (tester) async {
+  testWidgets('a complete selection DOES render it — the guard is not always-off', (tester) async {
     // Without this the test above passes on a screen that never draws the
     // sentence under any circumstances.
     await pump(tester, full, Cell.enLight);

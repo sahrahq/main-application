@@ -32,6 +32,14 @@ final Map<String, Widget Function(Cell)> componentGoldens = <String, Widget Func
         label: _label(cell, en: 'Celebrate', ar: 'احتفل'),
         onPressed: () {},
       ),
+  // Cancelling a booking, deleting an account — things that cannot be undone.
+  // Its foreground flips by theme; `palette_contrast_test` proves both clear
+  // AA and that white genuinely fails on the night fill.
+  'Button/destructive': (cell) => SahraButton(
+        variant: SahraButtonVariant.destructive,
+        label: _label(cell, en: 'Cancel booking', ar: 'إلغاء الحجز'),
+        onPressed: () {},
+      ),
   'Button/disabled': (cell) => SahraButton(
         label: _label(cell, en: 'Fully booked', ar: 'محجوز بالكامل'),
         onPressed: null,

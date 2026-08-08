@@ -103,7 +103,7 @@ class ReservationRepositoryImpl implements ReservationRepository {
 
   @override
   Future<List<MyReservation>> myReservations({required String view}) async {
-    final r = await guarded(() => _api.list2(status: view));
+    final r = await guarded(() => _api.listMyReservations(status: view));
     return r.map(_mine).toList();
   }
 

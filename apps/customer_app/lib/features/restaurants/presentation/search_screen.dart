@@ -8,6 +8,7 @@ import '../../../shared/widgets/sahra_async_view.dart';
 import '../domain/restaurant_repository.dart';
 import 'search_notifier.dart';
 import 'venue_meta.dart';
+import '../../../shared/widgets/venue_image_provider.dart';
 
 /// `docs/design/ui_kits/app/SearchScreen.jsx`.
 ///
@@ -121,14 +122,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 }
 
-class _Results extends StatelessWidget {
+class _Results extends ConsumerWidget {
   const _Results({required this.page, required this.tonight});
 
   final SearchPage page;
   final bool tonight;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final sahra = Theme.of(context).sahra;
 
@@ -158,6 +159,9 @@ class _Results extends StatelessWidget {
 
         final venue = page.results[i - 1];
         return SahraResultRow(
+          // The thumbnail slot in SahraResultRow is 64pt. Saying so here is
+          // what stops a search list downloading twenty hero-sized files.
+          image: venueImageProvider(context, ref, venue.cover, slotWidth: 64),
           name: venue.name,
           rating: venue.rating,
           reviews: venue.ratingCount,

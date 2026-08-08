@@ -21,6 +21,11 @@
   "errInvalidQueryParam": "One of those filters isn't valid.",
   "errInvalidSort": "That sort option isn't available.",
   "errInvalidStatusTransition": "That booking has already moved on. Refresh to see where it stands.",
+  "errImageNotFound": "We couldn't find that photo.",
+  "errImageTooLarge": "That photo is too large. Keep it under 12 MB.",
+  "errInvalidImage": "That file couldn't be read as a photo.",
+  "errStorageUnavailable": "We couldn't store that photo. Please try again.",
+  "errUnsupportedImageType": "Use a JPEG, PNG or WebP photo.",
   "errMissingIdempotencyKey": "Something went wrong sending that. Please try again.",
   "errNotAnOwner": "This account isn't registered as a restaurant owner.",
   "errNotFound": "We couldn't find that.",
@@ -242,7 +247,7 @@
   "signInResending": "Sending…",
   "signInChangePhone": "Use a different number",
   "signInDevHint": "The code is not sent by SMS yet. Look in the API console for the {marker} banner.",
-  "signInSlotHeld": "Your table: {venue}, {date} at {time}, {party, plural, =1{1 guest} other{# guests}}",
+  "signInSlotHeld": "Your table: {venue}, {date} at {time}, {party, plural, =1{1 guest} other{{party} guests}}",
   "signInSlotNote": "We'll finish this booking as soon as you're in.",
   "signInCancel": "Not now",
   "bookingsTitle": "My bookings",
@@ -319,7 +324,7 @@
         "type": "int"
       }
     },
-    "description": "The party size is a PLURAL WITH `#` INSIDE THIS MESSAGE, not a separately-formatted word passed in. It used to take `bookGuests`, which is `{count, plural, =1{guest} other{guests}}` — a noun selector with no number in it — and the screen rendered \"…at 18:00, guests\". The value was present and correct the whole time; the string it was handed had nowhere to put it."
+    "description": "The party size is a PLURAL WITH ITS OWN {party} PLACEHOLDER INSIDE THIS MESSAGE, not a separately-formatted word passed in. It used to take `bookGuests`, which is `{count, plural, =1{guest} other{guests}}` — a noun selector with no number in it — and the screen rendered \"…at 18:00, guests\". The value was present and correct the whole time; the string it was handed had nowhere to put it."
   },
   "@bookingsPartyOf": {
     "placeholders": {
@@ -372,7 +377,7 @@
         "type": "int"
       }
     },
-    "description": "THE NOUN ONLY — \"guest\"/\"guests\" — with NO number. Correct for SahraPartyStepper, which draws the figure itself in display type and takes the unit beside it. It is NOT a sentence fragment: dropping it into prose loses the count silently, which is exactly what happened on the sign-in screen. Any sentence needs its own plural with `#`."
+    "description": "THE NOUN ONLY — \"guest\"/\"guests\" — with NO number. Correct for SahraPartyStepper, which draws the figure itself in display type and takes the unit beside it. It is NOT a sentence fragment: dropping it into prose loses the count silently, which is exactly what happened on the sign-in screen. Any sentence needs its own plural interpolating {count} by name — NOT `#`, which gen-l10n emits literally."
   },
   "@signInDevHint": {
     "placeholders": {
@@ -386,14 +391,12 @@
   "signInNameWhy": "The restaurant needs a name for the table. Nothing else is needed.",
   "signInNameSubmit": "Finish",
   "signInNameSubmitting": "Finishing…",
-  "signInNoCodeHelp": "Code not arriving? Contact us: {contact}",
+  "signInNoCodeHelp": "Code not arriving? Contact us:",
+  "signInEmailSupport": "Email SAHRA support",
+  "contactCannotOpen": "Couldn't open an app for this — copy it instead.",
+  "reservationCallVenue": "Call the restaurant",
   "@signInNoCodeHelp": {
-    "placeholders": {
-      "contact": {
-        "type": "String"
-      }
-    },
-    "description": "UNCONDITIONAL on the code step, in both locales. Not gated on the delivery stub and not gated on a failure: a code that does not arrive is the one situation where a diner has no way forward, and the lockout design assumes a human can be reached (see the decision doc). The contact itself is a PLACEHOLDER that FAILS THE BUILD until a real one is supplied — see support_contact.dart and support_contact_test.dart."
+    "description": "UNCONDITIONAL on the code step, in both locales. Not gated on the delivery stub and not gated on a failure: a code that does not arrive is the one situation where a diner has no way forward, and the lockout design assumes a human can be reached (see the decision doc). The contact itself is a PLACEHOLDER that FAILS THE BUILD until a real one is supplied — see support_contact.dart and support_contact_test.dart. The ADDRESS ITSELF is no longer interpolated here: it is a separate tappable widget, because making the whole sentence a link would give the link the sentence as its accessible name."
   },
   "@signInNameWhy": {
     "description": "The name step is reached only after a correct code, so the number is already proved. This sentence has to justify one more field to somebody who thought they had finished — hence 'nothing else is needed', which is also true."

@@ -72,6 +72,7 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
       lng: r.lng,
       amenities: r.amenities,
       timezone: r.timezone,
+      images: r.images.map(_image).toList(),
       hours: r.hours
           .map((h) => OpeningHours(
                 name: _isArabic ? h.nameAr : h.nameEn,
@@ -85,6 +86,16 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
     );
   }
 
+  /// One mapping for every image the API returns, so a size key or a
+  /// dimension can never mean two things in two places.
+  VenueImage _image(ImageResponse r) => VenueImage(
+        id: r.id,
+        urls: r.urls,
+        width: r.width,
+        height: r.height,
+        isCover: r.isCover,
+      );
+
   VenueSummary _summary(SearchResultResponse r) => VenueSummary(
         id: r.id,
         slug: r.slug,
@@ -97,5 +108,6 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
         // Kept as the strings the server sent. Parsing these into times would
         // be the first step towards treating a teaser as bookable.
         nextAvailable: r.nextAvailable ?? const <String>[],
+        cover: r.cover == null ? null : _image(r.cover!),
       );
 }

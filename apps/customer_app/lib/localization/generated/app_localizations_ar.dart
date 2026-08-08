@@ -72,6 +72,21 @@ class AppLocalizationsAr extends AppLocalizations {
       'الحجز ده اتغيّر بالفعل. حدّث عشان تشوف حالته.';
 
   @override
+  String get errImageNotFound => 'مالقيناش الصورة دي.';
+
+  @override
+  String get errImageTooLarge => 'الصورة كبيرة أوي. خليها أقل من 12 ميجا.';
+
+  @override
+  String get errInvalidImage => 'مقدرناش نقرا الملف ده كصورة.';
+
+  @override
+  String get errStorageUnavailable => 'مقدرناش نحفظ الصورة. حاول تاني.';
+
+  @override
+  String get errUnsupportedImageType => 'استخدم صورة JPEG أو PNG أو WebP.';
+
+  @override
   String get errMissingIdempotencyKey => 'حصلت مشكلة وإحنا بنبعت. حاول تاني.';
 
   @override
@@ -500,9 +515,9 @@ class AppLocalizationsAr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       party,
       locale: localeName,
-      other: '# فرد',
-      many: '# فرد',
-      few: '# أفراد',
+      other: '$party فرد',
+      many: '$party فرد',
+      few: '$party أفراد',
       two: 'فردين',
       one: 'فرد واحد',
     );
@@ -749,7 +764,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get signInNameSubmitting => 'بنخلّص…';
 
   @override
-  String signInNoCodeHelp(String contact) {
-    return 'الكود مش بيوصل؟ كلّمنا: $contact';
-  }
+  String get signInNoCodeHelp => 'الكود مش بيوصل؟ كلّمنا:';
+
+  @override
+  String get signInEmailSupport => 'ابعت إيميل لدعم سهرة';
+
+  @override
+  String get contactCannotOpen => 'مقدرناش نفتح تطبيق لده — انسخه بدل كده.';
+
+  @override
+  String get reservationCallVenue => 'كلّم المطعم';
 }

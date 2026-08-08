@@ -6,6 +6,7 @@ import 'package:sahra_customer_app/features/reservations/presentation/booking_no
 import 'package:sahra_customer_app/shared/providers/app_providers.dart';
 
 import '../support/fakes.dart';
+import '../support/fixture_dates.dart';
 
 /// The booking state machine — doc 07 §4 puts it at ~100% for a reason: it is
 /// the highest-risk logic in the product and the only place a diner can be
@@ -16,7 +17,7 @@ import '../support/fakes.dart';
 /// the same way it would break a screen.
 void main() {
   const venueId = '11111111-1111-4111-8111-111111111111';
-  const startsAt = '2026-08-05T18:00:00.000Z';
+  const startsAt = '${kFutureDate}T18:00:00.000Z';
 
   ProviderContainer containerWith(FakeTransport transport) {
     final c = ProviderContainer(
@@ -32,7 +33,7 @@ void main() {
         'restaurantId': venueId,
         'partySize': 2,
         'startsAt': startsAt,
-        'endsAt': '2026-08-05T19:30:00.000Z',
+        'endsAt': '${kFutureDate}T19:30:00.000Z',
         'status': status,
         'source': 'app',
       };
@@ -89,8 +90,8 @@ void main() {
       final transport = FakeTransport((method, path, _) {
         if (path == '/v1/reservations/holds') {
           throw envelope(409, 'slot_taken', alternatives: <String>[
-            '2026-08-05T18:30:00.000Z',
-            '2026-08-05T19:00:00.000Z',
+            '${kFutureDate}T18:30:00.000Z',
+            '${kFutureDate}T19:00:00.000Z',
           ],);
         }
         throw StateError('confirm must never be reached after a failed hold');
@@ -141,13 +142,13 @@ void main() {
         if (path.contains('/availability')) {
           slotCalls++;
           return <String, Object?>{
-            'date': '2026-08-05',
+            'date': kFutureDate,
             'partySize': 2,
             'timezone': 'Africa/Cairo',
             'slots': <Object>[
               <String, Object?>{
                 'time': '18:30',
-                'startsAt': '2026-08-05T16:30:00.000Z',
+                'startsAt': '${kFutureDate}T16:30:00.000Z',
                 'zones': <String>['indoor'],
               },
             ],
@@ -249,7 +250,7 @@ void main() {
       c.read(chosenSlotProvider(venueId).notifier).choose(startsAt);
       expect(c.read(chosenSlotProvider(venueId)), startsAt);
 
-      c.read(bookingSelectionProvider(venueId).notifier).setDate('2026-08-09');
+      c.read(bookingSelectionProvider(venueId).notifier).setDate(kFutureDateNext);
       expect(
         c.read(chosenSlotProvider(venueId)),
         isNull,

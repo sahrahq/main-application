@@ -166,6 +166,114 @@ void main() {
     );
   });
 
+  // ── Filled buttons: label on fill, in both themes ──────────────────────
+  //
+  // The palette matrix above covers TEXT ON SURFACES. A filled button is a
+  // different pair — a label on a colour that was never meant to be a page
+  // background — and nothing was checking those at all until the destructive
+  // variant needed one.
+  //
+  // `error` is the reason it matters. It is a DARK red on light and a LIGHT
+  // salmon on night, because it is tuned to be legible against its own
+  // surface. White clears AA on the light value at 6.3:1 and fails on the
+  // night value at 2.8:1 — so the variant flips its foreground by theme, and
+  // these assertions are what prove the flip is right rather than plausible.
+  group('a filled button label clears AA on its own fill', () {
+    final pairs = <String, (Color fg, Color bg)>{
+      'primary.light': (SahraSemantics.light().accentContrast, SahraSemantics.light().accent),
+      'primary.dark': (SahraSemantics.dark().accentContrast, SahraSemantics.dark().accent),
+      'gold.light': (SahraSemantics.light().textBody, SahraSemantics.light().premium),
+      'gold.dark': (SahraSemantics.light().textBody, SahraSemantics.dark().premium),
+      // The flip. Light takes white; night takes the light theme's ink.
+      'destructive.light': (SahraSemantics.light().accentContrast, SahraSemantics.light().error),
+      'destructive.dark': (SahraSemantics.light().textBody, SahraSemantics.dark().error),
+    };
+
+    pairs.forEach((name, pair) {
+      test('$name', () {
+        final ratio = contrast(pair.$1, pair.$2);
+        expect(
+          ratio,
+          greaterThanOrEqualTo(kBodyTextMin),
+          reason: '$name is ${ratio.toStringAsFixed(2)}:1 — a button label '
+              'below $kBodyTextMin:1 on its own fill is unreadable for the '
+              'people this rule exists for.',
+        );
+      });
+    });
+
+    test('AND WHITE ON THE NIGHT ERROR REALLY DOES FAIL', () {
+      // The reason the flip exists, asserted rather than asserted-about. If a
+      // future token change made white acceptable on night error, this fails
+      // and somebody gets to simplify the variant deliberately — rather than
+      // the flip surviving as cargo nobody dares touch.
+      expect(
+        contrast(SahraSemantics.light().accentContrast, SahraSemantics.dark().error),
+        lessThan(kBodyTextMin),
+        reason: 'white now clears AA on the night error fill — the per-theme '
+            'foreground flip in SahraButton may be simplified away',
+      );
+    });
+  });
+
+  // ── Text over a PHOTO, which no guideline can measure ──────────────────
+  //
+  // `textContrastGuideline` SKIPS text drawn over an image: it has no idea
+  // what pixels are underneath. So the venue hero, the search thumbnail label
+  // and the confirmation ticket all draw white text on a photograph with
+  // NOTHING checking them — the only guard has been a human looking at a
+  // golden, and a human looking at a golden made from a dark fixture photo
+  // learns nothing about a bright one.
+  //
+  // This measures the WORST CASE the design can actually produce: the
+  // brightest possible photograph, pure white, under the scrim at its
+  // strongest. If the label clears AA there, it clears AA over any photo.
+  //
+  // WHAT IT STILL CANNOT SEE, said plainly: the scrim is a GRADIENT, so text
+  // positioned higher in the photo gets less of it. This measures the bottom,
+  // where the reference puts the venue name. Text placed further up would be
+  // weaker and nothing here would notice — that remains a human looking at a
+  // golden, now with a bright fixture photo rather than a dark one.
+  group('text over a photo clears AA against the brightest possible image', () {
+    /// [top] composited over [bottom]. Straight source-over alpha.
+    Color over(Color top, Color bottom) {
+      final a = top.a;
+      return Color.from(
+        alpha: 1,
+        red: top.r * a + bottom.r * (1 - a),
+        green: top.g * a + bottom.g * (1 - a),
+        blue: top.b * a + bottom.b * (1 - a),
+      );
+    }
+
+    const white = Color(0xFFFFFFFF);
+
+    test('the scrim at full strength over WHITE', () {
+      final s = SahraSemantics.light();
+      final worst = over(s.photoScrim, white);
+      final ratio = contrast(s.onPhoto, worst);
+
+      expect(
+        ratio,
+        greaterThanOrEqualTo(kBodyTextMin),
+        reason: 'onPhoto over the scrim on a white photo is '
+            '${ratio.toStringAsFixed(2)}:1. A sunlit terrace or a white '
+            'tablecloth room would render the venue name unreadable, and no '
+            'guideline would catch it — textContrastGuideline skips text over '
+            'images.',
+      );
+    });
+
+    test('AND THE CHECK IS NOT TRIVIALLY TRUE — a weak scrim fails it', () {
+      // Guards the guard. If `photoScrim` were ever softened to something
+      // decorative, the assertion above must start failing rather than
+      // continuing to pass because white-on-anything happens to be fine.
+      final s = SahraSemantics.light();
+      final weak = over(s.photoScrim.withValues(alpha: 0.2), white);
+      expect(contrast(s.onPhoto, weak), lessThan(kBodyTextMin));
+    });
+  });
+
   group('the measurement itself is right', () {
     // Guards the guard: a contrast function that always returned 21 would make
     // every assertion above pass silently.

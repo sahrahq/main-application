@@ -90,7 +90,7 @@
   "signInResending": "بنبعت…",
   "signInChangePhone": "استخدم رقم تاني",
   "signInDevHint": "الكود لسه مش بيتبعت برسالة. دوّر في كونسول الـ API على بانر {marker}.",
-  "signInSlotHeld": "طاولتك: {venue}، {date} الساعة {time}، {party, plural, =1{فرد واحد} =2{فردين} few{# أفراد} many{# فرد} other{# فرد}}",
+  "signInSlotHeld": "طاولتك: {venue}، {date} الساعة {time}، {party, plural, =1{فرد واحد} =2{فردين} few{{party} أفراد} many{{party} فرد} other{{party} فرد}}",
   "signInSlotNote": "هنكمّل الحجز أول ما تدخل.",
   "signInCancel": "مش دلوقتي",
   "bookingsTitle": "حجوزاتي",
@@ -163,5 +163,8 @@
   "signInNameWhy": "المطعم محتاج اسم للطاولة. مش محتاجين حاجة تانية.",
   "signInNameSubmit": "خلّصنا",
   "signInNameSubmitting": "بنخلّص…",
-  "signInNoCodeHelp": "الكود مش بيوصل؟ كلّمنا: {contact}"
+  "signInNoCodeHelp": "الكود مش بيوصل؟ كلّمنا:",
+  "signInEmailSupport": "ابعت إيميل لدعم سهرة",
+  "contactCannotOpen": "مقدرناش نفتح تطبيق لده — انسخه بدل كده.",
+  "reservationCallVenue": "كلّم المطعم"
 }

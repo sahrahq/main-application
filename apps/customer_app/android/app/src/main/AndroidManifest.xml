@@ -41,5 +41,25 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+
+        <!-- WITHOUT THESE TWO, `canLaunchUrl` RETURNS FALSE ON ANDROID 11+
+             EVEN WHEN A HANDLER EXISTS. Package visibility was tightened in
+             API 30: an app cannot see which activities can handle an intent
+             unless it declares the query. The symptom is the worst kind — the
+             support address and the venue phone number stop being tappable on
+             every modern Android, silently, while working perfectly on the
+             emulator image somebody happened to test on.
+
+             `SahraTappableContact` degrades to readable, copyable text when
+             the query fails, so this is not a crash. It is the difference
+             between the feature working and the feature quietly not. -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO"/>
+            <data android:scheme="mailto"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
+        </intent>
     </queries>
 </manifest>

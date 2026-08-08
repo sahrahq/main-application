@@ -121,16 +121,13 @@ class _CancelSheetState extends ConsumerState<_CancelSheet> {
         const SizedBox(height: SahraSpace.s6),
         SahraButton(
           label: busy ? l10n.cancelSheetWorking : l10n.cancelSheetConfirm,
-          // PRIMARY, NOT A DESTRUCTIVE VARIANT — because there isn't one.
-          // `SahraButtonVariant` is primary | secondary | ghost | gold, and
-          // adding a fifth is a design-token decision (CLAUDE.md: stop and ask
-          // before deviating from a token). So the danger signal is carried by
-          // the copy — the title asks a question, the body says it cannot be
-          // undone — and the way out sits below with more visual weight than a
-          // ghost button usually gets on a screen it is not the point of.
+          variant: SahraButtonVariant.destructive,
+          // DESTRUCTIVE. The variant was added for exactly this button.
           //
-          // Flagged for the product owner: a destructive variant is a real gap
-          // in the design system, and this is the first screen to need one.
+          // It shipped as `primary` for one batch with the danger carried
+          // entirely by the copy, and that was the weaker design: copy is the
+          // part most likely to be reworded by a translator or a tone pass,
+          // and a warning that can be edited away is not a warning.
           onPressed: busy ? null : _confirm,
         ),
         const SizedBox(height: SahraSpace.s3),

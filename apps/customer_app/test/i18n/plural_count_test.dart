@@ -79,7 +79,21 @@ void main() {
           final selector = m.group(1)!;
           final text = m.group(2)!;
           if (selector.startsWith('=')) continue;
-          if (text.contains('#') || RegExp(r'\d').hasMatch(text)) continue;
+          // A NAMED PLACEHOLDER, or a literal digit. **NOT `#`.**
+          //
+          // `#` is valid ICU and Flutter's gen-l10n DOES NOT SUBSTITUTE IT.
+          // `signInSlotHeld` was `other{# guests}` in both locales and the
+          // generated Dart emitted `other: '# guests'` verbatim, so the
+          // sign-in screen read "…at 18:00, # guests" — the same missing
+          // quantity this file was written to prevent, one character further
+          // along.
+          //
+          // It survived because THIS TEST ACCEPTED `#`, and because the
+          // screen test that should have caught it asserted
+          // `textContaining('4')` against a fixture dated the 4th of the
+          // month: the date satisfied the assertion and the party size was
+          // never read at all. Two guards agreeing on the wrong answer.
+          if (RegExp(r'\{\w+\}').hasMatch(text) || RegExp(r'\d').hasMatch(text)) continue;
           silent.add('${locale.key}.${entry.key} → $selector{$text}');
         }
       }
@@ -90,8 +104,9 @@ void main() {
       isEmpty,
       reason: 'These plural branches render a word with no number. In a '
           'sentence they produce a complete-looking line with the quantity '
-          'missing — the "…at 18:00, guests" defect. Add `#`, or add the key '
-          'to bareUnitOnPurpose with a reason:\n  ${silent.join('\n  ')}',
+          'missing — the "…at 18:00, guests" defect. Interpolate with a NAMED '
+          'placeholder ({party}, {count}) — never `#`, which gen-l10n emits '
+          'literally. Or add the key to bareUnitOnPurpose with a reason:\n  ${silent.join('\n  ')}',
     );
   });
 

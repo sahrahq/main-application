@@ -14,6 +14,7 @@ import 'dart:io';
 import 'package:test/test.dart';
 
 import '../tool/generate_client.dart' as generator;
+import 'package:sahra_api_client/src/generated/api.g.dart';
 
 Directory _repoRoot() {
   var dir = Directory.current;
@@ -183,6 +184,86 @@ void main() {
         isEmpty,
         reason: '${maps.length} field(s) are untyped maps. A `Map<String, dynamic>` '
             'here compiles at every call site and fails at runtime:\n  ${maps.join('\n  ')}',
+      );
+    });
+  });
+
+  group('endpoints the client deliberately does not expose', () {
+    // A method that failed to generate looks exactly like an endpoint that
+    // does not exist. The generator records its skips in the output; this pins
+    // the list, so one more disappearing is a decision somebody makes rather
+    // than a thing that happens.
+    test('the skip list is exactly the one we agreed', () {
+      expect(kUngeneratedEndpoints, <String>[
+        // Admin-only, and there is no admin Flutter surface. Teaching
+        // SahraTransport to build multipart bodies for a caller that does not
+        // exist would be surface with no user. See doc 10 §3b.
+        'POST /v1/admin/restaurants/{restaurantId}/images — multipart/form-data',
+      ]);
+    });
+
+    test('and everything else in the spec DID generate', () {
+      // Guards the guard. If the generator started skipping silently — say a
+      // future refactor stopped appending to the list — the assertion above
+      // would pass on an empty list while methods went missing.
+      final api = File('lib/src/generated/api.g.dart').readAsStringSync();
+      final spec = jsonDecode(File('../../apps/api/openapi.json').readAsStringSync())
+          as Map<String, dynamic>;
+
+      final operations = <String>[];
+      (spec['paths'] as Map<String, dynamic>).forEach((path, item) {
+        (item as Map<String, dynamic>).forEach((method, _) {
+          operations.add('${method.toUpperCase()} $path');
+        });
+      });
+
+      // COUNTED BY THE TRANSPORT CALL, not by a return-type regex. The first
+      // version matched `Future<[^>]+>` and undercounted by six, because a
+      // nested generic — `Future<List<MyReservationResponse>>` — stops the
+      // character class at the inner `>`. Every generated method makes
+      // exactly one transport call, so counting those cannot be fooled by a
+      // type signature.
+      final generatedMethods = RegExp(r'await _transport\.send\(').allMatches(api).length;
+      expect(
+        generatedMethods,
+        operations.length - kUngeneratedEndpoints.length,
+        reason: 'The client has $generatedMethods methods for '
+            '${operations.length} spec operations minus '
+            '${kUngeneratedEndpoints.length} declared skips. Something was '
+            'dropped without being recorded.',
+      );
+    });
+  });
+
+  group('method names do not depend on registration order', () {
+    // ── THE HAZARD THIS EXISTS FOR ────────────────────────────────────────
+    //
+    // Method names come from Nest's `Controller_method` operationId, reduced
+    // to the method part. Two controllers with a `list` handler collide, and
+    // the generator de-duplicates by appending a digit — in ARRIVAL ORDER.
+    //
+    // Adding `AdminImagesController.list` renamed the reservations one from
+    // `list2` to `list3`, in a completely unrelated endpoint, in a generated
+    // file. The Dart compiler caught it because the return types differed. Had
+    // they matched, the app would have compiled and called the WRONG ENDPOINT.
+    //
+    // So a numeric suffix is banned outright. Fixing a collision means naming
+    // the controller method properly, which is a better name anyway.
+    test('no generated method name ends in a digit', () {
+      final api = File('lib/src/generated/api.g.dart').readAsStringSync();
+      final names = RegExp(r'Future<[^;{]+> (\w+)\(')
+          .allMatches(api)
+          .map((m) => m.group(1)!)
+          .where((n) => RegExp(r'\d$').hasMatch(n))
+          .toList();
+
+      expect(
+        names,
+        isEmpty,
+        reason: 'These names were de-duplicated by the generator, so they '
+            'depend on the order controllers are registered in — an unrelated '
+            'new endpoint can silently rename them: ${names.join(", ")}. '
+            'Rename the CONTROLLER METHOD instead.',
       );
     });
   });

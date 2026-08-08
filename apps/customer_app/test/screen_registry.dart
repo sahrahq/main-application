@@ -22,6 +22,9 @@ import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 
 import 'support/fakes.dart';
 import 'support/screen_harness.dart';
+import 'support/fixture_dates.dart';
+import 'package:sahra_customer_app/shared/widgets/venue_image_provider.dart';
+import 'support/fixture_image.dart';
 
 /// Every screen STATE that has to be pictured.
 ///
@@ -94,7 +97,7 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
     build: (_) => const ConfirmedScreen(
       code: 'SAH-7K2M',
       venueName: 'Layali Lounge',
-      startsAt: '2026-08-05T18:00:00.000Z',
+      startsAt: '${kFutureDate}T18:00:00.000Z',
       partySize: 2,
     ),
     overrides: (_) => _transport((_, __, ___) => throw offline),
@@ -214,6 +217,22 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
     ],
   ),
 
+  'Venue/with-photos': ScreenCase(
+    build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => _profileWithPhotos),
+      _fixtureImages,
+    ],
+  ),
+  'Search/with-photos': ScreenCase(
+    build: (_) => const SearchScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => _resultsPageWithCovers),
+      searchCriteriaProvider.overrideWith(() => _TypedQuery('layali')),
+      _fixtureImages,
+    ],
+  ),
+
   // ── The two sheets ──────────────────────────────────────────────────────
   //
   // Registered as cases so they go through the SAME three matrices as every
@@ -297,6 +316,47 @@ Future<void> _openActionSheet(WidgetTester tester, {required bool first}) async 
   await tester.pumpAndSettle();
 }
 
+
+/// One stored photo, as the API serves it. Three renditions, real dimensions.
+Map<String, Object?> _imageJson({bool cover = true, int position = 0}) =>
+    <String, Object?>{
+      'id': '33333333-3333-4333-8333-33333333330$position',
+      'urls': <String, String>{
+        '160': 'https://cdn.test/venue/160.webp',
+        '400': 'https://cdn.test/venue/400.webp',
+        '1200': 'https://cdn.test/venue/1200.webp',
+      },
+      'width': 1600,
+      'height': 1200,
+      'position': position,
+      'is_cover': cover,
+    };
+
+/// The same venue, photographed.
+final Map<String, Object?> _profileWithPhotos = <String, Object?>{
+  ..._profile,
+  'images': <Object>[_imageJson(), _imageJson(cover: false, position: 1)],
+};
+
+/// EVERY IMAGE IN A GOLDEN IS A REAL, DECODABLE ONE.
+///
+/// `flutter_test` answers every HTTP request with a 400 and opens no socket,
+/// so the real `CachedNetworkImageProvider` draws nothing — indistinguishable
+/// from the designed empty state. A golden named "with photos" would picture a
+/// venue without any and pass forever. Overriding the seam is what makes the
+/// picture mean what its name says.
+/// The results page, with a cover on every row.
+final Map<String, Object?> _resultsPageWithCovers = <String, Object?>{
+  ..._resultsPage,
+  'results': [
+    for (final r in _resultsPage['results']! as List<Object?>)
+      <String, Object?>{...r! as Map<String, Object?>, 'cover': _imageJson()},
+  ],
+};
+
+final Override _fixtureImages =
+    networkImageFactoryProvider.overrideWithValue((_) => fixtureImage());
+
 const String _venueId = '11111111-1111-4111-8111-111111111111';
 const String _reservationId = '22222222-2222-4222-8222-222222222222';
 
@@ -309,7 +369,7 @@ const String _reservationId = '22222222-2222-4222-8222-222222222222';
 /// The move sheet's first golden held "8 9 10 11 12" — correct on the day it
 /// was written and wrong by the following morning. See `todayProvider`.
 final Override _fixedToday =
-    todayProvider.overrideWithValue(DateTime.parse('${kFixtureDate}T12:00:00.000Z'));
+    todayProvider.overrideWithValue(DateTime.parse('${kFutureDate}T12:00:00.000Z'));
 
 final List<Override> _signedIn = <Override>[
   sessionStoreProvider.overrideWithValue(InMemorySessionStore()),
@@ -348,9 +408,9 @@ class _ParkedSlot extends PendingBooking {
   PendingSelection build(String restaurantId) => PendingSelection(
         restaurantId: _venueId,
         venueName: cell.locale.languageCode == 'ar' ? 'الفيشاوي' : 'El Fishawy',
-        startsAt: '2026-08-04T18:00:00.000Z',
+        startsAt: '${kFutureDate}T18:00:00.000Z',
         slotLabel: '20:30',
-        date: '2026-08-04',
+        date: kFutureDate,
         partySize: 4,
       );
 }
@@ -456,6 +516,10 @@ final Map<String, Object?> _profile = <String, Object?>{
   'amenities': <String>['outdoor', 'shisha', 'nile_view'],
   'timezone': 'Africa/Cairo',
   'booking_mode': 'instant',
+  // REQUIRED by the wire model. A venue with no photos is the ordinary case
+  // (doc 10 §3b — they arrive by hand), and `SahraPhoto` draws the reference's
+  // mashrabiya placeholder for it rather than a broken image.
+  'images': <Object>[],
   'hours': <Object>[
     for (var day = 0; day < 7; day++)
       <String, Object?>{
@@ -470,25 +534,12 @@ final Map<String, Object?> _profile = <String, Object?>{
   ],
 };
 
-/// The day the fixtures sit on, and it MUST STAY IN THE FUTURE.
-///
-/// It was 2026-08-05, and by the time modify shipped that date had passed —
-/// so `ReservationScreen` hid its move button and the `Reservation/confirmed`
-/// golden quietly stopped picturing the thing it was named for. Nothing failed;
-/// the picture simply started meaning something else.
-///
-/// A golden has to be deterministic, so this cannot be `now + 3 days`. It is a
-/// fixed date with `registry_fixtures_test.dart` asserting it is still ahead of
-/// the clock — which turns a silent change of meaning into a loud failure with
-/// a year of notice.
-const String kFixtureDate = '2027-08-05';
-
 Map<String, Object?> _reservation({
   required String status,
   bool needsAcknowledgement = false,
   String? cancelledBy,
   String? cancelReason,
-  String date = kFixtureDate,
+  String date = kFutureDate,
   String? occasion,
   String? specialRequests,
 }) =>
@@ -528,9 +579,9 @@ final Map<String, Object?> _confirmed = _reservation(
   specialRequests: 'A quiet table away from the speakers, please.',
 );
 
-final Map<String, Object?> _pending = _reservation(status: 'pending', date: '2027-08-09');
+final Map<String, Object?> _pending = _reservation(status: 'pending', date: kFutureDateNext);
 
-final Map<String, Object?> _completed = _reservation(status: 'completed', date: '2026-07-18');
+final Map<String, Object?> _completed = _reservation(status: 'completed', date: kPastDate);
 
 final Map<String, Object?> _venueCancelled = _reservation(
   status: 'cancelled_by_restaurant',
@@ -540,21 +591,21 @@ final Map<String, Object?> _venueCancelled = _reservation(
 );
 
 final Map<String, Object?> _slots = <String, Object?>{
-  'date': '2026-08-05',
+  'date': kFutureDate,
   'partySize': 2,
   'timezone': 'Africa/Cairo',
   'slots': <Object>[
     for (final t in <String>['18:00', '18:30', '19:00', '19:30', '20:00', '21:00'])
       <String, Object?>{
         'time': t,
-        'startsAt': '2026-08-05T${t.split(':').first}:${t.split(':').last}:00.000Z',
+        'startsAt': '${kFutureDate}T${t.split(':').first}:${t.split(':').last}:00.000Z',
         'zones': <String>['indoor', 'outdoor'],
       },
   ],
 };
 
 final Map<String, Object?> _noSlots = <String, Object?>{
-  'date': '2026-08-05',
+  'date': kFutureDate,
   'partySize': 2,
   'timezone': 'Africa/Cairo',
   'slots': <Object>[],

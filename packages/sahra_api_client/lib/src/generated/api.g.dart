@@ -56,6 +56,33 @@ class SahraApi {
     return AdminRestaurantResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `GET /v1/admin/restaurants/{restaurantId}/images`
+  ///
+  /// A venue's photos, in order
+  Future<List<ImageResponse>> listImages({
+    required String restaurantId,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/admin/restaurants/$restaurantId/images',
+    );
+    return (response as List<dynamic>).map((e) => ImageResponse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// `DELETE /v1/admin/restaurants/{restaurantId}/images/{imageId}`
+  ///
+  /// Remove a photo and every rendition of it
+  Future<void> remove({
+    required String restaurantId,
+    required String imageId,
+  }) async {
+    await _transport.send(
+      method: 'DELETE',
+      path: '/v1/admin/restaurants/$restaurantId/images/$imageId',
+    );
+    return;
+  }
+
   /// `POST /v1/auth/complete-registration`
   ///
   /// Create the account for a verified challenge
@@ -210,7 +237,7 @@ class SahraApi {
   /// `POST /v1/devices`
   ///
   /// Register this handset for push
-  Future<DeviceResponse> register2({
+  Future<DeviceResponse> registerDevice({
     required RegisterDeviceDto body,
   }) async {
     final response = await _transport.send(
@@ -495,7 +522,7 @@ class SahraApi {
   /// `GET /v1/reservations`
   ///
   /// The caller's own reservations
-  Future<List<MyReservationResponse>> list2({
+  Future<List<MyReservationResponse>> listMyReservations({
     String? status,
   }) async {
     final response = await _transport.send(
@@ -694,3 +721,11 @@ class SahraApi {
     return AvailabilityResponse.fromJson(response as Map<String, dynamic>);
   }
 }
+
+/// Endpoints in the spec that this client deliberately does NOT expose.
+///
+/// Their request body is not JSON, so there is no Dart type to generate.
+/// Skipping is a decision, not a gap — see the generator.
+const List<String> kUngeneratedEndpoints = <String>[
+  'POST /v1/admin/restaurants/{restaurantId}/images — multipart/form-data',
+];

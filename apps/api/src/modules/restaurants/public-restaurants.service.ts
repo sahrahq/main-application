@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { ImagesService, ImageView } from '../images/images.service';
 import { amenityKeys } from '../search/search-doc';
 
 /**
@@ -52,6 +53,8 @@ export interface PublicRestaurantProfile {
   booking_mode: string;
   /** Every ACTIVE shift, ordered. Empty means the venue takes no bookings. */
   hours: PublicHours[];
+  /** Cover first, then by position. Empty is a designed state, not an error. */
+  images: ImageView[];
 }
 
 interface ProfileRow {
@@ -118,7 +121,10 @@ const LIVE_ONLY = Prisma.sql`AND r.status = 'active' AND r.deleted_at IS NULL`;
 
 @Injectable()
 export class PublicRestaurantsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly images: ImagesService,
+  ) {}
 
   /**
    * Resolve by id OR slug, LIVE ONLY.
@@ -153,6 +159,12 @@ export class PublicRestaurantsService {
          AND active = true
        ORDER BY day_of_week NULLS LAST, specific_date, opens_at`;
 
+    // A second query rather than a join. The gallery is a list and the profile
+    // is a row; joining them would multiply every profile column by the number
+    // of photos and leave the caller to de-duplicate — which is how a venue
+    // with eight photos becomes eight venues in somebody's map.
+    const images = await this.images.forRestaurant(r.id);
+
     return {
       id: r.id,
       slug: r.slug,
@@ -179,6 +191,7 @@ export class PublicRestaurantsService {
           : null,
       timezone: r.timezone,
       booking_mode: r.booking_mode,
+      images,
       hours: shifts.map((s) => ({
         day_of_week: s.day_of_week === null ? null : Number(s.day_of_week),
         specific_date: s.specific_date === null ? null : s.specific_date.toISOString().slice(0, 10),

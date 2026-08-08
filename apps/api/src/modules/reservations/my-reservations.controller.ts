@@ -44,7 +44,7 @@ export class MyReservationsController {
   @ApiOperation({ summary: "The caller's own reservations" })
   @ApiQuery({ name: 'status', required: false, enum: RESERVATION_VIEWS as unknown as string[] })
   @ApiResponse({ status: 400, description: 'invalid_query_param' })
-  list(
+  listMyReservations(
     @CurrentUser() user: AuthedUser,
     @Query('status') status?: string,
   ): Promise<MyReservationResponse[]> {
