@@ -246,6 +246,34 @@
         ],
         "type": "object"
       },
+      "CompleteRegistrationDto": {
+        "properties": {
+          "challengeId": {
+            "description": "A challenge that has already been verified",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "locale": {
+            "default": "ar",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "challengeId",
+          "fullName"
+        ],
+        "type": "object"
+      },
       "ConfirmHoldDto": {
         "properties": {
           "occasion": {
@@ -713,19 +741,15 @@
         ],
         "type": "object"
       },
-      "OtpSentResponse": {
+      "OtpChallengeResponse": {
         "properties": {
-          "retryAfter": {
-            "description": "Seconds until another code may be requested.",
-            "type": "number"
-          },
-          "sent": {
-            "type": "boolean"
+          "challengeId": {
+            "description": "Opaque. Answer it at /auth/verify-otp.",
+            "type": "string"
           }
         },
         "required": [
-          "sent",
-          "retryAfter"
+          "challengeId"
         ],
         "type": "object"
       },
@@ -806,6 +830,10 @@
       },
       "RegisterResponse": {
         "properties": {
+          "challengeId": {
+            "description": "Answer it at /auth/verify-otp.",
+            "type": "string"
+          },
           "otpRequired": {
             "type": "boolean"
           },
@@ -815,7 +843,8 @@
         },
         "required": [
           "userId",
-          "otpRequired"
+          "otpRequired",
+          "challengeId"
         ],
         "type": "object"
       },
@@ -879,13 +908,13 @@
       },
       "ResendOtpDto": {
         "properties": {
-          "userId": {
-            "format": "uuid",
+          "challengeId": {
+            "description": "The challenge to re-send. The number comes from it.",
             "type": "string"
           }
         },
         "required": [
-          "userId"
+          "challengeId"
         ],
         "type": "object"
       },
@@ -1586,28 +1615,38 @@
       },
       "VerifyOtpDto": {
         "properties": {
+          "challengeId": {
+            "description": "The opaque handle returned by /auth/request-otp",
+            "type": "string"
+          },
           "code": {
             "example": "123456",
             "maxLength": 6,
             "minLength": 6,
             "type": "string"
-          },
-          "purpose": {
-            "default": "phone_verify",
-            "enum": [
-              "phone_verify",
-              "login"
-            ],
-            "type": "string"
-          },
-          "userId": {
-            "format": "uuid",
-            "type": "string"
           }
         },
         "required": [
-          "userId",
+          "challengeId",
           "code"
+        ],
+        "type": "object"
+      },
+      "VerifyOtpResponse": {
+        "properties": {
+          "status": {
+            "enum": [
+              "signed_in",
+              "profile_needed"
+            ],
+            "type": "string"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/TokenPairResponse"
+          }
+        },
+        "required": [
+          "status"
         ],
         "type": "object"
       }
@@ -1740,6 +1779,44 @@
         "summary": "pending_review back to draft, with a reason",
         "tags": [
           "admin:restaurants"
+        ]
+      }
+    },
+    "/v1/auth/complete-registration": {
+      "post": {
+        "operationId": "AuthController_completeRegistration",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteRegistrationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "description": "Access + refresh token pair"
+          },
+          "400": {
+            "description": "invalid_otp — not verified, expired, or spent"
+          }
+        },
+        "summary": "Create the account for a verified challenge",
+        "tags": [
+          "auth"
         ]
       }
     },
@@ -1933,7 +2010,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RegisterResponse"
+                  "$ref": "#/components/schemas/OtpChallengeResponse"
                 }
               }
             },
@@ -1942,14 +2019,14 @@
           "202": {
             "description": "Code sent; continue at /auth/verify-otp"
           },
-          "401": {
-            "description": "invalid_credentials | account_unavailable"
-          },
           "429": {
             "description": "otp_rate_limited"
+          },
+          "503": {
+            "description": "otp_sending_unavailable — global daily ceiling"
           }
         },
-        "summary": "Send a sign-in code to a registered phone",
+        "summary": "Send a code to a phone. No account lookup.",
         "tags": [
           "auth"
         ]
@@ -1974,7 +2051,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OtpSentResponse"
+                  "$ref": "#/components/schemas/OtpChallengeResponse"
                 }
               }
             },
@@ -1982,9 +2059,12 @@
           },
           "429": {
             "description": "otp_rate_limited"
+          },
+          "503": {
+            "description": "otp_sending_unavailable"
           }
         },
-        "summary": "Re-send the phone code (rate limited)",
+        "summary": "Re-send to the number the challenge went to",
         "tags": [
           "auth"
         ]
@@ -2009,7 +2089,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenPairResponse"
+                  "$ref": "#/components/schemas/VerifyOtpResponse"
                 }
               }
             },
@@ -2022,7 +2102,7 @@
             "description": "too_many_attempts"
           }
         },
-        "summary": "Verify the phone code; activates the account",
+        "summary": "Answer a challenge; signs in or asks for a name",
         "tags": [
           "auth"
         ]

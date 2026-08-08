@@ -10,7 +10,7 @@ import { PrismaClient } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService, normalizePhone } from '../src/modules/auth/auth.service';
-import { TokenService } from '../src/modules/auth/token.service';
+import { TokenService, type TokenPair } from '../src/modules/auth/token.service';
 import { OtpService } from '../src/modules/auth/otp/otp.service';
 import { InMemoryOtpStore } from '../src/modules/auth/otp/stores/in-memory-otp.store';
 import { InMemoryRateLimiter } from '../src/modules/auth/otp/stores/in-memory-rate-limiter';
@@ -42,6 +42,7 @@ const auth = new AuthService(prisma as unknown as PrismaService, tokens, otp, de
 const PHONE = `010${Date.now().toString().slice(-8)}`;
 const PASSWORD = 'correct-horse-battery-staple';
 let userId: string;
+let registerChallengeId: string;
 
 beforeAll(async () => {
   // Shared per-IP OTP budget — see support/otp-budget.ts.
@@ -63,6 +64,7 @@ describe('auth — registration and login', () => {
   it('registers and requires OTP before the account is usable', async () => {
     const r = await auth.register({ phone: PHONE, fullName: 'Nour Hassan', password: PASSWORD });
     userId = r.userId;
+    registerChallengeId = r.challengeId;
 
     expect(r.otpRequired).toBe(true);
 
@@ -81,9 +83,12 @@ describe('auth — registration and login', () => {
     // is reclaimable, because refusing it told real diners their own number
     // was taken (see account-squatting.e2e-spec.ts).
     const code = otpDelivery.sent.filter((m) => m.phone === normalizePhone(PHONE)).at(-1)!.code;
-    const pair = await auth.verifyOtp(userId, code);
+    const outcome = await auth.verifyOtp(registerChallengeId, code);
 
-    expect(pair.accessToken).toBeTruthy();
+    // `signed_in`, not `profile_needed`: the row already exists, so answering
+    // the code signs them in rather than asking for a name.
+    expect(outcome.status).toBe('signed_in');
+    expect(outcome.status === 'signed_in' && outcome.tokens.accessToken).toBeTruthy();
     const u = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
     expect(u.status).toBe('active');
     expect(u.phoneVerifiedAt).not.toBeNull();
@@ -378,6 +383,7 @@ describe('auth — refresh rotation (doc 09 §1.1)', () => {
 describe('phone verification (doc 06 §2, doc 02 C-1.2)', () => {
   const vPhone = `010${(Date.now() + 7).toString().slice(-8)}`;
   let vUserId: string;
+  let vChallengeId: string;
 
   afterAll(async () => {
     if (vUserId) {
@@ -391,6 +397,7 @@ describe('phone verification (doc 06 §2, doc 02 C-1.2)', () => {
     const before = otpDelivery.sent.length;
     const r = await auth.register({ phone: vPhone, fullName: 'Verify Me' });
     vUserId = r.userId;
+    vChallengeId = r.challengeId;
 
     expect(otpDelivery.sent.length).toBe(before + 1);
     expect(otpDelivery.sent.at(-1)!.code).toMatch(/^\d{6}$/);
@@ -401,7 +408,7 @@ describe('phone verification (doc 06 §2, doc 02 C-1.2)', () => {
   }, 60_000);
 
   it('a wrong code does not activate the account', async () => {
-    await expect(auth.verifyOtp(vUserId, '000000')).rejects.toMatchObject({
+    await expect(auth.verifyOtp(vChallengeId, '000000')).rejects.toMatchObject({
       response: { code: 'invalid_otp' },
     });
     const u = await prisma.user.findUniqueOrThrow({ where: { id: vUserId } });
@@ -410,8 +417,10 @@ describe('phone verification (doc 06 §2, doc 02 C-1.2)', () => {
 
   it('the right code activates the account and returns a token pair', async () => {
     const { code } = otpDelivery.sent.at(-1)!;
-    const pair = await auth.verifyOtp(vUserId, code);
+    const outcome = await auth.verifyOtp(vChallengeId, code);
 
+    expect(outcome.status).toBe('signed_in');
+    const pair = (outcome as { status: 'signed_in'; tokens: TokenPair }).tokens;
     expect(pair.accessToken.split('.')).toHaveLength(3);
     expect(pair.refreshToken.length).toBeGreaterThan(40);
 
@@ -422,7 +431,7 @@ describe('phone verification (doc 06 §2, doc 02 C-1.2)', () => {
 
   it('the same code cannot be replayed', async () => {
     const { code } = otpDelivery.sent.at(-1)!;
-    await expect(auth.verifyOtp(vUserId, code)).rejects.toMatchObject({
+    await expect(auth.verifyOtp(vChallengeId, code)).rejects.toMatchObject({
       response: { code: 'invalid_otp' },
     });
   }, 60_000);

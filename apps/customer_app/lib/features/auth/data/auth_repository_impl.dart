@@ -1,6 +1,5 @@
 import 'package:sahra_api_client/sahra_api_client.dart';
 
-import '../../../core/error/failure.dart';
 import '../../../core/error/guarded.dart';
 import '../domain/auth_repository.dart';
 
@@ -10,69 +9,75 @@ class AuthRepositoryImpl implements AuthRepository {
   final SahraApi _api;
   final String Function() _localeCode;
 
-  /// ONE ACTION FOR THE DINER, TWO CALLS FOR THE SERVER.
+  /// ONE CALL. The two-call dance is gone.
   ///
-  /// `POST /auth/request-otp` signs in a number that already has an account;
-  /// `POST /auth/register` creates one. The screen must not ask "do you
-  /// already have an account?" — nobody remembers, and asking a returning
-  /// customer is a small insult.
+  /// This used to try `request-otp`, catch the 401 that meant "no such
+  /// number", and fall through to `register` — checking the error CODE rather
+  /// than just the class, so a suspended account did not accidentally get a
+  /// second one. All of that has been deleted, because the 401 it branched on
+  /// was AUTH-3: an enumeration oracle on Egyptian mobile numbers, on the path
+  /// a returning diner takes every time they sign in.
   ///
-  /// So: try sign-in, and fall through to registration on the 401 that means
-  /// "no such number". That 401 is EXPECTED here and is not surfaced.
-  ///
-  /// Note what this does NOT do: it does not decide anything from the presence
-  /// or absence of an account before acting. Both endpoints already answer
-  /// identically-shaped responses, and the server's own enumeration behaviour
-  /// (AUTH-3) is a known gap being closed at both doors together — this client
-  /// must not become a third door.
+  /// The server now looks nothing up at request time. There is no branch here
+  /// because there is no longer a question to answer.
   @override
-  Future<OtpChallenge> requestCode({
-    required String phone,
-    required String fullName,
-  }) async {
-    try {
-      final signIn = await guarded(
-        () => _api.requestOtp(body: RequestOtpDto(phone: phone)),
-      );
-      return OtpChallenge(userId: signIn.userId, phone: phone, isNewAccount: false);
-    } on AuthFailure catch (f) {
-      // `invalid_credentials` here means "no account for this number", which
-      // is not a failure — it is the other half of the same action.
-      //
-      // THE CODE IS CHECKED, NOT JUST THE CLASS. `account_unavailable` is also
-      // a 401, and falling through on it would try to create a SECOND account
-      // for a suspended person — silently undoing a suspension through the
-      // sign-in screen.
-      if (f.code != 'invalid_credentials') rethrow;
-
-      final created = await guarded(
-        () => _api.register(
-          body: RegisterDto(
-            phone: phone,
-            fullName: fullName,
-            locale: _localeCode(),
-          ),
-        ),
-      );
-      return OtpChallenge(userId: created.userId, phone: phone, isNewAccount: true);
-    }
+  Future<OtpChallenge> requestCode(String phone) async {
+    final issued = await guarded(
+      () => _api.requestOtp(body: RequestOtpDto(phone: phone)),
+    );
+    return OtpChallenge(challengeId: issued.challengeId, phone: phone);
   }
 
   @override
-  Future<SignedIn> verify({
+  Future<VerifyResult> verify({
     required OtpChallenge challenge,
     required String code,
   }) async {
-    final pair = await guarded(
+    final outcome = await guarded(
       () => _api.verifyOtp(
-        body: VerifyOtpDto(
-          userId: challenge.userId,
-          code: code,
-          // The purpose the challenge was ISSUED for. Challenges are keyed
-          // `otp:{purpose}:{userId}`, so answering with the wrong one fails —
-          // which is the separation that stops a registration code signing
-          // somebody in.
-          purpose: challenge.isNewAccount ? 'phone_verify' : 'login',
+        body: VerifyOtpDto(challengeId: challenge.challengeId, code: code),
+        // `purpose` is gone. It used to be sent from here, which meant the
+        // client chose which challenge its code answered; the purpose lives on
+        // the stored challenge now and cannot be misdeclared.
+      ),
+    );
+
+    // `status` is required and non-nullable in the generated model, so a
+    // missing field is a parse error rather than a silent "not signed in".
+    if (outcome.status == 'signed_in') {
+      final pair = outcome.tokens;
+      if (pair == null) {
+        // The server said signed in and sent no tokens. Not recoverable, and
+        // not something to paper over with a null check that pretends the
+        // diner is anonymous — that would show a sign-in screen to somebody
+        // the server considers authenticated.
+        throw StateError('verify-otp answered signed_in with no token block');
+      }
+      return VerifiedSignedIn(
+        SignedIn(
+          accessToken: pair.accessToken,
+          refreshToken: pair.refreshToken,
+          userId: pair.user.id,
+          fullName: pair.user.fullName,
+          phone: pair.user.phone,
+        ),
+      );
+    }
+
+    return VerifiedNeedsProfile(challenge);
+  }
+
+  @override
+  Future<SignedIn> completeRegistration({
+    required OtpChallenge challenge,
+    required String fullName,
+  }) async {
+    final pair = await guarded(
+      () => _api.completeRegistration(
+        body: CompleteRegistrationDto(
+          challengeId: challenge.challengeId,
+          fullName: fullName,
+          locale: _localeCode(),
         ),
       ),
     );
@@ -86,16 +91,22 @@ class AuthRepositoryImpl implements AuthRepository {
     );
   }
 
+  /// One call for both cases now.
+  ///
+  /// This used to branch: `resend-otp` for a registration challenge, and
+  /// `request-otp` for a sign-in one, because `resend-otp` only re-sent the
+  /// `phone_verify` code. That branch is what made the LEAKY endpoint the one a
+  /// returning diner's resend button hit. `resend-otp` takes the challenge
+  /// handle now and re-sends to whatever number and purpose it holds.
   @override
-  Future<void> resend(OtpChallenge challenge) async {
-    if (challenge.isNewAccount) {
-      await guarded(() => _api.resendOtp(body: ResendOtpDto(userId: challenge.userId)));
-      return;
-    }
-    // A sign-in challenge is re-issued by asking for one again: `resend-otp`
-    // only re-sends the phone_verify code, and sending the wrong purpose would
-    // hand the diner a code that cannot answer the challenge on screen.
-    await guarded(() => _api.requestOtp(body: RequestOtpDto(phone: challenge.phone)));
+  Future<OtpChallenge> resend(OtpChallenge challenge) async {
+    final issued = await guarded(
+      () => _api.resendOtp(body: ResendOtpDto(challengeId: challenge.challengeId)),
+    );
+    // A NEW handle. The previous code is dead the moment this succeeds, so
+    // holding the old handle would mean answering a challenge that no longer
+    // exists.
+    return OtpChallenge(challengeId: issued.challengeId, phone: challenge.phone);
   }
 
   @override

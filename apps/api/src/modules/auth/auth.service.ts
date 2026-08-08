@@ -26,6 +26,18 @@ export interface RegisterInput {
   locale?: 'ar' | 'en';
 }
 
+/**
+ * What answering a challenge produced.
+ *
+ * A DISCRIMINATED result, because "the code was right" and "you are signed in"
+ * stopped being the same fact when name collection moved after verification.
+ * `status` is required and non-nullable in the wire DTO so a missing field is
+ * a parse error rather than a silent "not signed in".
+ */
+export type VerifyOutcome =
+  | { status: 'signed_in'; tokens: TokenPair }
+  | { status: 'profile_needed' };
+
 export interface RequestCtx {
   userAgent?: string;
   ip?: string;
@@ -47,7 +59,7 @@ export class AuthService {
    * usable until the phone is verified, which is the Redis-backed OTP step
    * (doc 09 §1.1) landing once Redis is available.
    */
-  async register(input: RegisterInput, ctx: RequestCtx = {}): Promise<{ userId: string; otpRequired: true }> {
+  async register(input: RegisterInput, ctx: RequestCtx = {}): Promise<{ userId: string; otpRequired: true; challengeId: string }> {
     const phone = normalizePhone(input.phone);
 
     const clash = await this.prisma.user.findFirst({
@@ -108,11 +120,17 @@ export class AuthService {
         select: { id: true },
       });
 
-      await this.otp
-        .issue({ userId: reclaimed.id, phone, purpose: 'phone_verify', ip: ctx.ip })
-        .catch((e) => this.logger.error(`OTP send failed for ${reclaimed.id}: ${String(e)}`));
+      // The HANDLE comes back with the id. An endpoint that issues a challenge
+      // and does not return its handle cannot be answered — which is what
+      // `register` became when challenges stopped being addressable by user.
+      const reclaimedChallenge = await this.otp
+        .issue({ phone, purpose: 'phone_verify', ip: ctx.ip })
+        .catch((e) => {
+          this.logger.error(`OTP send failed for ${reclaimed.id}: ${String(e)}`);
+          throw e;
+        });
 
-      return { userId: reclaimed.id, otpRequired: true };
+      return { userId: reclaimed.id, otpRequired: true, challengeId: reclaimedChallenge };
     }
 
     const user = await this.prisma.user.create({
@@ -134,13 +152,27 @@ export class AuthService {
       select: { id: true },
     });
 
-    // Fire the verification code. A send failure must not orphan the account:
-    // the user exists and can request a new code, so this is logged, not fatal.
-    await this.otp
-      .issue({ userId: user.id, phone, purpose: 'phone_verify', ip: ctx.ip })
-      .catch((e) => this.logger.error(`OTP send failed for ${user.id}: ${String(e)}`));
+    // Fire the verification code.
+    //
+    // A SEND FAILURE IS NOW FATAL TO THE REQUEST, and that reversed
+    // deliberately. The old comment here said "a send failure must not orphan
+    // the account: the user exists and can request a new code, so this is
+    // logged, not fatal" — which was reasonable when the response carried only
+    // a user id. It is not reasonable now: the response carries the HANDLE to
+    // the challenge, and a handle with no code behind it can never be
+    // answered. Returning 201 with one would be a success that does nothing.
+    //
+    // Same trade as the wallet fuse failing closed. The orphaned pending row is
+    // swept after 24h (`pending-registration.sweeper.ts`) and is reclaimable in
+    // the meantime, so the cost of being honest here is bounded.
+    const challengeId = await this.otp
+      .issue({ phone, purpose: 'phone_verify', ip: ctx.ip })
+      .catch((e) => {
+        this.logger.error(`OTP send failed for ${user.id}: ${String(e)}`);
+        throw e;
+      });
 
-    return { userId: user.id, otpRequired: true };
+    return { userId: user.id, otpRequired: true, challengeId };
   }
 
   /**
@@ -222,27 +254,26 @@ export class AuthService {
    * answers 409 `phone_exists` for the same question. Recorded as an open
    * finding rather than fixed unilaterally at one of the two doors.
    */
-  async requestLoginOtp(
-    phone: string,
-    ctx: RequestCtx = {},
-  ): Promise<{ userId: string; otpRequired: boolean }> {
-    const normalized = normalizePhone(phone);
-    const user = await this.prisma.user.findFirst({
-      where: { phone: normalized, deletedAt: null },
-      select: { id: true, phone: true, status: true },
-    });
-
-    if (!user) throw this.invalidCredentials();
-    this.assertUsable(user.status);
-
-    await this.otp.issue({
-      userId: user.id,
-      phone: user.phone,
-      purpose: 'login',
-      ip: ctx.ip,
-    });
-
-    return { userId: user.id, otpRequired: true };
+  async requestOtp(phone: string, ctx: RequestCtx = {}): Promise<{ challengeId: string }> {
+    // NO LOOKUP. Not of the account, not of its status, not of anything.
+    //
+    // This is the whole of AUTH-3's closure. The previous version answered 200
+    // for a registered number and 401 for an unknown one, on an input space
+    // (Egyptian mobile numbers) that is trivially enumerable — and it was the
+    // endpoint the client used as "resend" for a returning diner, so the
+    // commonest path was the leaky one.
+    //
+    // The fix is not to make two answers indistinguishable — that is a decoy,
+    // and a decoy is a lie somebody has to maintain perfectly through every
+    // future branch. The fix is to have one path. Whether an account exists
+    // is decided at VERIFY time, after the caller has proved they can read a
+    // message sent to the number.
+    //
+    // The cost, accepted deliberately: anyone can cause an SMS to any number.
+    // Three limiters stand in the way — per phone, per IP, and the global
+    // daily ceiling that exists because the first two cap harassment and
+    // spraying but not the bill.
+    return { challengeId: await this.otp.issue({ phone: normalizePhone(phone), purpose: 'login', ip: ctx.ip }) };
   }
 
   /**
@@ -254,30 +285,33 @@ export class AuthService {
    * of that number whichever door it came through.
    */
   async verifyOtp(
-    userId: string,
+    challengeId: string,
     code: string,
     ctx: RequestCtx = {},
-    purpose: OtpPurpose = 'phone_verify',
-  ): Promise<TokenPair> {
+  ): Promise<VerifyOutcome> {
+    // The code first. Only after it is right does anything about an account
+    // get looked up — which is why request time can afford to know nothing.
+    const { phone } = await this.otp.verify({ challengeId, code });
+
     const user = await this.prisma.user.findFirst({
-      where: { id: userId, deletedAt: null },
+      where: { phone, deletedAt: null },
       include: { roles: { include: { role: true } } },
     });
-    if (!user) throw this.invalidCredentials();
 
-    // BEFORE the code is checked, and this was missing.
-    //
-    // A suspended account with a live challenge could answer it and receive a
-    // full token pair: the status was preserved by the update below but never
-    // acted on. Password login has always refused a suspended account; this
-    // door did not, which made suspension bypassable by anyone who could
-    // request a code. Found while enumerating what protects the OTP flow.
+    // NO ACCOUNT: verified, but there is nobody to sign in yet. The challenge
+    // stays verified-and-unspent so a name can be supplied against it.
+    if (!user) return { status: 'profile_needed' };
+
+    await this.otp.consumeVerified(challengeId);
+
+    // AFTER the code, not before. Answering with the right code and then being
+    // told the account is unavailable reveals suspension only to somebody who
+    // can read messages sent to that number — which is the person entitled to
+    // know. The previous order told anyone who could type the number.
     this.assertUsable(user.status);
 
-    await this.otp.verify({ userId, purpose, code });
-
     const activated = await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: user.id },
       data: {
         phoneVerifiedAt: new Date(),
         // pending → active. Never upgrade anything else.
@@ -286,11 +320,83 @@ export class AuthService {
       select: { id: true, phone: true, email: true, fullName: true, locale: true, status: true },
     });
 
-    return this.tokens.issuePair(
-      subjectOf(activated),
-      user.roles.map((r) => r.role.name),
-      ctx,
-    );
+    return {
+      status: 'signed_in',
+      tokens: await this.tokens.issuePair(
+        subjectOf(activated),
+        user.roles.map((r) => r.role.name),
+        ctx,
+      ),
+    };
+  }
+
+  /**
+   * Create the account for a challenge that has already been verified.
+   *
+   * ONLY REACHABLE WITH A VERIFIED CHALLENGE. There is no phone parameter —
+   * the number comes from the challenge, so this cannot be called against an
+   * arbitrary number, and it cannot be called at all without having answered a
+   * code sent to that number.
+   *
+   * ACCOUNT SQUATTING IS STRUCTURALLY IMPOSSIBLE HERE, rather than defended
+   * against: you cannot create a row for a number you have not proved you can
+   * read. `register`'s reclaim path still guards the old door — see the note
+   * on it — but nothing the app does can reach the situation it fixes.
+   */
+  async completeRegistration(
+    input: { challengeId: string; fullName: string; email?: string | null; locale?: 'ar' | 'en' },
+    ctx: RequestCtx = {},
+  ): Promise<TokenPair> {
+    const { phone } = await this.otp.consumeVerified(input.challengeId);
+
+    // Between verifying and completing, someone could have registered this
+    // number by the other door. Adopt the row rather than colliding: they
+    // proved control of the number, which is the only thing that row is
+    // evidence of.
+    const existing = await this.prisma.user.findFirst({
+      where: { phone, deletedAt: null },
+      include: { roles: { include: { role: true } } },
+    });
+
+    if (existing) {
+      this.assertUsable(existing.status);
+      const activated = await this.prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          phoneVerifiedAt: new Date(),
+          status: existing.status === 'pending' ? 'active' : existing.status,
+        },
+        select: { id: true, phone: true, email: true, fullName: true, locale: true, status: true },
+      });
+      return this.tokens.issuePair(
+        subjectOf(activated),
+        existing.roles.map((r) => r.role.name),
+        ctx,
+      );
+    }
+
+    const user = await this.prisma.user.create({
+      data: {
+        phone,
+        fullName: input.fullName,
+        email: input.email ?? null,
+        locale: input.locale ?? 'ar',
+        // Verified at creation: the code proved the number before this row
+        // existed, which is the inversion that makes squatting impossible.
+        phoneVerifiedAt: new Date(),
+        status: 'active',
+        roles: {
+          create: {
+            role: {
+              connectOrCreate: { where: { name: 'customer' }, create: { name: 'customer' } },
+            },
+          },
+        },
+      },
+      select: { id: true, phone: true, email: true, fullName: true, locale: true, status: true },
+    });
+
+    return this.tokens.issuePair(subjectOf(user), ['customer'], ctx);
   }
 
   /** Suspended and deleted accounts get tokens from no door. */
@@ -344,14 +450,23 @@ export class AuthService {
   }
 
   /** Re-send a phone-verification code. Rate limits live in OtpService. */
-  async resendOtp(userId: string, ctx: RequestCtx = {}): Promise<void> {
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, deletedAt: null },
-      select: { id: true, phone: true },
-    });
-    // Do not reveal whether the id exists.
-    if (!user) return;
-    await this.otp.issue({ userId: user.id, phone: user.phone, purpose: 'phone_verify', ip: ctx.ip });
+  async resendOtp(challengeId: string, ctx: RequestCtx = {}): Promise<{ challengeId: string }> {
+    // Re-issues against the number the ORIGINAL challenge was sent to, so a
+    // resend needs no phone from the caller and cannot be pointed at a
+    // different number. An unknown or spent id gets a fresh challenge for
+    // nothing, which is indistinguishable from a real resend and costs the
+    // caller a send from their own budget.
+    const previous = await this.otp.peek(challengeId);
+    const phone = previous?.phone ?? null;
+    if (phone === null) throw this.invalidCredentials();
+
+    return {
+      challengeId: await this.otp.issue({
+        phone,
+        purpose: previous!.purpose,
+        ip: ctx.ip,
+      }),
+    };
   }
 
   async refresh(refreshToken: string, ctx: RequestCtx = {}): Promise<TokenPair> {

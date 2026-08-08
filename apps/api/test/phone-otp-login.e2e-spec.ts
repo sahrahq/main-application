@@ -90,6 +90,7 @@ afterAll(async () => {
 
 describe('a diner who signs up by phone can sign in again', () => {
   let userId: string;
+  let challengeId: string;
   let refreshToken: string;
 
   it('1. registers by phone, with no password', async () => {
@@ -100,21 +101,25 @@ describe('a diner who signs up by phone can sign in again', () => {
 
     expect(res.body.otpRequired).toBe(true);
     userId = res.body.userId as string;
+    challengeId = res.body.challengeId as string;
     expect(userId).toBeTruthy();
+    expect(challengeId).toBeTruthy();
   });
 
   it('2. verifies the phone and receives the first token pair', async () => {
     const res = await request(http as never)
       .post('/v1/auth/verify-otp')
-      .send({ userId, code: codeFor(PHONE, 'phone_verify') })
+      .send({ challengeId, code: codeFor(PHONE, 'phone_verify') })
       .expect(200);
 
-    expect(res.body.accessToken).toBeTruthy();
-    expect(res.body.refreshToken).toBeTruthy();
+    // DISCRIMINATED now: the row already exists, so answering signs them in.
+    expect(res.body.status).toBe('signed_in');
+    expect(res.body.tokens.accessToken).toBeTruthy();
+    expect(res.body.tokens.refreshToken).toBeTruthy();
     // The `user` block doc 06 §2 specifies, and which was missing until the
     // controller return types were annotated.
-    expect(res.body.user).toMatchObject({ id: userId, phone: PHONE, fullName: 'Nour Hassan' });
-    refreshToken = res.body.refreshToken as string;
+    expect(res.body.tokens.user).toMatchObject({ id: userId, phone: PHONE, fullName: 'Nour Hassan' });
+    refreshToken = res.body.tokens.refreshToken as string;
   });
 
   it('3. signs out', async () => {
@@ -142,18 +147,24 @@ describe('a diner who signs up by phone can sign in again', () => {
       .send({ phone: PHONE })
       .expect(202);
 
-    expect(res.body).toMatchObject({ userId, otpRequired: true });
+    // A HANDLE AND NOTHING ELSE. No user id, no `otpRequired`, nothing that
+    // says whether this number is registered — the response is identical for
+    // a number that has never been seen (AUTH-3).
+    expect(Object.keys(res.body)).toEqual(['challengeId']);
+    expect(res.body.challengeId).toBeTruthy();
+    challengeId = res.body.challengeId as string;
   });
 
   it('6. verifies it and is signed in — a different token pair', async () => {
     const res = await request(http as never)
       .post('/v1/auth/verify-otp')
-      .send({ userId, code: codeFor(PHONE, 'login'), purpose: 'login' })
+      .send({ challengeId, code: codeFor(PHONE, 'login') })
       .expect(200);
 
-    expect(res.body.accessToken).toBeTruthy();
-    expect(res.body.refreshToken).not.toBe(refreshToken);
-    expect(res.body.user.id).toBe(userId);
+    expect(res.body.status).toBe('signed_in');
+    expect(res.body.tokens.accessToken).toBeTruthy();
+    expect(res.body.tokens.refreshToken).not.toBe(refreshToken);
+    expect(res.body.tokens.user.id).toBe(userId);
   });
 
   it('7. and the access token works on a guarded route', async () => {
@@ -164,12 +175,12 @@ describe('a diner who signs up by phone can sign in again', () => {
 
     const tokens = await request(http as never)
       .post('/v1/auth/verify-otp')
-      .send({ userId: signIn.body.userId, code: codeFor(PHONE, 'login'), purpose: 'login' })
+      .send({ challengeId: signIn.body.challengeId, code: codeFor(PHONE, 'login') })
       .expect(200);
 
     const me = await request(http as never)
       .get('/v1/auth/me')
-      .set('Authorization', `Bearer ${tokens.body.accessToken}`)
+      .set('Authorization', `Bearer ${tokens.body.tokens.accessToken}`)
       .expect(200);
 
     expect(me.body).toMatchObject({ id: userId, phone: PHONE, fullName: 'Nour Hassan' });
@@ -185,16 +196,28 @@ describe('the two challenges are separate credentials', () => {
 
     const registrationCode = codeFor(OTHER, 'phone_verify');
 
-    // Same code, wrong purpose. Challenges are keyed `otp:{purpose}:{userId}`,
-    // so there is no `login` challenge to answer at all — and if there were,
-    // this code would not be it. Without that separation a code sent for one
-    // purpose is a credential for every purpose.
+    // THE MECHANISM CHANGED AND THE PROPERTY DID NOT.
+    //
+    // A caller used to send `purpose` alongside the code, so the separation
+    // depended on them declaring it honestly. The purpose now lives on the
+    // stored challenge, so it cannot be chosen or lied about at all — which is
+    // the same protection, made unfakeable.
+    //
+    // What remains testable from outside is that a registration code is not a
+    // sign-in credential: request a fresh LOGIN challenge and try to answer it
+    // with the registration code.
+    const signIn = await request(http as never)
+      .post('/v1/auth/request-otp')
+      .send({ phone: OTHER })
+      .expect(202);
+
     const res = await request(http as never)
       .post('/v1/auth/verify-otp')
-      .send({ userId: reg.body.userId, code: registrationCode, purpose: 'login' })
+      .send({ challengeId: signIn.body.challengeId, code: registrationCode })
       .expect(400);
 
     expect(res.body.error.code).toBe('invalid_otp');
+    expect(reg.body.challengeId).toBeTruthy();
   });
 });
 
@@ -219,11 +242,24 @@ describe('a suspended account gets tokens from no door', () => {
       data: { status: 'suspended' },
     });
 
+    // REQUESTING IS NOW INDISTINGUISHABLE — 202, a handle, nothing else.
+    //
+    // It used to answer 401 `account_unavailable`, which told anyone who could
+    // type the number that it existed AND was suspended. Request time looks
+    // nothing up now (AUTH-3), so suspension is discovered where it belongs:
+    // after somebody has proved they can read messages sent to that number.
     const res = await request(http as never)
       .post('/v1/auth/request-otp')
       .send({ phone: suspended })
+      .expect(202);
+    expect(res.body.challengeId).toBeTruthy();
+
+    // …and the correct code does not get them in.
+    const refused = await request(http as never)
+      .post('/v1/auth/verify-otp')
+      .send({ challengeId: res.body.challengeId, code: codeFor(suspended, 'login') })
       .expect(401);
-    expect(res.body.error.code).toBe('account_unavailable');
+    expect(refused.body.error.code).toBe('account_unavailable');
   });
 
   it('cannot answer a code that was already in flight', async () => {
@@ -245,7 +281,7 @@ describe('a suspended account gets tokens from no door', () => {
 
     const res = await request(http as never)
       .post('/v1/auth/verify-otp')
-      .send({ userId: reg.body.userId, code })
+      .send({ challengeId: reg.body.challengeId, code })
       .expect(401);
     expect(res.body.error.code).toBe('account_unavailable');
   });
@@ -262,12 +298,197 @@ describe('a suspended account gets tokens from no door', () => {
 });
 
 describe('what protects the flow', () => {
-  it('an unknown phone cannot request a code', async () => {
-    const res = await request(http as never)
+  /**
+   * PER TEST, not per suite. Every e2e test runs over loopback, so the whole
+   * repo shares one 10-per-IP budget (see support/otp-budget.ts) — and the
+   * AUTH-3 tests below spend it faster than the old ones did, because a
+   * request no longer needs an account to exist. Resetting at suite entry was
+   * enough when this file made three requests; it makes a dozen now.
+   *
+   * Safe here and NOT above: every test in this block is self-contained,
+   * whereas the numbered journey above carries a live challenge between steps
+   * and a reset would delete it.
+   */
+  beforeEach(async () => {
+    await resetOtpState();
+  });
+
+  /**
+   * AUTH-3, CLOSED. This assertion is INVERTED from what it was, and the
+   * inversion is the point.
+   *
+   * It used to assert that an unknown phone was refused with 401
+   * `invalid_credentials` — which IS the enumeration oracle: Egyptian mobile
+   * numbers are trivially enumerable and this endpoint answered "registered"
+   * or "not registered" for any of them. It was also the endpoint the client
+   * used as "resend" for a returning diner, so the commonest path was the
+   * leaky one.
+   *
+   * Request time looks nothing up now, so there is no answer to leak.
+   */
+  it('an unknown phone gets the SAME response as a registered one', async () => {
+    const unknown = await request(http as never)
       .post('/v1/auth/request-otp')
       .send({ phone: '+201099999999' })
-      .expect(401);
-    expect(res.body.error.code).toBe('invalid_credentials');
+      .expect(202);
+
+    const registered = await request(http as never)
+      .post('/v1/auth/request-otp')
+      .send({ phone: PHONE })
+      .expect(202);
+
+    // Same status, same keys, and the only value that differs is random.
+    expect(Object.keys(unknown.body)).toEqual(['challengeId']);
+    expect(Object.keys(registered.body)).toEqual(Object.keys(unknown.body));
+    expect(unknown.body.challengeId).not.toBe(registered.body.challengeId);
+  });
+
+  describe('completion only against a VERIFIED challenge', () => {
+    let seq = 0;
+    const fresh = (): string => {
+      seq += 1;
+      return '+2016' + String(Date.now()).slice(-6) + String(seq);
+    };
+
+    async function cleanup(phone: string): Promise<void> {
+      const u = await prisma.user.findFirst({ where: { phone } });
+      if (!u) return;
+      await prisma.$executeRaw`DELETE FROM refresh_tokens WHERE user_id = ${u.id}::uuid`;
+      await prisma.$executeRaw`DELETE FROM user_roles     WHERE user_id = ${u.id}::uuid`;
+      await prisma.$executeRaw`DELETE FROM users          WHERE id      = ${u.id}::uuid`;
+    }
+
+    it('a brand-new number: request then verify answers profile_needed, not tokens', async () => {
+      const phone = fresh();
+      const challenge = await request(http as never)
+        .post('/v1/auth/request-otp')
+        .send({ phone })
+        .expect(202);
+
+      const res = await request(http as never)
+        .post('/v1/auth/verify-otp')
+        .send({ challengeId: challenge.body.challengeId, code: codeFor(phone, 'login') })
+        .expect(200);
+
+      expect(res.body.status).toBe('profile_needed');
+      expect(res.body.tokens).toBeUndefined();
+      expect(await prisma.user.findFirst({ where: { phone } })).toBeNull();
+    });
+
+    it('and then a name completes it: request -> verify -> name -> tokens', async () => {
+      const phone = fresh();
+      const challenge = await request(http as never)
+        .post('/v1/auth/request-otp')
+        .send({ phone })
+        .expect(202);
+      await request(http as never)
+        .post('/v1/auth/verify-otp')
+        .send({ challengeId: challenge.body.challengeId, code: codeFor(phone, 'login') })
+        .expect(200);
+
+      const done = await request(http as never)
+        .post('/v1/auth/complete-registration')
+        .send({ challengeId: challenge.body.challengeId, fullName: 'Brand New', locale: 'en' })
+        .expect(201);
+
+      expect(done.body.accessToken.split('.')).toHaveLength(3);
+      expect(done.body.user.phone).toBe(phone);
+
+      // Created ALREADY VERIFIED and active. The code proved the number before
+      // the row existed, which is the inversion that makes account squatting
+      // impossible rather than merely defended against.
+      const u = await prisma.user.findFirstOrThrow({ where: { phone } });
+      expect(u.status).toBe('active');
+      expect(u.phoneVerifiedAt).not.toBeNull();
+      await cleanup(phone);
+    });
+
+    it('an UNVERIFIED challenge cannot be completed', async () => {
+      // The whole point of the endpoint: no name, no account, nothing at all
+      // without having answered a code sent to that number first.
+      const phone = fresh();
+      const challenge = await request(http as never)
+        .post('/v1/auth/request-otp')
+        .send({ phone })
+        .expect(202);
+
+      const res = await request(http as never)
+        .post('/v1/auth/complete-registration')
+        .send({ challengeId: challenge.body.challengeId, fullName: 'Never Verified' })
+        .expect(400);
+      expect(res.body.error.code).toBe('invalid_otp');
+
+      expect(await prisma.user.findFirst({ where: { phone } })).toBeNull();
+    });
+
+    it('a completed challenge cannot be completed twice', async () => {
+      const phone = fresh();
+      const challenge = await request(http as never)
+        .post('/v1/auth/request-otp')
+        .send({ phone })
+        .expect(202);
+      await request(http as never)
+        .post('/v1/auth/verify-otp')
+        .send({ challengeId: challenge.body.challengeId, code: codeFor(phone, 'login') })
+        .expect(200);
+      await request(http as never)
+        .post('/v1/auth/complete-registration')
+        .send({ challengeId: challenge.body.challengeId, fullName: 'Once Only' })
+        .expect(201);
+
+      // Single-use across the PAIR: verification marks, completion spends.
+      const again = await request(http as never)
+        .post('/v1/auth/complete-registration')
+        .send({ challengeId: challenge.body.challengeId, fullName: 'Twice' })
+        .expect(400);
+      expect(again.body.error.code).toBe('invalid_otp');
+
+      const u = await prisma.user.findFirstOrThrow({ where: { phone } });
+      expect(u.fullName).toBe('Once Only');
+      await cleanup(phone);
+    });
+
+    it('a supplied phone is REFUSED, not quietly ignored', async () => {
+      // The obvious attack on this endpoint: prove a number you own, then name
+      // an account for somebody else's.
+      //
+      // This test was written expecting the extra field to be IGNORED (201,
+      // account on the proved number). The real behaviour is better: the
+      // global ValidationPipe whitelists DTO properties and forbids the rest,
+      // so the request is refused outright. Refusing beats ignoring — a caller
+      // who thought `phone` meant something is told it does not, instead of
+      // getting a success for an account on a different number.
+      const mine = fresh();
+      const victim = '+2018' + String(Date.now()).slice(-7);
+      const challenge = await request(http as never)
+        .post('/v1/auth/request-otp')
+        .send({ phone: mine })
+        .expect(202);
+      await request(http as never)
+        .post('/v1/auth/verify-otp')
+        .send({ challengeId: challenge.body.challengeId, code: codeFor(mine, 'login') })
+        .expect(200);
+
+      await request(http as never)
+        .post('/v1/auth/complete-registration')
+        .send({ challengeId: challenge.body.challengeId, fullName: 'Attacker', phone: victim })
+        .expect(400);
+
+      // Neither number gained an account.
+      expect(await prisma.user.findFirst({ where: { phone: victim } })).toBeNull();
+      expect(await prisma.user.findFirst({ where: { phone: mine } })).toBeNull();
+
+      // …and the challenge is still good, so an honest retry works. A refused
+      // request must not burn the proof of a number the caller does own.
+      await request(http as never)
+        .post('/v1/auth/complete-registration')
+        .send({ challengeId: challenge.body.challengeId, fullName: 'Honest Retry' })
+        .expect(201);
+
+      const u = await prisma.user.findFirstOrThrow({ where: { phone: mine } });
+      expect(u.fullName).toBe('Honest Retry');
+      await cleanup(mine);
+    });
   });
 
   it('the per-phone send limit is 3 in 10 minutes', async () => {

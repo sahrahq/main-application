@@ -204,5 +204,10 @@
   "accountLanguageValue": "زي إعدادات جهازك",
   "accountNotBuilt": "الأماكن المحفوظة وطرق الدفع وإعدادات الإشعارات لسه ما اتعملوش.",
   "searchLocationSemantic": "بتدوّر في {city}",
-  "bookGuestsUnit": "{count, plural, =1{فرد} =2{فردين} few{أفراد} other{فرد}}"
+  "bookGuestsUnit": "{count, plural, =1{فرد} =2{فردين} few{أفراد} other{فرد}}",
+  "signInNameTitle": "نناديك إيه؟",
+  "signInNameWhy": "المطعم محتاج اسم للطاولة. مش محتاجين حاجة تانية.",
+  "signInNameSubmit": "خلّصنا",
+  "signInNameSubmitting": "بنخلّص…",
+  "signInNoCodeHelp": "الكود مش بيوصل؟ كلّمنا: {contact}"
 }

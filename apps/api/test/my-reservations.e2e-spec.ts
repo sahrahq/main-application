@@ -59,12 +59,15 @@ async function signUp(phone: string, name: string): Promise<{ id: string; token:
     .expect(201);
 
   const code = delivery.sent.filter((m) => m.phone === phone).at(-1)!.code;
+  // The challenge HANDLE comes back from register — challenges are no longer
+  // addressable by user id, which is what closed AUTH-3. And verify-otp is
+  // discriminated now: this account already exists, so it signs in.
   const pair = await request(http as never)
     .post('/v1/auth/verify-otp')
-    .send({ userId: reg.body.userId, code })
+    .send({ challengeId: reg.body.challengeId, code })
     .expect(200);
 
-  return { id: reg.body.userId as string, token: pair.body.accessToken as string };
+  return { id: reg.body.userId as string, token: pair.body.tokens.accessToken as string };
 }
 
 /** Insert a reservation directly — this suite is about READING them. */

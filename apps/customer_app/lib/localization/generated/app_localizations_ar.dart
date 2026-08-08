@@ -680,4 +680,22 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get signInNameTitle => 'نناديك إيه؟';
+
+  @override
+  String get signInNameWhy =>
+      'المطعم محتاج اسم للطاولة. مش محتاجين حاجة تانية.';
+
+  @override
+  String get signInNameSubmit => 'خلّصنا';
+
+  @override
+  String get signInNameSubmitting => 'بنخلّص…';
+
+  @override
+  String signInNoCodeHelp(String contact) {
+    return 'الكود مش بيوصل؟ كلّمنا: $contact';
+  }
 }

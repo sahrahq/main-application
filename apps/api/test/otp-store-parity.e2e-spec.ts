@@ -104,12 +104,13 @@ function contract(
       const parts = b.parts;
       const user = freshUser();
 
-      await b.service.issue({ userId: user, phone: freshPhone(), purpose: 'phone_verify' });
+      const phone = freshPhone();
+      const id = await b.service.issue({ phone, purpose: 'phone_verify' });
       const { code } = b.delivery.sent[0];
 
-      await expect(b.service.verify({ userId: user, purpose: 'phone_verify', code })).resolves.toBe(true);
+      await expect(b.service.verify({ challengeId: id, code })).resolves.toMatchObject({ phone });
       await expect(
-        b.service.verify({ userId: user, purpose: 'phone_verify', code }),
+        b.service.verify({ challengeId: id, code }),
       ).rejects.toMatchObject({ response: { code: 'invalid_otp' } });
     }, 30_000);
 
@@ -118,18 +119,18 @@ function contract(
       const parts = b.parts;
       const user = freshUser();
 
-      await b.service.issue({ userId: user, phone: freshPhone(), purpose: 'phone_verify' });
+      const id = await b.service.issue({ phone: freshPhone(), purpose: 'phone_verify' });
       const { code } = b.delivery.sent[0];
 
       for (let i = 0; i < MAX_ATTEMPTS; i++) {
         await expect(
-          b.service.verify({ userId: user, purpose: 'phone_verify', code: '000000' }),
+          b.service.verify({ challengeId: id, code: '000000' }),
         ).rejects.toBeDefined();
       }
       // Attempt counting must survive the round trip — if HINCRBY were wrong,
       // the correct code would still work here and brute force would be open.
       await expect(
-        b.service.verify({ userId: user, purpose: 'phone_verify', code }),
+        b.service.verify({ challengeId: id, code }),
       ).rejects.toMatchObject({ response: { code: 'too_many_attempts' } });
     }, 30_000);
 
@@ -138,13 +139,15 @@ function contract(
       const parts = b.parts;
       const user = freshUser();
 
-      await b.service.issue({ userId: user, phone: freshPhone(), purpose: 'phone_verify' });
+      const id = await b.service.issue({ phone: freshPhone(), purpose: 'phone_verify' });
       const { code } = b.delivery.sent[0];
 
       const r = introspect();
       if (r) {
         // Redis variant: prove the plaintext is absent from what was persisted.
-        const stored = await r.hgetall(`otp:phone_verify:${user}`);
+        // The key IS the challenge id now — challenges are no longer addressed
+        // by user and purpose, which is what closed AUTH-3.
+        const stored = await r.hgetall(id);
         expect(JSON.stringify(stored)).not.toContain(code);
         expect(stored.codeHash).toBeDefined();
       } else {
@@ -159,10 +162,10 @@ function contract(
       const phone = freshPhone();
 
       for (let i = 0; i < 3; i++) {
-        await b.service.issue({ userId: `parity-u${i}`, phone, purpose: 'phone_verify' });
+        await b.service.issue({ phone, purpose: 'phone_verify' });
       }
       await expect(
-        b.service.issue({ userId: 'parity-u9', phone, purpose: 'phone_verify' }),
+        b.service.issue({ phone, purpose: 'phone_verify' }),
       ).rejects.toMatchObject({ response: { code: 'otp_rate_limited' } });
     }, 30_000);
 
@@ -173,13 +176,13 @@ function contract(
       const rUser = freshUser();
 
       for (let i = 0; i < 3; i++) {
-        await b.service.issue({ userId: rUser, phone, purpose: 'phone_verify' });
+        await b.service.issue({ phone, purpose: 'phone_verify' });
       }
       // Hammering while blocked must not push the window forward — otherwise a
       // retry loop locks the real user out indefinitely.
       for (let i = 0; i < 5; i++) {
         await expect(
-          b.service.issue({ userId: rUser, phone, purpose: 'phone_verify' }),
+          b.service.issue({ phone, purpose: 'phone_verify' }),
         ).rejects.toMatchObject({ response: { code: 'otp_rate_limited' } });
       }
 

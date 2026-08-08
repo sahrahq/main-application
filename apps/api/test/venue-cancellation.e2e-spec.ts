@@ -67,11 +67,13 @@ async function signUp(phone: string, name: string): Promise<{ id: string; token:
     .send({ phone, fullName: name })
     .expect(201);
   const code = delivery.sent.filter((m) => m.phone === phone).at(-1)!.code;
+  // See the note in my-reservations.e2e-spec: challenge handle, discriminated
+  // response.
   const pair = await request(http as never)
     .post('/v1/auth/verify-otp')
-    .send({ userId: reg.body.userId, code })
+    .send({ challengeId: reg.body.challengeId, code })
     .expect(200);
-  return { id: reg.body.userId as string, token: pair.body.accessToken as string };
+  return { id: reg.body.userId as string, token: pair.body.tokens.accessToken as string };
 }
 
 async function makeVenue(

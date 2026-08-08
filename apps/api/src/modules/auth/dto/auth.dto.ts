@@ -94,29 +94,55 @@ export class LogoutDto {
   deviceToken?: string;
 }
 export class VerifyOtpDto {
-  @ApiProperty({ format: "uuid" })
+  @ApiProperty({ description: "The opaque handle returned by /auth/request-otp" })
   @IsString()
-  userId!: string;
+  @MaxLength(64)
+  challengeId!: string;
 
   @ApiProperty({ example: "123456", minLength: 6, maxLength: 6 })
   @IsString()
   @Matches(/^\d{6}$/, { message: "code must be 6 digits" })
   code!: string;
 
-  /**
-   * WHICH challenge this code answers.
+  /*
+   * `purpose` IS GONE, and its absence is a security improvement.
    *
-   * Challenges are keyed `otp:{purpose}:{userId}`, so a registration code
-   * cannot verify a sign-in and a sign-in code cannot activate an account.
-   * That separation is a security property, not bookkeeping: without it, a
-   * code sent for one purpose is a credential for every purpose.
-   *
-   * Defaults to `phone_verify` so the registration flow is unchanged.
+   * It used to be a client-supplied field, so a caller chose which challenge
+   * their code answered. The purpose now lives on the stored challenge and is
+   * read from it, which means the separation it protects — a registration code
+   * cannot sign anyone in, a sign-in code cannot activate an account — is no
+   * longer something the caller can get wrong or lie about.
    */
-  @ApiPropertyOptional({ enum: ["phone_verify", "login"], default: "phone_verify" })
+}
+
+/**
+ * Supply a name for a number that has just been VERIFIED but has no account.
+ *
+ * There is no phone field, deliberately. The number comes from the challenge,
+ * so this cannot be pointed at somebody else's number, and it cannot be called
+ * at all without having answered a code sent to that number.
+ */
+export class CompleteRegistrationDto {
+  @ApiProperty({ description: "A challenge that has already been verified" })
+  @IsString()
+  @MaxLength(64)
+  challengeId!: string;
+
+  @ApiProperty({ maxLength: 120 })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  fullName!: string;
+
+  @ApiPropertyOptional()
   @IsOptional()
-  @IsIn(["phone_verify", "login"])
-  purpose?: "phone_verify" | "login";
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({ enum: ["ar", "en"], default: "ar" })
+  @IsOptional()
+  @IsIn(["ar", "en"])
+  locale?: "ar" | "en";
 }
 
 /**
@@ -138,7 +164,8 @@ export class RequestOtpDto {
 }
 
 export class ResendOtpDto {
-  @ApiProperty({ format: "uuid" })
+  @ApiProperty({ description: "The challenge to re-send. The number comes from it." })
   @IsString()
-  userId!: string;
+  @MaxLength(64)
+  challengeId!: string;
 }

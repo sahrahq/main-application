@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
 
 import '../../../config/env/env.dart';
+import '../../../config/support_contact.dart';
 import '../../../localization/generated/app_localizations.dart';
 import '../../../shared/widgets/failure_copy.dart';
 import '../../reservations/presentation/pending_booking.dart';
@@ -142,11 +143,15 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     switch (state) {
                       SignInPhone() ||
                       SignInSending() =>
-                        _PhoneStep(phone: _phone, name: _name, state: state),
+                        _PhoneStep(phone: _phone, state: state),
                       SignInCode() ||
-                      SignInVerifying() ||
-                      SignInDone() =>
+                      SignInVerifying() =>
                         _CodeStep(code: _code, state: state),
+                      SignInNeedsName() =>
+                        _NameStep(name: _name, state: state),
+                      // Terminal. The route pops on this; drawing the code step
+                      // one last frame keeps the transition from flashing.
+                      SignInDone() => _CodeStep(code: _code, state: state),
                     },
                   ],
                 ),
@@ -211,26 +216,24 @@ class _Headline extends StatelessWidget {
     final s = Theme.of(context).sahra;
     final text = Theme.of(context).textTheme;
 
-    final code = state is SignInCode || state is SignInVerifying || state is SignInDone;
+    final (title, body) = switch (state) {
+      SignInNeedsName() => (l10n.signInNameTitle, l10n.signInNameWhy),
+      SignInCode() || SignInVerifying() || SignInDone() => (
+          l10n.signInCodeTitle,
+          // The number is Latin-digit content inside Arabic prose, which is
+          // precisely the case `ltrRun` exists for — without it the leading
+          // `+` lands on the wrong end and "+20 100…" reads as "…100 20+".
+          l10n.signInCodeSentTo(ltrRun(_phoneOf(state))),
+        ),
+      _ => (l10n.signInTitle, l10n.signInWhy),
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          code ? l10n.signInCodeTitle : l10n.signInTitle,
-          style: text.displaySmall?.copyWith(color: s.textBody),
-        ),
+        Text(title, style: text.displaySmall?.copyWith(color: s.textBody)),
         const SizedBox(height: SahraSpace.s2),
-        Text(
-          code
-              // The number is Latin-digit content inside Arabic prose, which
-              // is precisely the case `ltrRun` exists for — without it the
-              // leading `+` lands on the wrong end and "+20 100…" reads as
-              // "…100 20+".
-              ? l10n.signInCodeSentTo(ltrRun(_phoneOf(state)))
-              : l10n.signInWhy,
-          style: text.bodyMedium?.copyWith(color: s.textSoft),
-        ),
+        Text(body, style: text.bodyMedium?.copyWith(color: s.textSoft)),
       ],
     );
   }
@@ -238,6 +241,7 @@ class _Headline extends StatelessWidget {
   String _phoneOf(SignInState state) => switch (state) {
         SignInCode(:final challenge) => challenge.phone,
         SignInVerifying(:final challenge) => challenge.phone,
+        SignInNeedsName(:final challenge) => challenge.phone,
         _ => '',
       };
 }
@@ -321,10 +325,9 @@ class _PendingSlotNote extends StatelessWidget {
 }
 
 class _PhoneStep extends ConsumerWidget {
-  const _PhoneStep({required this.phone, required this.name, required this.state});
+  const _PhoneStep({required this.phone, required this.state});
 
   final TextEditingController phone;
-  final TextEditingController name;
   final SignInState state;
 
   @override
@@ -344,29 +347,59 @@ class _PhoneStep extends ConsumerWidget {
           keyboardType: TextInputType.phone,
           error: failure == null ? null : failureMessage(failure, l10n),
         ),
-        const SizedBox(height: SahraSpace.s5),
-        // ASKED FOR UP FRONT, NOT AFTER THE CODE.
+        // THE NAME FIELD IS GONE FROM THIS STEP.
         //
-        // The name is only used when the number turns out to be new, and the
-        // repository does not know which it is until the server answers. The
-        // alternative — ask for the code, discover it was a registration, then
-        // interrupt to ask for a name — puts a second form in the middle of a
-        // flow the diner thought was finishing.
+        // It used to be here because the client had to guess whether the number
+        // was new — `register` required a name up front, and the client learned
+        // which endpoint to call from a 401 that was AUTH-3. Asking for a name
+        // moved to AFTER verification, which is what let the request path stop
+        // looking anything up. A returning diner now sees one field instead of
+        // two, which is the friction this screen was carrying for nothing.
+        const SizedBox(height: SahraSpace.s6),
+        SahraButton(
+          label: sending ? l10n.signInSending : l10n.signInContinue,
+          onPressed:
+              sending ? null : () => ref.read(signInProvider.notifier).requestCode(phone.text.trim()),
+        ),
+      ],
+    );
+  }
+}
+
+/// The third step: a number that is proved but belongs to nobody.
+///
+/// Reached only after a correct code, so the diner has already shown they can
+/// read messages sent to that number. Nothing about an account exists until
+/// this is submitted — the row is created with the phone already verified,
+/// which is what makes account squatting impossible rather than merely
+/// defended against.
+class _NameStep extends ConsumerWidget {
+  const _NameStep({required this.name, required this.state});
+
+  final TextEditingController name;
+  final SignInState state;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final current = state as SignInNeedsName;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
         SahraInput(
           label: l10n.signInNameLabel,
           hint: l10n.signInNameHint,
           variant: SahraInputVariant.line,
           controller: name,
+          error: current.failure == null ? null : failureMessage(current.failure!, l10n),
         ),
         const SizedBox(height: SahraSpace.s6),
         SahraButton(
-          label: sending ? l10n.signInSending : l10n.signInContinue,
-          onPressed: sending
+          label: current.submitting ? l10n.signInNameSubmitting : l10n.signInNameSubmit,
+          onPressed: current.submitting
               ? null
-              : () => ref.read(signInProvider.notifier).requestCode(
-                    phone: phone.text.trim(),
-                    fullName: name.text.trim(),
-                  ),
+              : () => ref.read(signInProvider.notifier).completeProfile(name.text.trim()),
         ),
       ],
     );
@@ -455,6 +488,23 @@ class _CodeStep extends ConsumerWidget {
             style: text.bodySmall?.copyWith(color: s.textFaint),
           ),
         ],
+
+        // UNCONDITIONAL. Not behind a build flag, not behind a failure, not
+        // behind a retry count.
+        //
+        // A code that never arrives is the one dead end this screen can produce
+        // where the diner has nothing left to try: a resend cannot help if
+        // delivery is broken, and the 15-minute lock cannot be cleared by
+        // asking. The lockout design assumes a human is reachable (see the
+        // decision doc), and this line is that assumption made visible.
+        //
+        // `SupportContact.value` is a placeholder that FAILS THE BUILD until a
+        // real contact is supplied — `support_contact_test.dart`.
+        const SizedBox(height: SahraSpace.s5),
+        Text(
+          l10n.signInNoCodeHelp(ltrRun(SupportContact.value)),
+          style: text.bodySmall?.copyWith(color: s.textSoft),
+        ),
       ],
     );
   }

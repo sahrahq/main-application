@@ -50,9 +50,18 @@ void main() {
         return _profile;
       }
       if (path == '/v1/auth/request-otp') {
-        return <String, Object?>{'otpRequired': true, 'userId': _userId};
+        // A HANDLE AND NOTHING ELSE — identical for a number
+        // nobody has ever seen. That is AUTH-3 closed.
+        return <String, Object?>{'challengeId': 'journey-challenge'};
       }
-      if (path == '/v1/auth/verify-otp') return _tokenPair;
+      if (path == '/v1/auth/verify-otp') {
+        // `profile_needed`, because this is a diner who has never
+        // booked before — the cold-start path, and the only one that
+        // reaches the name step. A `signed_in` stub here would walk a
+        // returning diner and never touch the third step at all.
+        return <String, Object?>{'status': 'profile_needed'};
+      }
+      if (path == '/v1/auth/complete-registration') return _tokenPair;
       if (path == '/v1/reservations/holds') {
         // C-1.6 — the server refuses an anonymous hold. The app must turn
         // this into a sign-in detour, not an error.
@@ -129,13 +138,26 @@ void main() {
         reason: 'the diner was asked to sign in with no idea what for',);
 
     // ── 7. Sign in for real, through the screen. ──────────────────────────
+    // ONE FIELD NOW. The name moved to a third step that only appears when the
+    // number turns out to belong to nobody; these stubs answer `signed_in`, so
+    // it never appears here.
     await tester.enterText(find.byType(TextField).first, '01000000000');
-    await tester.enterText(find.byType(TextField).at(1), 'Nour');
     await tester.tap(find.text('Send me a code'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, '123456');
     await tester.tap(find.text('Verify'));
+    await tester.pumpAndSettle();
+
+    // ── 7b. A NAME, because this number belongs to nobody yet. ────────────
+    //
+    // The third step of the same screen, not a route of its own. It appears
+    // only for a number with no account, which is why the stub answers
+    // `profile_needed`: a returning diner never sees it.
+    expect(find.text('What should we call you?'), findsOneWidget,
+        reason: 'a brand-new number did not reach the name step',);
+    await tester.enterText(find.byType(TextField).first, 'Nour');
+    await tester.tap(find.text('Finish'));
     await tester.pumpAndSettle();
 
     // ── 8. The hold re-fires by itself and the booking confirms. ──────────

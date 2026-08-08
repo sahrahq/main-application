@@ -241,6 +241,91 @@ confirmations come nearly free with it.
 
 ---
 
+## Rate limiting — two different risks, two different shapes
+
+Added 2026-08-06, correcting a design that treated both as the same kind of
+threat.
+
+**Requesting another code is not an attack on the account.** It means the first
+one did not arrive — weak signal, delayed SMS, a network switch on the metro. A
+real diner does this often, and its only cost to us is money.
+
+**Entering a wrong code IS the takeover path.**
+
+Treating them alike meant a diner with a bad connection hit a lockout built for
+an attacker.
+
+### Wrong-code attempts — unchanged
+
+Strict counter, hard 15-minute lock, per-account across channels. The lock key
+outlives the challenge so a new send cannot reset it (doc 11 flow 1). Nothing
+here softens.
+
+### Resends — backoff, not a wall
+
+A fixed budget ending in a lockout is replaced by increasing backoff: first
+resend immediate, then ~30s, 60s, 2m, 4m, capped. A real diner waits thirty
+seconds and continues; an abuser throttles themselves into uselessness.
+
+An absolute per-account-per-hour ceiling stays, so SMS spend cannot run away —
+set high enough that a diner on a bad connection never reaches it.
+
+Keying is unchanged: per-`userId` **and** per-phone. The per-user key is what
+makes the budget per-ACCOUNT rather than per-channel, so adding email as a
+second OTP channel (step 6) cannot double an attacker's guessing budget. The
+per-phone key stays alongside it because it also protects a number across
+different account rows, which the account-squatting path relies on.
+
+### The wait must be specific, not generic
+
+The response carries the remaining seconds and the client renders a **live
+countdown on the button**, in both locales.
+
+> "Wait 27 seconds" and "you are locked out" are the same fact and completely
+> different products.
+
+Latin figures in Arabic (see DESIGN-RULES), and both locales captured in the
+walk-through.
+
+### The lockout design assumes a human escape path
+
+Geno is adding a support contact before launch. **The lockout is only humane
+because someone can be reached when it goes wrong.** Recorded here so the
+assumption is visible if it ever stops being true — a hard lock with no human
+behind it is a different product decision from the one made here.
+
+## The global send ceiling is a wallet fuse, not a capacity plan
+
+`request-otp` looks nothing up, which is what closes AUTH-3 — and it means
+anyone can cause an SMS to any number. Per-phone (3/10min) caps harassment of
+one person; per-IP (10/10min) caps one source. **Neither caps the bill.**
+
+So there is a third limiter: a global daily count of deliveries across all
+phones and all IPs, from `OTP_GLOBAL_DAILY_SEND_LIMIT`.
+
+**Sized ABOVE expected peak, deliberately.** It fails closed, so a tripped
+ceiling is a full signup outage — which means it must sit where normal growth
+never reaches it and a nuisance attacker has to spend real effort. At pilot
+scale (five venues, a few hundred bookings a month) real traffic is a few
+hundred sends a day including resends; the development default of 10,000 sits
+20–50× above that. It is not a forecast of capacity and must not be tuned down
+toward actual usage.
+
+**Production has no default and fails at boot when unset**, on the
+`TRUST_PROXY_HOPS` precedent. A fuse with no rating is not a fuse.
+
+**Fails closed, with `otp_sending_unavailable` (503).** The alternative —
+serve a challenge and quietly not deliver — is the decoy pattern wearing a
+different hat: the diner is told a code was sent, waits, retries, and contacts
+support about a phone they think is broken, while only the logs know why. An
+honest outage beats a silent lie. It logs at `error` with a distinct
+`[OTP GLOBAL SEND CEILING REACHED]` marker so a tripped fuse is never a silent
+outage.
+
+**Residual, accepted for now:** an attacker with many IPs can still burn up to
+the daily ceiling. No per-IP hardening, reputation or adaptive limiting is
+built. The ceiling bounds the loss; it does not prevent it.
+
 ## Order of work
 
 Each step lands green before the next starts. Stop and report after 1 and 3.
@@ -295,3 +380,9 @@ Load-bearing constraints:
   per-channel, or adding email doubles an attacker's guessing budget on one
   account. Asserted by a test that exhausts the phone budget and then confirms
   the email channel is refused too.
+- **(g)** An exhausted or slow SMS path should **offer the email channel as an
+  alternative rather than a dead end** — but only for an account with
+  `emailVerifiedAt` set, and it must not reveal whether an email is on file for
+  an account that is not signed in. Designed here rather than bolted on later:
+  the offer has to be part of the same indistinguishable response, which means
+  the escape hatch cannot be a branch the caller can observe. Not built now.

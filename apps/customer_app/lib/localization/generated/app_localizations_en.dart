@@ -690,4 +690,22 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get signInNameTitle => 'What should we call you?';
+
+  @override
+  String get signInNameWhy =>
+      'The restaurant needs a name for the table. Nothing else is needed.';
+
+  @override
+  String get signInNameSubmit => 'Finish';
+
+  @override
+  String get signInNameSubmitting => 'Finishing…';
+
+  @override
+  String signInNoCodeHelp(String contact) {
+    return 'Code not arriving? Contact us: $contact';
+  }
 }

@@ -1,7 +1,7 @@
 import {
-  Injectable, Inject, Optional, BadRequestException, HttpException, HttpStatus,
+  Injectable, Inject, Optional, BadRequestException, HttpException, HttpStatus, Logger,
 } from '@nestjs/common';
-import { createHash, randomInt, timingSafeEqual } from 'crypto';
+import { createHash, randomBytes, randomInt, timingSafeEqual } from 'crypto';
 import {
   OtpStore, RateLimiter, OtpDelivery, OtpPurpose,
   OTP_STORE, RATE_LIMITER, OTP_DELIVERY, OTP_CLOCK,
@@ -32,17 +32,90 @@ export const SEND_LIMIT_PER_PHONE = 3;
 export const SEND_LIMIT_PER_IP = 10;
 export const SEND_WINDOW_SECONDS = 10 * 60;
 
+/**
+ * How long a VERIFIED challenge survives while its owner supplies a name.
+ *
+ * Ten minutes. The code's own life is five, which is the right length for
+ * "read an SMS and type six digits"; this window covers "type your name on a
+ * bad connection, having already proved the number is yours", which is a
+ * different and more forgiving task. Long enough that nobody re-does the SMS;
+ * short enough that an abandoned verified challenge is not a standing
+ * half-credential — it expires with the key rather than lingering.
+ */
+export const VERIFIED_TTL_SECONDS = 10 * 60;
+
+/**
+ * THE WALLET FUSE. A global daily ceiling on deliveries, across every phone
+ * and every IP.
+ *
+ * `request-otp` no longer looks anything up, which is what closes AUTH-3 — and
+ * it means anyone can cause an SMS to any number. The per-phone limit caps
+ * harassment of one person and the per-IP limit caps one source, but neither
+ * caps the BILL: an attacker with a hundred addresses stays inside both while
+ * spending real money.
+ *
+ * This is a spend control, not a security control. It is deliberately dumb:
+ * no reputation, nothing adaptive, one number from the environment.
+ *
+ * Required in production, exactly like TRUST_PROXY_HOPS — a fuse with no
+ * rating is not a fuse. Development gets a generous default and a log line, so
+ * nobody is blocked from running the API locally.
+ */
+export const GLOBAL_SEND_WINDOW_SECONDS = 24 * 60 * 60;
+export const GLOBAL_SEND_KEY = 'otp:send:global';
+
 export interface IssueInput {
-  userId: string;
   phone: string;
   purpose: OtpPurpose;
   ip?: string | null;
 }
 
 export interface VerifyInput {
-  userId: string;
-  purpose: OtpPurpose;
+  challengeId: string;
   code: string;
+}
+
+/** What a verified challenge resolves to. No account is implied. */
+export interface VerifiedChallenge {
+  phone: string;
+  purpose: OtpPurpose;
+}
+
+/**
+ * Read the global daily ceiling.
+ *
+ * Exported and pure so `otp.service.spec.ts` can assert both branches without
+ * booting the app — the production requirement is the half that cannot be
+ * checked by running in development.
+ */
+export function globalSendLimitFrom(
+  env: Record<string, string | undefined>,
+  logger?: { warn(message: string): void },
+): number {
+  const raw = env.OTP_GLOBAL_DAILY_SEND_LIMIT;
+
+  if (raw === undefined || raw.trim() === '') {
+    if (env.NODE_ENV === 'production') {
+      throw new Error(
+        'OTP_GLOBAL_DAILY_SEND_LIMIT is required in production. Every request-otp ' +
+          'call sends an SMS to a number the caller chooses, and this is the only ' +
+          'ceiling on what that can cost. Set it deliberately.',
+      );
+    }
+    logger?.warn(
+      'OTP_GLOBAL_DAILY_SEND_LIMIT unset — defaulting to 10000/day for development. ' +
+        'This must be set explicitly in production.',
+    );
+    return 10_000;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(
+      `OTP_GLOBAL_DAILY_SEND_LIMIT must be a non-negative integer, got "${raw}".`,
+    );
+  }
+  return parsed;
 }
 
 /**
@@ -68,11 +141,54 @@ export class OtpService {
      * reads the wall clock directly cannot be tested at all.
      */
     @Optional() @Inject(OTP_CLOCK) private readonly now: () => number = () => Date.now(),
-  ) {}
+  ) {
+    // Read once, at construction. A ceiling re-read per request could change
+    // mid-window and make the counter meaningless; and reading it here means a
+    // production boot with the variable unset fails at STARTUP rather than at
+    // the first sign-in, which is the same discipline TRUST_PROXY_HOPS uses.
+    this.globalDailyLimit = globalSendLimitFrom(process.env, this.logger);
+  }
 
-  async issue(input: IssueInput): Promise<void> {
-    // Per-phone first: this protects the human being messaged, and it holds
-    // even when the attacker rotates IPs.
+  private readonly logger = new Logger(OtpService.name);
+  private readonly globalDailyLimit: number;
+
+  /**
+   * Issue a code and return an OPAQUE CHALLENGE ID.
+   *
+   * 32 random bytes. NOT derived from the phone, the purpose or the clock —
+   * an id with structure is an id somebody can reverse. It is a lookup handle
+   * and carries no information.
+   *
+   * **NOTHING IS LOOKED UP HERE.** No account query, no branch, no difference
+   * between a registered number and one that has never been seen. That is how
+   * AUTH-3 closes: not by making two answers indistinguishable, but by never
+   * asking the question. There is no decoy to maintain and no timing to
+   * equalise, because there is only one path.
+   *
+   * Every limiter fires BEFORE the code is generated or delivered, so a
+   * refused request costs zero messages.
+   */
+  async issue(input: IssueInput): Promise<string> {
+    // The wallet fuse first. It is the cheapest check and the one whose
+    // exhaustion means "stop spending", so nothing below it should run.
+    const globalOk = await this.limiter.hit(
+      GLOBAL_SEND_KEY,
+      this.globalDailyLimit,
+      GLOBAL_SEND_WINDOW_SECONDS,
+    );
+    if (!globalOk) {
+      // LOUD AND DISTINCT. A fuse that trips quietly is an outage nobody
+      // attributes: sign-in simply stops working and the logs look normal.
+      this.logger.error(
+        `[OTP GLOBAL SEND CEILING REACHED] ${this.globalDailyLimit} deliveries in ` +
+          `${GLOBAL_SEND_WINDOW_SECONDS / 3600}h. No further codes will be sent until ` +
+          `the window rolls. Raise OTP_GLOBAL_DAILY_SEND_LIMIT or investigate abuse.`,
+      );
+      throw this.sendingUnavailable();
+    }
+
+    // Per-phone: protects the human being messaged, and holds even when the
+    // attacker rotates IPs.
     const phoneOk = await this.limiter.hit(
       `otp:send:phone:${input.phone}`,
       SEND_LIMIT_PER_PHONE,
@@ -93,33 +209,59 @@ export class OtpService {
     // randomInt is CSPRNG-backed. Math.random() here would make codes
     // predictable from a couple of observed samples.
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    const challengeId = randomBytes(32).toString('base64url');
 
-    await this.store.put(this.key(input.userId, input.purpose), {
+    // ONE LIVE CODE PER NUMBER. Retire whatever was outstanding, or a resend
+    // would leave the old code working alongside the new one and asking for a
+    // fresh code would widen the window rather than replace it.
+    const liveScope = liveKeyForPhone(input.phone, input.purpose);
+    const previous = await this.store.getLive(liveScope);
+    if (previous !== null) await this.store.consume(previous);
+
+    await this.store.put(challengeId, {
+      phone: input.phone,
       codeHash: hash(code),
       purpose: input.purpose,
       attempts: 0,
       expiresAtMs: this.now() + OTP_TTL_SECONDS * 1000,
+      verifiedAt: null,
     });
 
+    await this.store.setLive(liveScope, challengeId, OTP_TTL_SECONDS);
     await this.delivery.send({ phone: input.phone, code, purpose: input.purpose });
+    return challengeId;
   }
 
-  /** True on success. Throws with a machine-readable code otherwise. */
-  async verify(input: VerifyInput): Promise<boolean> {
-    const key = this.key(input.userId, input.purpose);
-
-    // FIRST, before anything else is read. A locked user is locked whatever
-    // challenge is in flight — including a brand-new one they just requested,
-    // which is the whole point of the lock outliving the challenge.
-    const lockedFor = await this.store.lockedForMs(key);
-    if (lockedFor > 0) throw this.tooManyAttempts(Math.ceil(lockedFor / 1000));
-
-    const challenge = await this.store.get(key);
-
+  /**
+   * Answer a challenge. Resolves to the number it was sent to; throws with a
+   * machine-readable code otherwise.
+   *
+   * Does NOT delete the challenge — it marks it verified and re-stamps the
+   * TTL, so a diner with no account yet can supply a name against a number
+   * they have already proved. Answering twice is refused, so the pair is
+   * single-use even though verification alone does not spend it.
+   *
+   * An unknown id, a consumed one, an already-verified one and an expired one
+   * whose key the store has dropped all answer identically.
+   */
+  async verify(input: VerifyInput): Promise<VerifiedChallenge> {
+    const challenge = await this.store.get(input.challengeId);
     if (!challenge) throw this.invalid();
 
+    // Answering a challenge that has already been answered is not a second
+    // chance — it is a replay, and it looks exactly like an unknown id.
+    if (challenge.verifiedAt !== null) throw this.invalid();
+
+    const lockScope = lockKeyForPhone(challenge.phone, challenge.purpose);
+
+    // Before anything else is judged. A locked number is locked whatever
+    // challenge is in flight — including a brand-new one just requested,
+    // which is the whole point of the lock outliving the challenge.
+    const lockedFor = await this.store.lockedForMs(lockScope);
+    if (lockedFor > 0) throw this.tooManyAttempts(Math.ceil(lockedFor / 1000));
+
     if (challenge.expiresAtMs <= this.now()) {
-      await this.store.consume(key);
+      await this.store.consume(input.challengeId);
       throw new BadRequestException({
         code: 'otp_expired',
         message: 'That code has expired. Request a new one.',
@@ -130,28 +272,60 @@ export class OtpService {
     // Check the cap BEFORE comparing, so a spent challenge cannot be probed
     // further — otherwise the attacker still learns which guess was right.
     if (challenge.attempts >= MAX_ATTEMPTS) {
-      await this.store.lock(key, this.now() + LOCK_SECONDS * 1000);
+      await this.store.lock(lockScope, this.now() + LOCK_SECONDS * 1000);
       throw this.tooManyAttempts(LOCK_SECONDS);
     }
 
     if (!matches(input.code, challenge.codeHash)) {
-      const attempts = await this.store.incrementAttempts(key);
+      const attempts = await this.store.incrementAttempts(input.challengeId);
       if (attempts >= MAX_ATTEMPTS) {
-        // The fifth failure locks the USER, not the challenge. Requesting a
+        // The fifth failure locks the NUMBER, not the challenge. Requesting a
         // new code from here changes nothing until the lock expires.
-        await this.store.lock(key, this.now() + LOCK_SECONDS * 1000);
+        await this.store.lock(lockScope, this.now() + LOCK_SECONDS * 1000);
         throw this.tooManyAttempts(LOCK_SECONDS);
       }
       throw this.invalid();
     }
 
-    await this.store.consume(key);
-    return true;
+    await this.store.markVerified(
+      input.challengeId,
+      this.now(),
+      this.now() + VERIFIED_TTL_SECONDS * 1000,
+    );
+    return { phone: challenge.phone, purpose: challenge.purpose };
   }
 
-  /** One live challenge per (user, purpose) — a new send supersedes the old. */
-  private key(userId: string, purpose: OtpPurpose): string {
-    return `otp:${purpose}:${userId}`;
+  /**
+   * Read a challenge without judging or spending it.
+   *
+   * For `resend`, which needs the number the original challenge went to so a
+   * caller cannot redirect a resend at a different number. Returns null for
+   * anything unknown or spent; challenge ids are 32 random bytes, so a null
+   * here tells an attacker nothing they could not have guessed.
+   */
+  async peek(challengeId: string): Promise<VerifiedChallenge | null> {
+    const challenge = await this.store.get(challengeId);
+    if (!challenge) return null;
+    return { phone: challenge.phone, purpose: challenge.purpose };
+  }
+
+  /**
+   * Spend a challenge that has already been verified.
+   *
+   * The second half of the pair. Refuses anything that was not verified, has
+   * expired, or has already been spent — all with the same error, so a caller
+   * cannot tell which.
+   */
+  async consumeVerified(challengeId: string): Promise<VerifiedChallenge> {
+    const challenge = await this.store.get(challengeId);
+    if (!challenge || challenge.verifiedAt === null) throw this.invalid();
+    if (challenge.expiresAtMs <= this.now()) {
+      await this.store.consume(challengeId);
+      throw this.invalid();
+    }
+
+    await this.store.consume(challengeId);
+    return { phone: challenge.phone, purpose: challenge.purpose };
   }
 
   private invalid(): BadRequestException {
@@ -194,6 +368,30 @@ export class OtpService {
     );
   }
 
+  /**
+   * The wallet fuse tripped. FAILS CLOSED, and the choice is deliberate.
+   *
+   * The alternative was to serve a challenge and quietly not deliver — which
+   * is precisely the decoy pattern this design deleted. A diner would be told
+   * a code was sent, would wait, would retry, and would eventually contact
+   * support about a phone they think is broken. Nobody would learn that the
+   * ceiling had been reached except by reading the logs.
+   *
+   * An honest 503 lets the client say something true, and it makes a tripped
+   * fuse look like what it is: an outage with a cause, not an app that stopped
+   * working.
+   */
+  private sendingUnavailable(): HttpException {
+    return new HttpException(
+      {
+        code: 'otp_sending_unavailable',
+        message: 'We cannot send codes right now. Please try again later.',
+        message_ar: 'مش قادرين نبعت أكواد دلوقتي. حاول تاني بعدين.',
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
   private rateLimited(): HttpException {
     return new HttpException(
       {
@@ -204,6 +402,33 @@ export class OtpService {
       HttpStatus.TOO_MANY_REQUESTS,
     );
   }
+}
+
+/**
+ * What a lockout is scoped to.
+ *
+ * The PHONE and the PURPOSE, with the phone hashed. No account is resolved at
+ * request time any more, so the phone is what identifies the target.
+ *
+ * Stable across challenges, because an attacker who burns six guesses, asks
+ * for a fresh challenge and finds it unlocked has defeated the lock.
+ *
+ * Purpose is in the key so failing a sign-in five times does not stop the same
+ * person completing a registration they hold a valid code for — a separation
+ * the previous user-keyed design had, which `otp.service.spec.ts` pins.
+ *
+ * NOTE FOR STEP 6 (email as a second OTP channel): this scope will have to
+ * move to the ACCOUNT at verify time, where the account is known and the
+ * responses are already indistinguishable. Left phone-scoped here because
+ * there is no second channel yet, and a scope that anticipated one would be
+ * untested speculation. Recorded in the decision doc.
+ */
+function liveKeyForPhone(phone: string, purpose: string): string {
+  return `otp:live:${purpose}:${hash(phone)}`;
+}
+
+function lockKeyForPhone(phone: string, purpose: string): string {
+  return `otp:lock:${purpose}:${hash(phone)}`;
 }
 
 function hash(code: string): string {

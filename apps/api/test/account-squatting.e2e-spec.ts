@@ -93,6 +93,8 @@ describe('the real owner is not locked out by a squatter', () => {
     // They never answer the code. That is the entire attack.
   });
 
+  let reclaimChallengeId: string;
+
   it('the OWNER registers the same number and is NOT refused', async () => {
     // This used to be 409 phone_exists — a real diner told their own number
     // was taken.
@@ -103,6 +105,8 @@ describe('the real owner is not locked out by a squatter', () => {
 
     expect(res.body.otpRequired).toBe(true);
     expect(res.body.userId).toBeTruthy();
+    reclaimChallengeId = res.body.challengeId as string;
+    expect(reclaimChallengeId).toBeTruthy();
   });
 
   it("and the squatter's details do not survive", async () => {
@@ -113,13 +117,16 @@ describe('the real owner is not locked out by a squatter', () => {
   });
 
   it('the owner completes signup with the fresh code', async () => {
-    const user = await prisma.user.findFirst({ where: { phone: SQUATTED } });
+    // The handle from the RECLAIMING register call. A challenge is answered by
+    // its own handle now, not by looking a user up — which is also why the
+    // reclaim path had to start returning one.
     const res = await request(http as never)
       .post('/v1/auth/verify-otp')
-      .send({ userId: user!.id, code: lastCode(SQUATTED) })
+      .send({ challengeId: reclaimChallengeId, code: lastCode(SQUATTED) })
       .expect(200);
 
-    expect(res.body.user.fullName).toBe('Nour Hassan');
+    expect(res.body.status).toBe('signed_in');
+    expect(res.body.tokens.user.fullName).toBe('Nour Hassan');
   });
 });
 
@@ -135,7 +142,7 @@ describe('THE TAKEOVER ATTEMPT — a verified account is not reclaimable', () =>
 
     await request(http as never)
       .post('/v1/auth/verify-otp')
-      .send({ userId: ownerId, code: lastCode(VERIFIED) })
+      .send({ challengeId: reg.body.challengeId, code: lastCode(VERIFIED) })
       .expect(200);
   });
 
@@ -162,9 +169,17 @@ describe('THE TAKEOVER ATTEMPT — a verified account is not reclaimable', () =>
   it('an attacker cannot verify with a code they never received', async () => {
     // Belt and braces: even if the row HAD been reclaimed, the attacker still
     // has to answer a code sent to a phone they do not hold.
+    // A challenge for the owner's number that the ATTACKER requested. They can
+    // ask for one — request time looks nothing up (AUTH-3) — but the code goes
+    // to the owner's handset, so they cannot answer it.
+    const attackerChallenge = await request(http as never)
+      .post('/v1/auth/request-otp')
+      .send({ phone: VERIFIED })
+      .expect(202);
+
     const res = await request(http as never)
       .post('/v1/auth/verify-otp')
-      .send({ userId: ownerId, code: '000000' })
+      .send({ challengeId: attackerChallenge.body.challengeId, code: '000000' })
       .expect(400);
     expect(res.body.error.code).toBe('invalid_otp');
   });

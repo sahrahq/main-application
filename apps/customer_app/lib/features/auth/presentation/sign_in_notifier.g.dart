@@ -6,7 +6,7 @@ part of 'sign_in_notifier.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$signInHash() => r'dbadb625d0bc1a73dbb64dcc35bdc0e696e234d6';
+String _$signInHash() => r'08c63e2c2676c4eed4eb60762f85d07d9cb9b402';
 
 /// One notifier for the whole screen (doc 07 §5), side effects only here.
 ///

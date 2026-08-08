@@ -280,6 +280,35 @@ class CancelledReservationResponse {
       };
 }
 
+class CompleteRegistrationDto {
+  const CompleteRegistrationDto({
+    required this.challengeId,
+    this.email,
+    required this.fullName,
+    this.locale,
+  });
+
+  factory CompleteRegistrationDto.fromJson(Map<String, dynamic> json) => CompleteRegistrationDto(
+        challengeId: json['challengeId'] as String,
+        email: json['email'] == null ? null : json['email'] as String,
+        fullName: json['fullName'] as String,
+        locale: json['locale'] == null ? null : json['locale'] as String,
+      );
+
+  /// A challenge that has already been verified
+  final String challengeId;
+  final String? email;
+  final String fullName;
+  final String? locale;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'challengeId': challengeId,
+        if (email != null) 'email': email!,
+        'fullName': fullName,
+        if (locale != null) 'locale': locale!,
+      };
+}
+
 class ConfirmHoldDto {
   const ConfirmHoldDto({
     this.occasion,
@@ -755,24 +784,20 @@ class OpeningHoursResponse {
       };
 }
 
-class OtpSentResponse {
-  const OtpSentResponse({
-    required this.retryAfter,
-    required this.sent,
+class OtpChallengeResponse {
+  const OtpChallengeResponse({
+    required this.challengeId,
   });
 
-  factory OtpSentResponse.fromJson(Map<String, dynamic> json) => OtpSentResponse(
-        retryAfter: (json['retryAfter'] as num).toDouble(),
-        sent: json['sent'] as bool,
+  factory OtpChallengeResponse.fromJson(Map<String, dynamic> json) => OtpChallengeResponse(
+        challengeId: json['challengeId'] as String,
       );
 
-  /// Seconds until another code may be requested.
-  final double retryAfter;
-  final bool sent;
+  /// Opaque. Answer it at /auth/verify-otp.
+  final String challengeId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'retryAfter': retryAfter,
-        'sent': sent,
+        'challengeId': challengeId,
       };
 }
 
@@ -853,19 +878,24 @@ class RegisterDto {
 
 class RegisterResponse {
   const RegisterResponse({
+    required this.challengeId,
     required this.otpRequired,
     required this.userId,
   });
 
   factory RegisterResponse.fromJson(Map<String, dynamic> json) => RegisterResponse(
+        challengeId: json['challengeId'] as String,
         otpRequired: json['otpRequired'] as bool,
         userId: json['userId'] as String,
       );
 
+  /// Answer it at /auth/verify-otp.
+  final String challengeId;
   final bool otpRequired;
   final String userId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
+        'challengeId': challengeId,
         'otpRequired': otpRequired,
         'userId': userId,
       };
@@ -949,17 +979,18 @@ class RequestOtpDto {
 
 class ResendOtpDto {
   const ResendOtpDto({
-    required this.userId,
+    required this.challengeId,
   });
 
   factory ResendOtpDto.fromJson(Map<String, dynamic> json) => ResendOtpDto(
-        userId: json['userId'] as String,
+        challengeId: json['challengeId'] as String,
       );
 
-  final String userId;
+  /// The challenge to re-send. The number comes from it.
+  final String challengeId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'userId': userId,
+        'challengeId': challengeId,
       };
 }
 
@@ -1713,25 +1744,42 @@ class UserResponse {
 
 class VerifyOtpDto {
   const VerifyOtpDto({
+    required this.challengeId,
     required this.code,
-    this.purpose,
-    required this.userId,
   });
 
   factory VerifyOtpDto.fromJson(Map<String, dynamic> json) => VerifyOtpDto(
+        challengeId: json['challengeId'] as String,
         code: json['code'] as String,
-        purpose: json['purpose'] == null ? null : json['purpose'] as String,
-        userId: json['userId'] as String,
       );
 
+  /// The opaque handle returned by /auth/request-otp
+  final String challengeId;
   final String code;
-  final String? purpose;
-  final String userId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
+        'challengeId': challengeId,
         'code': code,
-        if (purpose != null) 'purpose': purpose!,
-        'userId': userId,
+      };
+}
+
+class VerifyOtpResponse {
+  const VerifyOtpResponse({
+    required this.status,
+    this.tokens,
+  });
+
+  factory VerifyOtpResponse.fromJson(Map<String, dynamic> json) => VerifyOtpResponse(
+        status: json['status'] as String,
+        tokens: json['tokens'] == null ? null : TokenPairResponse.fromJson(json['tokens'] as Map<String, dynamic>),
+      );
+
+  final String status;
+  final TokenPairResponse? tokens;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'status': status,
+        if (tokens != null) 'tokens': tokens!.toJson(),
       };
 }
 

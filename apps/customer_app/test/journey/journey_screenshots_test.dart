@@ -64,9 +64,18 @@ void main() {
               if (path.endsWith('/availability')) return _availability;
               if (path.contains('/v1/restaurants/')) return _profile;
               if (path == '/v1/auth/request-otp') {
-                return <String, Object?>{'otpRequired': true, 'userId': _userId};
+                // A HANDLE AND NOTHING ELSE — identical for a number
+                // nobody has ever seen. That is AUTH-3 closed.
+                return <String, Object?>{'challengeId': 'journey-challenge'};
               }
-              if (path == '/v1/auth/verify-otp') return _tokenPair;
+              if (path == '/v1/auth/verify-otp') {
+                // `profile_needed`, because this is a diner who has never
+                // booked before — the cold-start path, and the only one that
+                // reaches the name step. A `signed_in` stub here would walk a
+                // returning diner and never touch the third step at all.
+                return <String, Object?>{'status': 'profile_needed'};
+              }
+              if (path == '/v1/auth/complete-registration') return _tokenPair;
               if (path == '/v1/reservations/holds') {
                 if (!signedIn) throw envelope(401, 'unauthenticated');
                 return _reservation('held');
@@ -114,14 +123,20 @@ void main() {
       await tester.pumpAndSettle();
       await capture('sign-in-wall');
 
+      // ONE FIELD on this step now — the name moved to a third step that only
+      // appears for a number with no account.
       await tester.enterText(find.byType(TextField).first, '01000000000');
-      await tester.enterText(find.byType(TextField).at(1), 'Nour');
       await tester.tap(find.text(l10n.signInContinue));
       await tester.pumpAndSettle();
       await capture('code-step');
 
       await tester.enterText(find.byType(TextField).first, '123456');
       await tester.tap(find.text(l10n.signInVerify));
+      await tester.pumpAndSettle();
+      await capture('name-step');
+
+      await tester.enterText(find.byType(TextField).first, 'Nour');
+      await tester.tap(find.text(l10n.signInNameSubmit));
       await tester.pumpAndSettle();
       await capture('confirmed');
 

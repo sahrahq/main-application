@@ -151,20 +151,23 @@ void main() {
         throw holds == 1 ? envelope(401, 'unauthenticated') : envelope(409, 'slot_taken');
       }
       if (path == '/v1/auth/request-otp') {
-        return <String, Object?>{'otpRequired': true, 'userId': 'u1'};
+        return <String, Object?>{'challengeId': 'stub-challenge'};
       }
       if (path == '/v1/auth/verify-otp') {
         return <String, Object?>{
-          'accessToken': 'a',
-          'refreshToken': 'r',
-          'expiresIn': 900,
-          'user': <String, Object?>{
-            'id': 'u1',
-            'phone': '+201000000000',
-            'fullName': 'Nour',
-            'roles': <String>['customer'],
-            'status': 'active',
-            'locale': 'en',
+          'status': 'signed_in',
+          'tokens': <String, Object?>{
+            'accessToken': 'a',
+            'refreshToken': 'r',
+            'expiresIn': 900,
+            'user': <String, Object?>{
+              'id': 'u1',
+              'phone': '+201000000000',
+              'fullName': 'Nour',
+              'roles': <String>['customer'],
+              'status': 'active',
+              'locale': 'en',
+            },
           },
         };
       }
@@ -182,8 +185,10 @@ void main() {
     expect(find.text('Sign in to book'), findsOneWidget);
 
     // Sign in for real, through the screen.
+    // ONE FIELD NOW. The name moved to a third step that only appears when the
+    // number turns out to belong to nobody; these stubs answer `signed_in`, so
+    // it never appears here.
     await tester.enterText(find.byType(TextField).first, '01000000000');
-    await tester.enterText(find.byType(TextField).at(1), 'Nour');
     await tester.tap(find.text('Send me a code'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));

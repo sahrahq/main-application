@@ -59,9 +59,14 @@ void main() {
                 if (path.contains('/search')) return emptyPage;
                 if (path == '/v1/reservations') return <Object>[];
                 if (path == '/v1/auth/request-otp') {
-                  return <String, Object?>{'otpRequired': true, 'userId': 'u1'};
+                  // A HANDLE AND NOTHING ELSE. No user id, no `otpRequired` —
+                  // the response is identical for a number that has never been
+                  // seen, which is how AUTH-3 closed.
+                  return <String, Object?>{'challengeId': 'stub-challenge'};
                 }
-                if (path == '/v1/auth/verify-otp') return tokenPair();
+                if (path == '/v1/auth/verify-otp') {
+                  return <String, Object?>{'status': 'signed_in', 'tokens': tokenPair()};
+                }
                 throw StateError('unexpected $method $path');
               }),
         ),
@@ -146,8 +151,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sign in to book'), findsOneWidget);
 
+    // ONE FIELD NOW. The name moved to a third step that only appears when the
+    // number turns out to belong to nobody; these stubs answer `signed_in`, so
+    // it never appears here.
     await tester.enterText(find.byType(TextField).first, '01000000000');
-    await tester.enterText(find.byType(TextField).at(1), 'Nour');
     await tester.tap(find.text('Send me a code'));
     await tester.pumpAndSettle();
 
@@ -169,8 +176,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sign in to book'), findsOneWidget);
 
+    // ONE FIELD NOW. The name moved to a third step that only appears when the
+    // number turns out to belong to nobody; these stubs answer `signed_in`, so
+    // it never appears here.
     await tester.enterText(find.byType(TextField).first, '01000000000');
-    await tester.enterText(find.byType(TextField).at(1), 'Nour');
     await tester.tap(find.text('Send me a code'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '123456');

@@ -125,14 +125,22 @@ describe('the attack: rotating a forged X-Forwarded-For', () => {
         .set('X-Forwarded-For', `203.0.113.${i + 1}`)
         .send({ phone: phones[i], fullName: `Sprayer ${i}` });
 
-      // `register` swallows a rate-limited send, so the 201 is not the signal.
-      // The signal is whether a CODE actually went out.
-      if (res.status === 201) {
-        const sent = delivery.sent.filter((m) => m.phone === phones[i]);
-        if (sent.length === 0) {
-          limited = true;
-          break;
-        }
+      // THE STATUS IS THE SIGNAL NOW.
+      //
+      // `register` used to swallow a rate-limited send — "a send failure must
+      // not orphan the account" — so a limited request still answered 201 and
+      // the only evidence was a missing code. It cannot swallow it any more:
+      // it has to return the handle to the challenge it issued, and a handle
+      // with no code behind it can never be answered. Handing one back would
+      // be a lie, so the failure surfaces.
+      //
+      // Same trade as the wallet fuse: an honest error beats a success that
+      // does nothing. The orphaned pending row is swept after 24h and is
+      // reclaimable in the meantime.
+      if (res.status === 429) {
+        expect(res.body.error.code).toBe('otp_rate_limited');
+        limited = true;
+        break;
       }
     }
 
@@ -140,6 +148,11 @@ describe('the attack: rotating a forged X-Forwarded-For', () => {
   }, 120_000);
 
   it('and the same forgery does not launder a per-PHONE budget either', async () => {
+    // A FRESH per-IP budget, because the test above deliberately exhausted it
+    // and this one is about the PER-PHONE limit. Without the reset this asserts
+    // the wrong limiter and would pass for the wrong reason.
+    await resetOtpState();
+
     const phone = `+2019${suffix.slice(0, 5)}99`;
     await request(http as never)
       .post('/v1/auth/register')

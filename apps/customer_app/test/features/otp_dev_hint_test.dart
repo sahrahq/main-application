@@ -78,9 +78,8 @@ class _AtCodeStep extends SignIn {
   @override
   SignInState build() => const SignInCode(
         challenge: OtpChallenge(
-          userId: '99999999-9999-4999-8999-999999999999',
+          challengeId: 'test-challenge-handle',
           phone: '+20 100 000 0000',
-          isNewAccount: false,
         ),
       );
 }

@@ -31,6 +31,24 @@ export class UserResponse {
 export class RegisterResponse {
   @ApiProperty() userId!: string;
   @ApiProperty() otpRequired!: boolean;
+
+  /**
+   * The handle to the challenge just issued. Required, because an endpoint
+   * that sends a code and does not return the handle to answer it is an
+   * endpoint nobody can complete.
+   */
+  @ApiProperty({ description: 'Answer it at /auth/verify-otp.' })
+  challengeId!: string;
+}
+
+/**
+ * The handle to an unanswered challenge. Carries NOTHING else — no user id, no
+ * hint about whether the number is registered, because issuing a challenge
+ * involves no lookup (AUTH-3).
+ */
+export class OtpChallengeResponse {
+  @ApiProperty({ description: 'Opaque. Answer it at /auth/verify-otp.' })
+  challengeId!: string;
 }
 
 export class TokenPairResponse {
@@ -38,6 +56,21 @@ export class TokenPairResponse {
   @ApiProperty({ type: 'integer' }) expiresIn!: number;
   @ApiProperty() refreshToken!: string;
   @ApiProperty({ type: UserResponse }) user!: UserResponse;
+}
+
+/**
+ * What answering a challenge produced.
+ *
+ * `status` is REQUIRED and non-nullable, so a client that fails to parse it
+ * gets an error rather than silently reading "not signed in" from a missing
+ * field. `tokens` is present only for `signed_in`.
+ */
+export class VerifyOtpResponse {
+  @ApiProperty({ enum: ['signed_in', 'profile_needed'] })
+  status!: 'signed_in' | 'profile_needed';
+
+  @ApiPropertyOptional({ type: () => TokenPairResponse })
+  tokens?: TokenPairResponse;
 }
 
 export class OtpSentResponse {

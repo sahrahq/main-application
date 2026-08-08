@@ -6,11 +6,15 @@ import type { Request } from 'express';
 import { AuthService, RequestCtx } from './auth.service';
 import {
   RegisterDto, LoginDto, RefreshDto, LogoutDto, VerifyOtpDto, ResendOtpDto, RequestOtpDto,
+  CompleteRegistrationDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
 import type { AuthedUser } from '../../shared/auth/jwt.strategy';
-import { RegisterResponse, TokenPairResponse, UserResponse, OtpSentResponse, ApiErrorResponse } from '../../shared/api/responses.dto';
+import {
+  RegisterResponse, TokenPairResponse, UserResponse, OtpSentResponse, ApiErrorResponse,
+  OtpChallengeResponse, VerifyOtpResponse,
+} from '../../shared/api/responses.dto';
 
 /** Bind a refresh token to where it came from, for audit + anomaly review. */
 function ctxOf(req: Request): RequestCtx {
@@ -43,14 +47,45 @@ export class AuthController {
   }
 
   @Post('verify-otp')
-  @ApiOkResponse({ type: TokenPairResponse })
+  @ApiOkResponse({ type: VerifyOtpResponse })
   @HttpCode(200)
-  @ApiOperation({ summary: 'Verify the phone code; activates the account' })
-  @ApiResponse({ status: 200, description: 'Access + refresh token pair' })
+  @ApiOperation({ summary: 'Answer a challenge; signs in or asks for a name' })
+  @ApiResponse({ status: 200, description: "{ status: 'signed_in' | 'profile_needed' }" })
   @ApiResponse({ status: 400, description: 'invalid_otp | otp_expired' })
   @ApiResponse({ status: 429, description: 'too_many_attempts' })
-  verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request): Promise<TokenPairResponse> {
-    return this.auth.verifyOtp(dto.userId, dto.code, ctxOf(req), dto.purpose ?? 'phone_verify');
+  async verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request): Promise<VerifyOtpResponse> {
+    const outcome = await this.auth.verifyOtp(dto.challengeId, dto.code, ctxOf(req));
+    return outcome.status === 'signed_in'
+      ? { status: 'signed_in', tokens: outcome.tokens }
+      : { status: 'profile_needed' };
+  }
+
+  /**
+   * Name the account behind a challenge that has already been verified.
+   *
+   * The third step of one sign-in flow, not a second registration door: the
+   * number is taken from the challenge, so nothing here can be aimed at a
+   * number the caller has not proved they can read.
+   */
+  @Post('complete-registration')
+  @ApiOkResponse({ type: TokenPairResponse })
+  @HttpCode(201)
+  @ApiOperation({ summary: 'Create the account for a verified challenge' })
+  @ApiResponse({ status: 201, description: 'Access + refresh token pair' })
+  @ApiResponse({ status: 400, description: 'invalid_otp — not verified, expired, or spent' })
+  completeRegistration(
+    @Body() dto: CompleteRegistrationDto,
+    @Req() req: Request,
+  ): Promise<TokenPairResponse> {
+    return this.auth.completeRegistration(
+      {
+        challengeId: dto.challengeId,
+        fullName: dto.fullName,
+        email: dto.email ?? null,
+        locale: dto.locale,
+      },
+      ctxOf(req),
+    );
   }
 
   /**
@@ -67,23 +102,24 @@ export class AuthController {
    * registered by phone could never sign in again.
    */
   @Post('request-otp')
-  @ApiOkResponse({ type: RegisterResponse })
+  @ApiOkResponse({ type: OtpChallengeResponse })
   @HttpCode(202)
-  @ApiOperation({ summary: 'Send a sign-in code to a registered phone' })
+  @ApiOperation({ summary: 'Send a code to a phone. No account lookup.' })
   @ApiResponse({ status: 202, description: 'Code sent; continue at /auth/verify-otp' })
-  @ApiResponse({ status: 401, description: 'invalid_credentials | account_unavailable' })
   @ApiResponse({ status: 429, description: 'otp_rate_limited' })
-  requestOtp(@Body() dto: RequestOtpDto, @Req() req: Request): Promise<RegisterResponse> {
-    return this.auth.requestLoginOtp(dto.phone, ctxOf(req));
+  @ApiResponse({ status: 503, description: 'otp_sending_unavailable — global daily ceiling' })
+  requestOtp(@Body() dto: RequestOtpDto, @Req() req: Request): Promise<OtpChallengeResponse> {
+    return this.auth.requestOtp(dto.phone, ctxOf(req));
   }
 
   @Post('resend-otp')
-  @ApiOkResponse({ type: OtpSentResponse })
+  @ApiOkResponse({ type: OtpChallengeResponse })
   @HttpCode(202)
-  @ApiOperation({ summary: 'Re-send the phone code (rate limited)' })
+  @ApiOperation({ summary: 'Re-send to the number the challenge went to' })
   @ApiResponse({ status: 429, description: 'otp_rate_limited' })
-  async resendOtp(@Body() dto: ResendOtpDto, @Req() req: Request): Promise<void> {
-    await this.auth.resendOtp(dto.userId, ctxOf(req));
+  @ApiResponse({ status: 503, description: 'otp_sending_unavailable' })
+  resendOtp(@Body() dto: ResendOtpDto, @Req() req: Request): Promise<OtpChallengeResponse> {
+    return this.auth.resendOtp(dto.challengeId, ctxOf(req));
   }
 
   @Post('login')

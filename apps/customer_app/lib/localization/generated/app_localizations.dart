@@ -1273,6 +1273,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{guest} other{guests}}'**
   String bookGuestsUnit(int count);
+
+  /// No description provided for @signInNameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What should we call you?'**
+  String get signInNameTitle;
+
+  /// The name step is reached only after a correct code, so the number is already proved. This sentence has to justify one more field to somebody who thought they had finished — hence 'nothing else is needed', which is also true.
+  ///
+  /// In en, this message translates to:
+  /// **'The restaurant needs a name for the table. Nothing else is needed.'**
+  String get signInNameWhy;
+
+  /// No description provided for @signInNameSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get signInNameSubmit;
+
+  /// No description provided for @signInNameSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Finishing…'**
+  String get signInNameSubmitting;
+
+  /// UNCONDITIONAL on the code step, in both locales. Not gated on the delivery stub and not gated on a failure: a code that does not arrive is the one situation where a diner has no way forward, and the lockout design assumes a human can be reached (see the decision doc). The contact itself is a PLACEHOLDER that FAILS THE BUILD until a real one is supplied — see support_contact.dart and support_contact_test.dart.
+  ///
+  /// In en, this message translates to:
+  /// **'Code not arriving? Contact us: {contact}'**
+  String signInNoCodeHelp(String contact);
 }
 
 class _AppLocalizationsDelegate

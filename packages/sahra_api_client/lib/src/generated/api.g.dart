@@ -56,6 +56,20 @@ class SahraApi {
     return AdminRestaurantResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `POST /v1/auth/complete-registration`
+  ///
+  /// Create the account for a verified challenge
+  Future<TokenPairResponse> completeRegistration({
+    required CompleteRegistrationDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/auth/complete-registration',
+      body: body.toJson(),
+    );
+    return TokenPairResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `POST /v1/auth/login`
   ///
   /// Password login
@@ -125,8 +139,8 @@ class SahraApi {
 
   /// `POST /v1/auth/request-otp`
   ///
-  /// Send a sign-in code to a registered phone
-  Future<RegisterResponse> requestOtp({
+  /// Send a code to a phone. No account lookup.
+  Future<OtpChallengeResponse> requestOtp({
     required RequestOtpDto body,
   }) async {
     final response = await _transport.send(
@@ -134,13 +148,13 @@ class SahraApi {
       path: '/v1/auth/request-otp',
       body: body.toJson(),
     );
-    return RegisterResponse.fromJson(response as Map<String, dynamic>);
+    return OtpChallengeResponse.fromJson(response as Map<String, dynamic>);
   }
 
   /// `POST /v1/auth/resend-otp`
   ///
-  /// Re-send the phone code (rate limited)
-  Future<OtpSentResponse> resendOtp({
+  /// Re-send to the number the challenge went to
+  Future<OtpChallengeResponse> resendOtp({
     required ResendOtpDto body,
   }) async {
     final response = await _transport.send(
@@ -148,13 +162,13 @@ class SahraApi {
       path: '/v1/auth/resend-otp',
       body: body.toJson(),
     );
-    return OtpSentResponse.fromJson(response as Map<String, dynamic>);
+    return OtpChallengeResponse.fromJson(response as Map<String, dynamic>);
   }
 
   /// `POST /v1/auth/verify-otp`
   ///
-  /// Verify the phone code; activates the account
-  Future<TokenPairResponse> verifyOtp({
+  /// Answer a challenge; signs in or asks for a name
+  Future<VerifyOtpResponse> verifyOtp({
     required VerifyOtpDto body,
   }) async {
     final response = await _transport.send(
@@ -162,7 +176,7 @@ class SahraApi {
       path: '/v1/auth/verify-otp',
       body: body.toJson(),
     );
-    return TokenPairResponse.fromJson(response as Map<String, dynamic>);
+    return VerifyOtpResponse.fromJson(response as Map<String, dynamic>);
   }
 
   /// `DELETE /v1/devices`
