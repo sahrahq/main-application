@@ -87,6 +87,10 @@ class SecureSessionStore implements SessionStore {
 
 /// For tests and for the golden harness, which must not touch a keystore.
 class InMemorySessionStore implements SessionStore {
+  /// Optionally starts signed in, for a test whose subject is a screen behind
+  /// the guard rather than the act of signing in.
+  InMemorySessionStore([this._session]);
+
   Session? _session;
 
   @override

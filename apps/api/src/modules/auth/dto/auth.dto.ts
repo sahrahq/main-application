@@ -169,3 +169,42 @@ export class ResendOtpDto {
   @MaxLength(64)
   challengeId!: string;
 }
+
+/**
+ * `PATCH /auth/me` — what a diner may change about themselves.
+ *
+ * TWO FIELDS. The absences are the design:
+ *
+ * **No `email`.** Step 4 of the email chain puts it here, and step 3 — the
+ * verification flow that decides what an unverified address may be used for —
+ * is PAUSED. Accepting one now would write an unverified address to
+ * `users.email`, which is the Decision 6 hole in a new place: anybody could
+ * type somebody else's address onto their own account, and every confirmation
+ * that account ever generated would arrive in a stranger's inbox. The global
+ * pipe runs `forbidNonWhitelisted`, so an `email` in the body is a 400 rather
+ * than a silent drop — a field that is accepted and discarded looks exactly
+ * like a field that works.
+ *
+ * **No `phone`.** The number is proved by answering a code sent to it. A
+ * profile form that could set it would be a way to claim a number without
+ * ever demonstrating control of it, which is precisely what AUTH-3 closed.
+ *
+ * **No `status`, no `roles`.** Self-service privilege escalation.
+ *
+ * Both fields optional, neither meaningful alone: a body naming neither is
+ * refused in the handler, because 200 for a change that did not happen is
+ * indistinguishable from one that did.
+ */
+export class UpdateProfileDto {
+  @ApiPropertyOptional({ maxLength: 120, example: "Nour Hassan" })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  fullName?: string;
+
+  @ApiPropertyOptional({ enum: ["ar", "en"], description: "Language for notifications and copy." })
+  @IsOptional()
+  @IsIn(["ar", "en"])
+  locale?: "ar" | "en";
+}

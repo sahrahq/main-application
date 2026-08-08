@@ -104,4 +104,15 @@ abstract class AuthRepository {
 
   /// Revoke this session, and this handset's push token.
   Future<void> signOut({required String refreshToken, String? deviceToken});
+
+  /// Change the caller's own name. Returns the name as the server now holds it.
+  ///
+  /// THE SUBJECT IS THE TOKEN. There is no user id here and there must never
+  /// be one — the server takes the account from the access token, so this call
+  /// has no way to address anybody else.
+  ///
+  /// NO EMAIL PARAMETER, deliberately. The server refuses one with a 400 while
+  /// the verification flow (email chain step 3) is unbuilt: an unverified
+  /// address written to a profile is an address anybody could claim.
+  Future<String> updateName(String fullName);
 }

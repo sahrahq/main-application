@@ -201,6 +201,205 @@ class _ReservationDetailProviderElement
   String get id => (origin as ReservationDetailProvider).id;
 }
 
+String _$movableSlotsHash() => r'49df73584cf404caff876beae2ec00fb9e3ee84c';
+
+/// The grid for the move sheet.
+///
+/// `movableSlots`, NOT `slots`. The difference is the reservation being moved:
+/// its own tables count as free, so the times either side of the current
+/// booking are offered. See the repository note.
+///
+/// Copied from [movableSlots].
+@ProviderFor(movableSlots)
+const movableSlotsProvider = MovableSlotsFamily();
+
+/// The grid for the move sheet.
+///
+/// `movableSlots`, NOT `slots`. The difference is the reservation being moved:
+/// its own tables count as free, so the times either side of the current
+/// booking are offered. See the repository note.
+///
+/// Copied from [movableSlots].
+class MovableSlotsFamily extends Family<AsyncValue<SlotBoard>> {
+  /// The grid for the move sheet.
+  ///
+  /// `movableSlots`, NOT `slots`. The difference is the reservation being moved:
+  /// its own tables count as free, so the times either side of the current
+  /// booking are offered. See the repository note.
+  ///
+  /// Copied from [movableSlots].
+  const MovableSlotsFamily();
+
+  /// The grid for the move sheet.
+  ///
+  /// `movableSlots`, NOT `slots`. The difference is the reservation being moved:
+  /// its own tables count as free, so the times either side of the current
+  /// booking are offered. See the repository note.
+  ///
+  /// Copied from [movableSlots].
+  MovableSlotsProvider call(
+    String id,
+    String date,
+    int partySize,
+  ) {
+    return MovableSlotsProvider(
+      id,
+      date,
+      partySize,
+    );
+  }
+
+  @override
+  MovableSlotsProvider getProviderOverride(
+    covariant MovableSlotsProvider provider,
+  ) {
+    return call(
+      provider.id,
+      provider.date,
+      provider.partySize,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'movableSlotsProvider';
+}
+
+/// The grid for the move sheet.
+///
+/// `movableSlots`, NOT `slots`. The difference is the reservation being moved:
+/// its own tables count as free, so the times either side of the current
+/// booking are offered. See the repository note.
+///
+/// Copied from [movableSlots].
+class MovableSlotsProvider extends AutoDisposeFutureProvider<SlotBoard> {
+  /// The grid for the move sheet.
+  ///
+  /// `movableSlots`, NOT `slots`. The difference is the reservation being moved:
+  /// its own tables count as free, so the times either side of the current
+  /// booking are offered. See the repository note.
+  ///
+  /// Copied from [movableSlots].
+  MovableSlotsProvider(
+    String id,
+    String date,
+    int partySize,
+  ) : this._internal(
+          (ref) => movableSlots(
+            ref as MovableSlotsRef,
+            id,
+            date,
+            partySize,
+          ),
+          from: movableSlotsProvider,
+          name: r'movableSlotsProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$movableSlotsHash,
+          dependencies: MovableSlotsFamily._dependencies,
+          allTransitiveDependencies:
+              MovableSlotsFamily._allTransitiveDependencies,
+          id: id,
+          date: date,
+          partySize: partySize,
+        );
+
+  MovableSlotsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.id,
+    required this.date,
+    required this.partySize,
+  }) : super.internal();
+
+  final String id;
+  final String date;
+  final int partySize;
+
+  @override
+  Override overrideWith(
+    FutureOr<SlotBoard> Function(MovableSlotsRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: MovableSlotsProvider._internal(
+        (ref) => create(ref as MovableSlotsRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        id: id,
+        date: date,
+        partySize: partySize,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<SlotBoard> createElement() {
+    return _MovableSlotsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is MovableSlotsProvider &&
+        other.id == id &&
+        other.date == date &&
+        other.partySize == partySize;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, id.hashCode);
+    hash = _SystemHash.combine(hash, date.hashCode);
+    hash = _SystemHash.combine(hash, partySize.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin MovableSlotsRef on AutoDisposeFutureProviderRef<SlotBoard> {
+  /// The parameter `id` of this provider.
+  String get id;
+
+  /// The parameter `date` of this provider.
+  String get date;
+
+  /// The parameter `partySize` of this provider.
+  int get partySize;
+}
+
+class _MovableSlotsProviderElement
+    extends AutoDisposeFutureProviderElement<SlotBoard> with MovableSlotsRef {
+  _MovableSlotsProviderElement(super.provider);
+
+  @override
+  String get id => (origin as MovableSlotsProvider).id;
+  @override
+  String get date => (origin as MovableSlotsProvider).date;
+  @override
+  int get partySize => (origin as MovableSlotsProvider).partySize;
+}
+
 String _$bookingsViewHash() => r'369a1c7c7790862f66c51d4e5fba53b4be17c48b';
 
 /// Which half of the bookings screen is showing.
@@ -243,5 +442,403 @@ final acknowledgeCancellationProvider =
 );
 
 typedef _$AcknowledgeCancellation = AutoDisposeNotifier<bool>;
+String _$moveDraftHash() => r'0db97d9236f9bd5fdf9965b892027c8247bfb548';
+
+abstract class _$MoveDraft extends BuildlessAutoDisposeNotifier<MoveSelection> {
+  late final String id;
+  late final String date;
+  late final int partySize;
+
+  MoveSelection build(
+    String id,
+    String date,
+    int partySize,
+  );
+}
+
+/// See also [MoveDraft].
+@ProviderFor(MoveDraft)
+const moveDraftProvider = MoveDraftFamily();
+
+/// See also [MoveDraft].
+class MoveDraftFamily extends Family<MoveSelection> {
+  /// See also [MoveDraft].
+  const MoveDraftFamily();
+
+  /// See also [MoveDraft].
+  MoveDraftProvider call(
+    String id,
+    String date,
+    int partySize,
+  ) {
+    return MoveDraftProvider(
+      id,
+      date,
+      partySize,
+    );
+  }
+
+  @override
+  MoveDraftProvider getProviderOverride(
+    covariant MoveDraftProvider provider,
+  ) {
+    return call(
+      provider.id,
+      provider.date,
+      provider.partySize,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'moveDraftProvider';
+}
+
+/// See also [MoveDraft].
+class MoveDraftProvider
+    extends AutoDisposeNotifierProviderImpl<MoveDraft, MoveSelection> {
+  /// See also [MoveDraft].
+  MoveDraftProvider(
+    String id,
+    String date,
+    int partySize,
+  ) : this._internal(
+          () => MoveDraft()
+            ..id = id
+            ..date = date
+            ..partySize = partySize,
+          from: moveDraftProvider,
+          name: r'moveDraftProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$moveDraftHash,
+          dependencies: MoveDraftFamily._dependencies,
+          allTransitiveDependencies: MoveDraftFamily._allTransitiveDependencies,
+          id: id,
+          date: date,
+          partySize: partySize,
+        );
+
+  MoveDraftProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.id,
+    required this.date,
+    required this.partySize,
+  }) : super.internal();
+
+  final String id;
+  final String date;
+  final int partySize;
+
+  @override
+  MoveSelection runNotifierBuild(
+    covariant MoveDraft notifier,
+  ) {
+    return notifier.build(
+      id,
+      date,
+      partySize,
+    );
+  }
+
+  @override
+  Override overrideWith(MoveDraft Function() create) {
+    return ProviderOverride(
+      origin: this,
+      override: MoveDraftProvider._internal(
+        () => create()
+          ..id = id
+          ..date = date
+          ..partySize = partySize,
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        id: id,
+        date: date,
+        partySize: partySize,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeNotifierProviderElement<MoveDraft, MoveSelection> createElement() {
+    return _MoveDraftProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is MoveDraftProvider &&
+        other.id == id &&
+        other.date == date &&
+        other.partySize == partySize;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, id.hashCode);
+    hash = _SystemHash.combine(hash, date.hashCode);
+    hash = _SystemHash.combine(hash, partySize.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin MoveDraftRef on AutoDisposeNotifierProviderRef<MoveSelection> {
+  /// The parameter `id` of this provider.
+  String get id;
+
+  /// The parameter `date` of this provider.
+  String get date;
+
+  /// The parameter `partySize` of this provider.
+  int get partySize;
+}
+
+class _MoveDraftProviderElement
+    extends AutoDisposeNotifierProviderElement<MoveDraft, MoveSelection>
+    with MoveDraftRef {
+  _MoveDraftProviderElement(super.provider);
+
+  @override
+  String get id => (origin as MoveDraftProvider).id;
+  @override
+  String get date => (origin as MoveDraftProvider).date;
+  @override
+  int get partySize => (origin as MoveDraftProvider).partySize;
+}
+
+String _$reservationActionHash() => r'aa4ebe4300133ff11dc782935a763e2bfdc58fa4';
+
+abstract class _$ReservationAction
+    extends BuildlessAutoDisposeNotifier<ReservationActionState> {
+  late final String id;
+
+  ReservationActionState build(
+    String id,
+  );
+}
+
+/// Cancel and modify for one reservation (C-3.4, C-3.5).
+///
+/// ONE NOTIFIER FOR BOTH, keyed by reservation id, because they share the
+/// thing that actually needs coordinating: while either is in flight, neither
+/// button may be tapped. Two notifiers would each know only their own half.
+///
+/// EVERY SUCCESS INVALIDATES THE LIST AS WELL AS THE DETAIL. A booking that
+/// was cancelled or moved is wrong in both places, and the list is the screen
+/// the diner returns to — leaving it stale shows the old time on the card they
+/// just changed, which reads as the change having failed.
+///
+/// Copied from [ReservationAction].
+@ProviderFor(ReservationAction)
+const reservationActionProvider = ReservationActionFamily();
+
+/// Cancel and modify for one reservation (C-3.4, C-3.5).
+///
+/// ONE NOTIFIER FOR BOTH, keyed by reservation id, because they share the
+/// thing that actually needs coordinating: while either is in flight, neither
+/// button may be tapped. Two notifiers would each know only their own half.
+///
+/// EVERY SUCCESS INVALIDATES THE LIST AS WELL AS THE DETAIL. A booking that
+/// was cancelled or moved is wrong in both places, and the list is the screen
+/// the diner returns to — leaving it stale shows the old time on the card they
+/// just changed, which reads as the change having failed.
+///
+/// Copied from [ReservationAction].
+class ReservationActionFamily extends Family<ReservationActionState> {
+  /// Cancel and modify for one reservation (C-3.4, C-3.5).
+  ///
+  /// ONE NOTIFIER FOR BOTH, keyed by reservation id, because they share the
+  /// thing that actually needs coordinating: while either is in flight, neither
+  /// button may be tapped. Two notifiers would each know only their own half.
+  ///
+  /// EVERY SUCCESS INVALIDATES THE LIST AS WELL AS THE DETAIL. A booking that
+  /// was cancelled or moved is wrong in both places, and the list is the screen
+  /// the diner returns to — leaving it stale shows the old time on the card they
+  /// just changed, which reads as the change having failed.
+  ///
+  /// Copied from [ReservationAction].
+  const ReservationActionFamily();
+
+  /// Cancel and modify for one reservation (C-3.4, C-3.5).
+  ///
+  /// ONE NOTIFIER FOR BOTH, keyed by reservation id, because they share the
+  /// thing that actually needs coordinating: while either is in flight, neither
+  /// button may be tapped. Two notifiers would each know only their own half.
+  ///
+  /// EVERY SUCCESS INVALIDATES THE LIST AS WELL AS THE DETAIL. A booking that
+  /// was cancelled or moved is wrong in both places, and the list is the screen
+  /// the diner returns to — leaving it stale shows the old time on the card they
+  /// just changed, which reads as the change having failed.
+  ///
+  /// Copied from [ReservationAction].
+  ReservationActionProvider call(
+    String id,
+  ) {
+    return ReservationActionProvider(
+      id,
+    );
+  }
+
+  @override
+  ReservationActionProvider getProviderOverride(
+    covariant ReservationActionProvider provider,
+  ) {
+    return call(
+      provider.id,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'reservationActionProvider';
+}
+
+/// Cancel and modify for one reservation (C-3.4, C-3.5).
+///
+/// ONE NOTIFIER FOR BOTH, keyed by reservation id, because they share the
+/// thing that actually needs coordinating: while either is in flight, neither
+/// button may be tapped. Two notifiers would each know only their own half.
+///
+/// EVERY SUCCESS INVALIDATES THE LIST AS WELL AS THE DETAIL. A booking that
+/// was cancelled or moved is wrong in both places, and the list is the screen
+/// the diner returns to — leaving it stale shows the old time on the card they
+/// just changed, which reads as the change having failed.
+///
+/// Copied from [ReservationAction].
+class ReservationActionProvider extends AutoDisposeNotifierProviderImpl<
+    ReservationAction, ReservationActionState> {
+  /// Cancel and modify for one reservation (C-3.4, C-3.5).
+  ///
+  /// ONE NOTIFIER FOR BOTH, keyed by reservation id, because they share the
+  /// thing that actually needs coordinating: while either is in flight, neither
+  /// button may be tapped. Two notifiers would each know only their own half.
+  ///
+  /// EVERY SUCCESS INVALIDATES THE LIST AS WELL AS THE DETAIL. A booking that
+  /// was cancelled or moved is wrong in both places, and the list is the screen
+  /// the diner returns to — leaving it stale shows the old time on the card they
+  /// just changed, which reads as the change having failed.
+  ///
+  /// Copied from [ReservationAction].
+  ReservationActionProvider(
+    String id,
+  ) : this._internal(
+          () => ReservationAction()..id = id,
+          from: reservationActionProvider,
+          name: r'reservationActionProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$reservationActionHash,
+          dependencies: ReservationActionFamily._dependencies,
+          allTransitiveDependencies:
+              ReservationActionFamily._allTransitiveDependencies,
+          id: id,
+        );
+
+  ReservationActionProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.id,
+  }) : super.internal();
+
+  final String id;
+
+  @override
+  ReservationActionState runNotifierBuild(
+    covariant ReservationAction notifier,
+  ) {
+    return notifier.build(
+      id,
+    );
+  }
+
+  @override
+  Override overrideWith(ReservationAction Function() create) {
+    return ProviderOverride(
+      origin: this,
+      override: ReservationActionProvider._internal(
+        () => create()..id = id,
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        id: id,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeNotifierProviderElement<ReservationAction, ReservationActionState>
+      createElement() {
+    return _ReservationActionProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ReservationActionProvider && other.id == id;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, id.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin ReservationActionRef
+    on AutoDisposeNotifierProviderRef<ReservationActionState> {
+  /// The parameter `id` of this provider.
+  String get id;
+}
+
+class _ReservationActionProviderElement
+    extends AutoDisposeNotifierProviderElement<ReservationAction,
+        ReservationActionState> with ReservationActionRef {
+  _ReservationActionProviderElement(super.provider);
+
+  @override
+  String get id => (origin as ReservationActionProvider).id;
+}
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

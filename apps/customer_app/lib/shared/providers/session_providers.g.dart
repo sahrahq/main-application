@@ -43,7 +43,7 @@ final isSignedInProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef IsSignedInRef = AutoDisposeProviderRef<bool>;
-String _$currentSessionHash() => r'29d2de4ca9368908a64ed96524bc657a86a17df0';
+String _$currentSessionHash() => r'e7188e8e0da9757696fe77d903a047fbc406c0d6';
 
 /// The signed-in diner, or null.
 ///

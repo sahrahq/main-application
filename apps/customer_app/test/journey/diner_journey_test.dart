@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sahra_design_system/sahra_design_system.dart';
 import 'package:sahra_customer_app/core/auth/session.dart';
 import 'package:sahra_customer_app/main.dart';
 import 'package:sahra_customer_app/shared/providers/app_providers.dart';
@@ -75,117 +76,195 @@ void main() {
     });
   }
 
-  testWidgets('cold launch → browse → book → sign in → confirmed → found again',
-      (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
+  testWidgets(
+    'cold launch → browse → book → sign in → confirmed → found again',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
 
-    // COLD, with nothing in storage. No session, no pending selection.
-    final store = InMemorySessionStore();
-    var signedIn = false;
+      // COLD, with nothing in storage. No session, no pending selection.
+      final store = InMemorySessionStore();
+      var signedIn = false;
 
-    final container = ProviderContainer(
-      overrides: <Override>[
-        transportProvider.overrideWithValue(backend(signedIn: () => signedIn)),
-        sessionStoreProvider.overrideWithValue(store),
-      ],
-    );
-    addTearDown(container.dispose);
-    container.listen(currentSessionProvider, (_, next) => signedIn = next != null);
+      final container = ProviderContainer(
+        overrides: <Override>[
+          transportProvider.overrideWithValue(backend(signedIn: () => signedIn)),
+          sessionStoreProvider.overrideWithValue(store),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(currentSessionProvider, (_, next) => signedIn = next != null);
 
-    // `SahraApp` ITSELF, not a MaterialApp assembled here.
-    //
-    // The first cut of this test built its own `MaterialApp.router` around
-    // `buildRouter()` — and got a different app. `main.dart`'s `builder` also
-    // installs `LocaleSync`, which is what tells the repositories which
-    // language to resolve venue names in; without it the English run rendered
-    // «ليالي لاونج». A journey test that reassembles the app is testing an
-    // assembly nobody ships.
-    await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const SahraApp()),
-    );
-    await tester.pumpAndSettle();
+      // `SahraApp` ITSELF, not a MaterialApp assembled here.
+      //
+      // The first cut of this test built its own `MaterialApp.router` around
+      // `buildRouter()` — and got a different app. `main.dart`'s `builder` also
+      // installs `LocaleSync`, which is what tells the repositories which
+      // language to resolve venue names in; without it the English run rendered
+      // «ليالي لاونج». A journey test that reassembles the app is testing an
+      // assembly nobody ships.
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const SahraApp()),
+      );
+      await tester.pumpAndSettle();
 
-    // ── 1. It opens, on Discover, without asking anyone to sign in. ────────
-    expect(find.text('Discover'), findsOneWidget, reason: 'no navigation on launch',);
-    expect(find.text('Sign in to book'), findsNothing, reason: 'browsing was gated',);
+      // ── 1. It opens, on Discover, without asking anyone to sign in. ────────
+      expect(
+        find.text('Discover'),
+        findsOneWidget,
+        reason: 'no navigation on launch',
+      );
+      expect(
+        find.text('Sign in to book'),
+        findsNothing,
+        reason: 'browsing was gated',
+      );
 
-    // ── 2. Search. ────────────────────────────────────────────────────────
-    await tester.enterText(find.byType(TextField).first, 'layali');
-    await tester.pumpAndSettle(const Duration(milliseconds: 600));
-    expect(find.text('Layali Lounge'), findsWidgets, reason: 'search returned nothing',);
+      // ── 2. Search. ────────────────────────────────────────────────────────
+      await tester.enterText(find.byType(TextField).first, 'layali');
+      await tester.pumpAndSettle(const Duration(milliseconds: 600));
+      expect(
+        find.text('Layali Lounge'),
+        findsWidgets,
+        reason: 'search returned nothing',
+      );
 
-    // ── 3. Into the venue. ────────────────────────────────────────────────
-    await tester.tap(find.text('Layali Lounge').first);
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Book'), findsWidgets, reason: 'no way in to booking',);
+      // ── 3. Into the venue. ────────────────────────────────────────────────
+      await tester.tap(find.text('Layali Lounge').first);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Book'),
+        findsWidgets,
+        reason: 'no way in to booking',
+      );
 
-    // ── 4. To the booking screen. ─────────────────────────────────────────
-    await tester.tap(find.textContaining('Book a table').last);
-    await tester.pumpAndSettle();
+      // ── 4. To the booking screen. ─────────────────────────────────────────
+      await tester.tap(find.textContaining('Book a table').last);
+      await tester.pumpAndSettle();
 
-    // ── 5. Pick a time and try to book, as a guest. ────────────────────────
-    await tester.tap(find.text('18:00'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('Confirm for'));
-    await tester.pumpAndSettle();
+      // ── 5. Pick a time and try to book, as a guest. ────────────────────────
+      await tester.tap(find.text('18:00'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Confirm for'));
+      await tester.pumpAndSettle();
 
-    // ── 6. C-1.6 sends us to sign-in, carrying the table. ─────────────────
-    expect(find.text('Sign in to book'), findsOneWidget,
-        reason: 'a guest booking did not reach sign-in',);
-    expect(find.textContaining('Your table:'), findsOneWidget,
-        reason: 'the diner was asked to sign in with no idea what for',);
+      // ── 6. C-1.6 sends us to sign-in, carrying the table. ─────────────────
+      expect(
+        find.text('Sign in to book'),
+        findsOneWidget,
+        reason: 'a guest booking did not reach sign-in',
+      );
+      expect(
+        find.textContaining('Your table:'),
+        findsOneWidget,
+        reason: 'the diner was asked to sign in with no idea what for',
+      );
 
-    // ── 7. Sign in for real, through the screen. ──────────────────────────
-    // ONE FIELD NOW. The name moved to a third step that only appears when the
-    // number turns out to belong to nobody; these stubs answer `signed_in`, so
-    // it never appears here.
-    await tester.enterText(find.byType(TextField).first, '01000000000');
-    await tester.tap(find.text('Send me a code'));
-    await tester.pumpAndSettle();
+      // ── 7. Sign in for real, through the screen. ──────────────────────────
+      // ONE FIELD NOW. The name moved to a third step that only appears when the
+      // number turns out to belong to nobody; these stubs answer `signed_in`, so
+      // it never appears here.
+      await tester.enterText(find.byType(TextField).first, '01000000000');
+      await tester.tap(find.text('Send me a code'));
+      await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField).first, '123456');
-    await tester.tap(find.text('Verify'));
-    await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '123456');
+      await tester.tap(find.text('Verify'));
+      await tester.pumpAndSettle();
 
-    // ── 7b. A NAME, because this number belongs to nobody yet. ────────────
-    //
-    // The third step of the same screen, not a route of its own. It appears
-    // only for a number with no account, which is why the stub answers
-    // `profile_needed`: a returning diner never sees it.
-    expect(find.text('What should we call you?'), findsOneWidget,
-        reason: 'a brand-new number did not reach the name step',);
-    await tester.enterText(find.byType(TextField).first, 'Nour');
-    await tester.tap(find.text('Finish'));
-    await tester.pumpAndSettle();
+      // ── 7b. A NAME, because this number belongs to nobody yet. ────────────
+      //
+      // The third step of the same screen, not a route of its own. It appears
+      // only for a number with no account, which is why the stub answers
+      // `profile_needed`: a returning diner never sees it.
+      expect(
+        find.text('What should we call you?'),
+        findsOneWidget,
+        reason: 'a brand-new number did not reach the name step',
+      );
+      await tester.enterText(find.byType(TextField).first, 'Nour');
+      await tester.tap(find.text('Finish'));
+      await tester.pumpAndSettle();
 
-    // ── 8. The hold re-fires by itself and the booking confirms. ──────────
-    expect(find.textContaining('SAH-'), findsWidgets,
-        reason: 'the booking did not complete after sign-in',);
+      // ── 8. The hold re-fires by itself and the booking confirms. ──────────
+      expect(
+        find.textContaining('SAH-'),
+        findsWidgets,
+        reason: 'the booking did not complete after sign-in',
+      );
 
-    // ── 9. Leave the confirmation the way the screen offers. ──────────────
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
+      // ── 9. Leave the confirmation the way the screen offers. ──────────────
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
 
-    // ── 10. FIND IT AGAIN FROM THE HOME SCREEN. ───────────────────────────
-    // This is the step that did not exist. Everything above passed for weeks
-    // while this was impossible.
-    expect(find.text('Bookings'), findsOneWidget, reason: 'no route to bookings',);
-    await tester.tap(find.text('Bookings'));
-    await tester.pumpAndSettle();
+      // ── 10. FIND IT AGAIN FROM THE HOME SCREEN. ───────────────────────────
+      // This is the step that did not exist. Everything above passed for weeks
+      // while this was impossible.
+      expect(
+        find.text('Bookings'),
+        findsOneWidget,
+        reason: 'no route to bookings',
+      );
+      await tester.tap(find.text('Bookings'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Layali Lounge'), findsWidgets,
-        reason: 'the reservation just made is not in the bookings list',);
+      expect(
+        find.text('Layali Lounge'),
+        findsWidgets,
+        reason: 'the reservation just made is not in the bookings list',
+      );
 
-    // ── 11. And open it. ──────────────────────────────────────────────────
-    await tester.tap(find.text('Layali Lounge').first);
-    await tester.pumpAndSettle();
-    expect(find.text('SAH-7K2M'), findsOneWidget,
-        reason: 'the reservation detail is unreachable from the list',);
-  }, timeout: const Timeout(Duration(minutes: 2)),);
+      // ── 11. And open it. ──────────────────────────────────────────────────
+      await tester.tap(find.text('Layali Lounge').first);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('SAH-7K2M'),
+        findsOneWidget,
+        reason: 'the reservation detail is unreachable from the list',
+      );
+
+      // ── 12. AND CHANGE IT. ────────────────────────────────────────────────
+      //
+      // The two buttons shipped DISABLED for a batch, under a line saying the
+      // feature did not exist yet. They are real now, and this is the step that
+      // proves it the only way that counts: by scrolling to them and tapping.
+      //
+      // A per-screen test cannot prove this, because it begins by constructing
+      // the screen. If the actions were dropped from the detail, if the sheet
+      // stopped opening, or if the buttons went back to `onPressed: null`, every
+      // golden and every accessibility cell would still pass — this is the one
+      // that notices.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -1200));
+      await tester.pumpAndSettle();
+
+      final cancel = find.widgetWithText(SahraButton, 'Cancel booking');
+      expect(
+        cancel,
+        findsOneWidget,
+        reason: 'no way to cancel from the booking',
+      );
+      expect(
+        tester.widget<SahraButton>(cancel).onPressed,
+        isNotNull,
+        reason: 'the cancel button is on screen but does nothing',
+      );
+
+      await tester.tap(cancel);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Cancel this booking?'),
+        findsOneWidget,
+        reason: 'the cancel sheet is unreachable from the booking',
+      );
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 }
 
+/// The same forward-pinned day the registry uses, and for the same reason —
+/// a fixture in the past turns a live booking into a settled one, and step 12
+/// would start proving less than it says. See `kFixtureDate`.
 const String _userId = '99999999-9999-4999-8999-999999999999';
 const String _reservationId = '22222222-2222-4222-8222-222222222222';
 
@@ -238,14 +317,14 @@ final Map<String, Object?> _profile = <String, Object?>{
 };
 
 final Map<String, Object?> _availability = <String, Object?>{
-  'date': '2026-08-05',
+  'date': '2027-08-05',
   'partySize': 2,
   'timezone': 'Africa/Cairo',
   'slots': <Object>[
     for (final t in <String>['18:00', '18:30', '19:00'])
       <String, Object?>{
         'time': t,
-        'startsAt': '2026-08-05T$t:00.000Z',
+        'startsAt': '2027-08-05T$t:00.000Z',
         'zones': <String>['indoor'],
       },
   ],
@@ -270,8 +349,8 @@ Map<String, Object?> _reservation(String status) => <String, Object?>{
       'code': 'SAH-7K2M',
       'restaurantId': '4f743baa-3054-4fda-90ce-1a602faf1e77',
       'partySize': 2,
-      'startsAt': '2026-08-05T18:00:00.000Z',
-      'endsAt': '2026-08-05T19:30:00.000Z',
+      'startsAt': '2027-08-05T18:00:00.000Z',
+      'endsAt': '2027-08-05T19:30:00.000Z',
       'status': status,
       'source': 'app',
     };
@@ -281,9 +360,9 @@ final Map<String, Object?> _myReservation = <String, Object?>{
   'code': 'SAH-7K2M',
   'status': 'confirmed',
   'source': 'app',
-  'starts_at': '2026-08-05T18:00:00.000Z',
-  'ends_at': '2026-08-05T19:30:00.000Z',
-  'date': '2026-08-05',
+  'starts_at': '2027-08-05T18:00:00.000Z',
+  'ends_at': '2027-08-05T19:30:00.000Z',
+  'date': '2027-08-05',
   'time': '21:00',
   'party_size': 2,
   'needs_acknowledgement': false,

@@ -10,6 +10,7 @@ import 'package:sahra_customer_app/core/error/guarded.dart';
 import 'package:sahra_customer_app/core/network/dio_transport.dart';
 import 'package:sahra_customer_app/core/utils/idempotency_key.dart';
 import 'package:sahra_customer_app/features/reservations/data/reservation_repository_impl.dart';
+import 'package:sahra_customer_app/features/reservations/domain/my_reservation.dart';
 import 'package:sahra_customer_app/features/restaurants/data/restaurant_repository_impl.dart';
 
 /// The whole chain against a RUNNING backend — real Dio, real socket, real
@@ -66,7 +67,18 @@ void main() {
     HttpOverrides.global = null;
   });
 
-  setUp(() async {
+  // ONE ACCOUNT FOR THE WHOLE FILE, not one per test.
+  //
+  // `setUp` registered a fresh diner before every test, and every registration
+  // sends an OTP. The per-IP budget is 10 sends per 10 minutes (doc 06 §1) and
+  // every caller on loopback shares it — so at four tests this was quietly
+  // spending 40% of the budget, and adding two more put the suite over it. The
+  // failure is deceptive: `register` reports the send failure, so it surfaces
+  // as a 429 on an endpoint that has nothing to do with rate limiting.
+  //
+  // Sharing one account is also more honest about what these tests are: a
+  // signed-in diner doing several things, which is what a diner is.
+  setUpAll(() async {
     // Anonymous first, to register and log in.
     final anon = SahraApi(DioTransport(baseUrl: base, localeCode: () => 'en'));
 
@@ -167,6 +179,130 @@ void main() {
     expect(one.time, matches(RegExp(r'^\d{2}:\d{2}$')));
     expect(one.venue.timezone, 'Africa/Cairo');
   }, timeout: const Timeout(Duration(seconds: 60)),);
+
+  test('GROUP A over a real socket — move it, then call it off', () async {
+    // The three new endpoints had no live coverage at all: everything about
+    // them was proved either in-process by the API's e2e suite or against a
+    // fake transport in Flutter. Neither of those exercises the GENERATED
+    // CLIENT against the real server — the layer where a wrong path, a
+    // snake_case field or a missing body silently becomes a 404.
+    final page = await restaurants.search(query: 'layali');
+    expect(page.results, isNotEmpty, reason: 'run `pnpm seed` first');
+    final profile = await restaurants.profile(page.results.first.slug);
+
+    final date = isoDate(DateTime.now().add(const Duration(days: 1)));
+    final board = await reservations.slots(
+      restaurantId: profile.id,
+      date: date,
+      partySize: 2,
+    );
+    expect(board.slots, isNotEmpty, reason: 'no availability on $date');
+
+    final held = await reservations.hold(
+      restaurantId: profile.id,
+      startsAt: board.slots.first.startsAt,
+      partySize: 2,
+    );
+    final booking = await reservations.confirm(holdId: held.id);
+    final mine = await reservations.myReservations(view: 'upcoming');
+    final id = mine.firstWhere((r) => r.code == booking.code).id;
+
+    // 1. THE PICKER ANSWERS, AND OFFERS THE BOOKING'S OWN SLOT.
+    //
+    // WHAT THIS CAN AND CANNOT PROVE HERE. The seeded venue has several
+    // tables, so one booking does not exhaust a slot — the public grid keeps
+    // offering the same time, and from out here the EXCLUSION is invisible.
+    // Asserting it against this venue would be asserting nothing.
+    //
+    // The exclusion and the release are proved in `diner-actions.e2e-spec.ts`
+    // against a venue built with exactly ONE table, where free and taken
+    // are unambiguous. What is worth proving over a real socket is what that
+    // suite cannot reach: that the GENERATED CLIENT calls the right path and
+    // decodes the answer.
+    final movable = await reservations.movableSlots(id: id, date: date);
+    expect(movable.slots, isNotEmpty);
+    expect(movable.partySize, 2, reason: "the picker ignored the booking's own party size");
+    expect(
+      movable.slots.map((s) => s.startsAt),
+      contains(board.slots.first.startsAt),
+      reason: 'the move picker does not offer the time this booking holds',
+    );
+
+    // 2. CHANGE THE PARTY SIZE. Absolute value, through the real engine, with
+    //    the advisory lock and the re-check that a new booking gets.
+    final moved = await reservations.modify(id: id, partySize: 3);
+    expect(moved.partySize, 3);
+    expect(moved.code, booking.code, reason: 'a modify created a new booking');
+    expect(moved.status, 'confirmed');
+
+    // 3. REPLAY IT. The argument for carrying no Idempotency-Key is that the
+    //    body names absolute values — asserted here against the real database
+    //    rather than reasoned about in a comment.
+    final again = await reservations.modify(id: id, partySize: 3);
+    expect(again.partySize, 3);
+    expect(again.code, booking.code);
+
+    // 4. CANCEL, as the DINER.
+    final cancelled = await reservations.cancel(id: id, reason: 'Live suite');
+    expect(cancelled.status, 'cancelled_by_user');
+    expect(cancelled.cancelledBy, CancelledBy.user);
+    expect(cancelled.cancelReason, 'Live suite');
+    // The diner did this themselves, so there is nothing to acknowledge.
+    expect(cancelled.needsAcknowledgement, isFalse);
+
+    // 5. AND IT IS GONE FROM UPCOMING, WHICH IS THE SCREEN THE DINER RETURNS
+    //    TO. The table release is a one-table property and lives in the e2e
+    //    suite; this is the part a diner can actually see.
+    final upcoming = await reservations.myReservations(view: 'upcoming');
+    expect(
+      upcoming.map((r) => r.code),
+      isNot(contains(booking.code)),
+      reason: 'a cancelled booking is still listed as upcoming',
+    );
+
+    final past = await reservations.myReservations(view: 'past');
+    expect(
+      past.map((r) => r.code),
+      contains(booking.code),
+      reason: 'a cancelled booking vanished instead of moving to history',
+    );
+  }, timeout: const Timeout(Duration(seconds: 90)),);
+
+  test('PATCH /auth/me over a real socket, and it REFUSES an email', () async {
+    // The refusal matters more than the success. `users.email` is reachable
+    // the moment this endpoint accepts one, and the verification flow that
+    // decides what an unverified address may be used for is not built.
+    final renamed = await guarded(
+      () => api.updateMe(body: const UpdateProfileDto(fullName: 'Live Suite Diner')),
+    );
+    expect(renamed.fullName, 'Live Suite Diner');
+    expect(renamed.email, isNull);
+
+    // `UpdateProfileDto` has no email field, so this goes out as a raw body —
+    // the only way to prove the SERVER refuses it rather than the client
+    // merely declining to offer it.
+    await expectLater(
+      guarded(
+        () => DioTransport(
+          baseUrl: base,
+          localeCode: () => 'en',
+          accessToken: () => accessToken,
+        ).send(
+          method: 'PATCH',
+          path: '/v1/auth/me',
+          body: <String, Object?>{'fullName': 'X Y', 'email': 'nobody@example.com'},
+        ),
+      ),
+      throwsA(
+        isA<ValidationFailure>().having((f) => f.code, 'code', 'validation_failed'),
+      ),
+    );
+
+    // And nothing was written.
+    final me = await guarded(() => api.me());
+    expect(me.email, isNull);
+    expect(me.fullName, 'Live Suite Diner');
+  }, timeout: const Timeout(Duration(seconds: 30)),);
 
   test('C-1.6: an anonymous hold is refused, and typed as an AuthFailure', () async {
     // The enforcement itself, over a real socket. The screens depend on this

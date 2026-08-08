@@ -87,6 +87,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errOtpRateLimited => 'طلبت أكواد كتير. حاول تاني بعد كام دقيقة.';
 
   @override
+  String get errOtpSendingUnavailable =>
+      'مش قادرين نبعت أكواد دلوقتي. حاول تاني بعد شوية.';
+
+  @override
   String get errPacingLimitReached =>
       'المطبخ مزحوم في الميعاد ده. جرّب ميعاد قريب منه.';
 
@@ -98,6 +102,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get errReservationNotFound => 'مالقيناش الحجز ده.';
+
+  @override
+  String get errReservationNotModifiable =>
+      'الحجز ده بدأ خلاص، فمش ممكن يتعدّل. لسه تقدر تلغيه.';
 
   @override
   String get errRestaurantNotFound => 'مالقيناش المطعم ده.';
@@ -583,8 +591,54 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reservationCancel => 'إلغاء الحجز';
 
   @override
-  String get reservationNotYetAvailable =>
-      'لسه مش متاح — كلّم المطعم عشان تغيّر أو تلغي.';
+  String get reservationCallInstead => 'عايز تغيّر حاجة تانية؟ كلّم المطعم.';
+
+  @override
+  String get cancelSheetTitle => 'تلغي الحجز ده؟';
+
+  @override
+  String get cancelSheetBody =>
+      'الترابيزة هترجع للمطعم وحد تاني ممكن ياخدها. مش هتقدر ترجع في كلامك.';
+
+  @override
+  String get cancelSheetReasonLabel => 'السبب (اختياري)';
+
+  @override
+  String get cancelSheetReasonHint => 'أي حاجة تحب المطعم يعرفها';
+
+  @override
+  String get cancelSheetConfirm => 'إلغاء الحجز';
+
+  @override
+  String get cancelSheetWorking => 'بنلغي…';
+
+  @override
+  String get cancelSheetKeep => 'خليك على الحجز';
+
+  @override
+  String get moveSheetTitle => 'غيّر حجزك';
+
+  @override
+  String get moveSheetConfirm => 'احفظ التغييرات';
+
+  @override
+  String get moveSheetWorking => 'بنحفظ…';
+
+  @override
+  String get accountEditName => 'تعديل الاسم';
+
+  @override
+  String get accountEditNameTitle => 'اسمك';
+
+  @override
+  String get accountEditNameWhy =>
+      'ده الاسم اللي المطعم هيدوّر عليه على الباب.';
+
+  @override
+  String get accountEditNameSave => 'احفظ';
+
+  @override
+  String get accountEditNameSaving => 'بنحفظ…';
 
   @override
   String get reservationVenuePhone => 'اتصل بالمطعم';

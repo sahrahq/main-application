@@ -91,6 +91,42 @@ final authRepositoryProvider = Provider<AuthRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthRepositoryRef = ProviderRef<AuthRepository>;
+String _$todayHash() => r'8e8ccdab51e5893dad840fc8792f3e279bb1b541';
+
+/// Today, as the app should treat it.
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// A PROVIDER RATHER THAN A CLOCK READ INSIDE A WIDGET
+/// ─────────────────────────────────────────────────────────────────────────
+///
+/// Two screens build a seven-day strip starting from today. Read straight from
+/// the system clock, that makes their pictures change every night — a golden
+/// holding "8 9 10 11 12" is wrong by morning, and the failure it produces
+/// says nothing at all about the code that changed.
+///
+/// The move sheet caught it, on its first golden. The BOOKING screen has had
+/// the same widget since wave 3 and its golden never noticed, because at
+/// 390x844 the date strip sits below the fold — the picture happened not to
+/// contain the thing that varies. That is luck, not determinism, and luck is
+/// what this replaces.
+///
+/// Overridden to a fixed day in `screen_registry.dart`. In the app it is the
+/// real clock.
+///
+/// Copied from [today].
+@ProviderFor(today)
+final todayProvider = AutoDisposeProvider<DateTime>.internal(
+  today,
+  name: r'todayProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$todayHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TodayRef = AutoDisposeProviderRef<DateTime>;
 String _$localeCodeHash() => r'9d9845147b7afe5c7f5ad2ae0545e0a69164a680';
 
 /// The active locale, as a language code.

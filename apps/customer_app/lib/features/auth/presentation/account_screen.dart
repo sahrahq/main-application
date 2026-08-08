@@ -5,6 +5,7 @@ import 'package:sahra_design_system/sahra_design_system.dart';
 import '../../../localization/generated/app_localizations.dart';
 import '../../../routes/routes.dart';
 import '../../../shared/providers/session_providers.dart';
+import 'edit_name_sheet.dart';
 import 'sign_out_notifier.dart';
 
 /// `docs/design/ui_kits/app/ProfileScreen.jsx`.
@@ -108,6 +109,22 @@ class _SignedIn extends ConsumerWidget {
           icon: 'calendar',
           label: l10n.accountMyBookings,
           onTap: () => const BookingsRoute().go(context),
+        ),
+        // NOT IN `ProfileScreen.jsx`. The reference has seven rows and an edit
+        // control is not among them — the design package has no profile-edit
+        // screen at all. Reported rather than invented: this row is built from
+        // the same `_Row` as its neighbours and opens a sheet made of
+        // `SahraInput` + `SahraButton`, so nothing new was designed, but it is
+        // a deviation and it is named here.
+        //
+        // It exists because `PATCH /auth/me` otherwise has no caller, and a
+        // capability nothing calls is indistinguishable from one that does not
+        // exist. A diner whose name was mistyped at sign-up currently has no
+        // way to correct the name shown to the restaurant at the door.
+        _Row(
+          icon: 'user',
+          label: l10n.accountEditName,
+          onTap: () => showEditNameSheet(context, ref, currentName: name),
         ),
         _Row(
           icon: 'globe',

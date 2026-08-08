@@ -23,6 +23,7 @@ void main() {
         overrides: c.overrides(Cell.arLight),
         textScale: vp.textScale,
       ),
+      after: c.after,
     );
   });
 }

@@ -9,6 +9,7 @@ import { HoldExpiryQueue } from "./expiry/hold-expiry.queue";
 import { HoldExpiryProcessor } from "./expiry/hold-expiry.processor";
 import { HoldExpiryScheduler } from "./expiry/hold-expiry.scheduler";
 import { HOLD_EXPIRY_QUEUE } from "./expiry/hold-expiry.constants";
+import { AvailabilityModule } from "../availability/availability.module";
 
 /**
  * The BullMQ queue is registered only when REDIS_URL is set. Without it the
@@ -20,10 +21,18 @@ const queueImports = process.env.REDIS_URL
   ? [BullModule.registerQueue({ name: HOLD_EXPIRY_QUEUE })]
   : [];
 
+/**
+ * `AvailabilityModule` for `GET /reservations/:id/available-slots` — the same
+ * grid the booking screen reads, with the reservation being moved excluded.
+ * Imported rather than reimplemented: two pieces of code that both decide what
+ * "free" means are two pieces of code that will eventually disagree, and one
+ * of them will be the one the diner sees.
+ */
+
 const queueProviders = process.env.REDIS_URL ? [HoldExpiryProcessor] : [];
 
 @Module({
-  imports: queueImports,
+  imports: [...queueImports, AvailabilityModule],
   providers: [MyReservationsService, 
     ReservationsService,
     HoldExpiryService,

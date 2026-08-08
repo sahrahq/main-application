@@ -27,15 +27,20 @@ class ReservationRepositoryImpl implements ReservationRepository {
       ),
     );
 
-    return SlotBoard(
-      date: r.date,
-      partySize: r.partySize,
-      timezone: r.timezone,
-      slots: r.slots
-          .map((s) => Slot(label: s.time, startsAt: s.startsAt, zones: s.zones))
-          .toList(),
-    );
+    return _board(r);
   }
+
+  /// One mapping, two callers — the public grid and the move picker. They must
+  /// stay the same shape: the modify sheet reuses the booking screen's slot
+  /// widgets, and a second converter is a second place to get a timezone wrong.
+  SlotBoard _board(AvailabilityResponse r) => SlotBoard(
+        date: r.date,
+        partySize: r.partySize,
+        timezone: r.timezone,
+        slots: r.slots
+            .map((s) => Slot(label: s.time, startsAt: s.startsAt, zones: s.zones))
+            .toList(),
+      );
 
   @override
   Future<Booking> hold({
@@ -117,6 +122,44 @@ class ReservationRepositoryImpl implements ReservationRepository {
       // `apps/api/src/shared/api/idempotency-contract.spec.ts` for the full
       // census of which mutations carry a key and which do not.
       guarded(() => _api.acknowledge(id: id));
+
+  @override
+  Future<MyReservation> modify({
+    required String id,
+    String? startsAt,
+    int? partySize,
+  }) async {
+    // No key here either, and again the generated signature is the reason: the
+    // header exists in the client only where the spec declares it, and this
+    // route deliberately does not. Absolute values make a replay a no-op.
+    final r = await guarded(
+      () => _api.modify(
+        id: id,
+        body: ModifyReservationDto(startsAt: startsAt, partySize: partySize),
+      ),
+    );
+    return _mine(r);
+  }
+
+  @override
+  Future<MyReservation> cancel({required String id, String? reason}) async {
+    final r = await guarded(
+      () => _api.cancelOwn(id: id, body: CancelOwnReservationDto(reason: reason)),
+    );
+    return _mine(r);
+  }
+
+  @override
+  Future<SlotBoard> movableSlots({
+    required String id,
+    required String date,
+    int? partySize,
+  }) async {
+    final r = await guarded(
+      () => _api.movableSlots(id: id, date: date, partySize: partySize?.toString()),
+    );
+    return _board(r);
+  }
 
   MyReservation _mine(MyReservationResponse r) => MyReservation(
         id: r.id,

@@ -66,22 +66,49 @@ describe('Idempotency-Key coverage across mutations', () => {
   });
 
   /**
-   * Everything else, pinned as of 2026-08-02.
+   * Everything else, pinned as of 2026-08-02, extended 2026-08-08.
    *
    * Read this as an open gap, not a design. Several entries are naturally
    * idempotent and would gain nothing (`acknowledge-cancellation` is a
    * conditional UPDATE; `DELETE /devices` is a delete). Several are not:
    * `POST /owner/restaurants` creates a row, and a retried request over a bad
    * connection creates two restaurants.
+   *
+   * ── THE THREE ADDED IN GROUP A, AND WHY EACH IS HERE ────────────────────
+   *
+   * These are not "not done yet". Each was decided, and the reasoning has to
+   * survive in a place someone will read before adding a fourth:
+   *
+   * `PATCH /v1/reservations/{id}` — the only one that gave pause, because it
+   *   releases a table and takes another, which is a booking write. It carries
+   *   no key because the BODY NAMES ABSOLUTE VALUES: replaying it lands on the
+   *   same window with the same party, and no retry can produce a second row.
+   *   That is idempotency by construction rather than by bookkeeping, and it
+   *   is why no third key column was added to `reservations`.
+   *   **The argument is contingent on the shape.** If this ever accepts a
+   *   relative change ("move by 30 minutes", "add one guest") a replay stops
+   *   being a no-op and the key becomes mandatory — with the column that
+   *   implies. Proved rather than asserted: `diner-actions.e2e-spec.ts` sends
+   *   the identical PATCH twice and compares the reservation either side.
+   *
+   * `POST /v1/reservations/{id}/cancel` — a conditional UPDATE guarded on
+   *   `status IN ('pending','confirmed')`, so the second write finds nothing
+   *   to do. Same shape as the venue's cancel, which is already on this list.
+   *   The residue is cosmetic and known: a diner whose 200 was lost sees a 409
+   *   on retry for a cancellation that in fact succeeded.
+   *
+   * `PATCH /v1/auth/me` — absolute values again, and no row is created.
    */
   it('the mutations WITHOUT a key are the known list, and no more', () => {
     expect(withoutKey.sort()).toEqual([
       'DELETE /v1/devices',
       'DELETE /v1/owner/restaurants/{restaurantId}/shifts/{shiftId}',
       'DELETE /v1/owner/restaurants/{restaurantId}/tables/{tableId}',
+      'PATCH /v1/auth/me',
       'PATCH /v1/owner/restaurants/{id}',
       'PATCH /v1/owner/restaurants/{restaurantId}/shifts/{shiftId}',
       'PATCH /v1/owner/restaurants/{restaurantId}/tables/{tableId}',
+      'PATCH /v1/reservations/{id}',
       'POST /v1/admin/restaurants/{id}/approve',
       'POST /v1/admin/restaurants/{id}/reject',
       'POST /v1/auth/complete-registration',
@@ -99,6 +126,7 @@ describe('Idempotency-Key coverage across mutations', () => {
       'POST /v1/owner/restaurants/{restaurantId}/shifts',
       'POST /v1/owner/restaurants/{restaurantId}/tables',
       'POST /v1/reservations/{id}/acknowledge-cancellation',
+      'POST /v1/reservations/{id}/cancel',
     ]);
   });
 });

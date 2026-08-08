@@ -61,11 +61,22 @@ Future<void> stabilise(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 400));
 }
 
+/// Drive the screen to the state under test before anything is asserted.
+///
+/// EXISTS FOR THE SHEETS. A modal opened by `showModalBottomSheet` is not a
+/// screen the registry can construct — it is a thing a tap produces — so
+/// without this the cancel and move sheets would have no golden, no
+/// accessibility check and no 200%-text check, while every screen around them
+/// had all three. A capability that no matrix covers is the same shape as one
+/// that does not exist.
+typedef ScreenSettle = Future<void> Function(WidgetTester tester);
+
 /// Four goldens from one call, at phone size.
 void screenGoldens(
   String name,
   Widget Function(Cell) build, {
   required List<Override> Function(Cell) overrides,
+  ScreenSettle? after,
   Size surface = const Size(390, 844),
 }) {
   for (final cell in Cell.values) {
@@ -76,6 +87,7 @@ void screenGoldens(
 
       await tester.pumpWidget(screenHarness(cell, build(cell), overrides: overrides(cell)));
       await stabilise(tester);
+      if (after != null) await after(tester);
 
       await expectLater(
         find.byType(MaterialApp),
@@ -91,6 +103,7 @@ void screenA11y(
   Widget Function(Cell) build, {
   required List<Override> Function(Cell) overrides,
   bool interactive = true,
+  ScreenSettle? after,
   Size surface = const Size(390, 844),
 }) {
   for (final cell in Cell.values) {
@@ -102,6 +115,7 @@ void screenA11y(
       final handle = tester.ensureSemantics();
       await tester.pumpWidget(screenHarness(cell, build(cell), overrides: overrides(cell)));
       await stabilise(tester);
+      if (after != null) await after(tester);
 
       // THE GUARD ON THE GUARDS. All three tap-target and label guidelines
       // SKIP a node with no tap action, so a screen whose controls lost their
@@ -131,6 +145,7 @@ void screenTextScale(
   String name,
   Widget Function(Cell) build, {
   required List<Override> Function(Cell) overrides,
+  ScreenSettle? after,
   Size surface = const Size(390, 844),
 }) {
   for (final cell in Cell.values) {
@@ -143,6 +158,7 @@ void screenTextScale(
         screenHarness(cell, build(cell), overrides: overrides(cell), textScale: 2.0),
       );
       await stabilise(tester);
+      if (after != null) await after(tester);
       expect(tester.takeException(), isNull);
     });
   }

@@ -1,4 +1,6 @@
-import { Body, Controller, Post, HttpCode, Req, UseGuards, Get } from '@nestjs/common';
+import {
+  BadRequestException, Body, Controller, Post, HttpCode, Patch, Req, UseGuards, Get,
+} from '@nestjs/common';
 import {
   ApiBearerAuth, ApiOkResponse, ApiOperation, ApiResponse, ApiTags,
 } from '@nestjs/swagger';
@@ -6,7 +8,7 @@ import type { Request } from 'express';
 import { AuthService, RequestCtx } from './auth.service';
 import {
   RegisterDto, LoginDto, RefreshDto, LogoutDto, VerifyOtpDto, ResendOtpDto, RequestOtpDto,
-  CompleteRegistrationDto,
+  CompleteRegistrationDto, UpdateProfileDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
@@ -165,5 +167,45 @@ export class AuthController {
   // widening the claims: a token is not a place to cache a display name.
   me(@CurrentUser() user: AuthedUser): Promise<UserResponse> {
     return this.auth.profile(user.id);
+  }
+
+  /**
+   * Edit the caller's own profile.
+   *
+   * NO ID ANYWHERE — not in the path, not in the body. The account edited is
+   * the account the token belongs to, so this route has no way to address
+   * anybody else and no ownership check that could be forgotten. Do not
+   * "generalise" it to `PATCH /users/:id`; the parameter is the whole risk.
+   *
+   * No `Idempotency-Key`: absolute values, so replaying it writes the same
+   * name twice and lands in the same place.
+   */
+  @Patch('me')
+  @ApiOkResponse({ type: UserResponse })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Edit your own name or language' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'validation_failed — including `unknown_field` for `email` or `phone`. ' +
+      'Both are refused rather than ignored: an address here would be ' +
+      'unverified (email chain step 3 is not built), and a number is proved ' +
+      'by OTP, never typed.',
+  })
+  async updateMe(
+    @CurrentUser() user: AuthedUser,
+    @Body() dto: UpdateProfileDto,
+  ): Promise<UserResponse> {
+    if (dto.fullName === undefined && dto.locale === undefined) {
+      throw new BadRequestException({
+        code: 'validation_failed',
+        message: 'Give a name or a language to change.',
+        message_ar: 'حدّد الاسم أو اللغة اللي عايز تغيّرها.',
+        details: [{ field: 'fullName', issue: 'required_one_of' }],
+      });
+    }
+
+    return this.auth.updateProfile(user.id, { fullName: dto.fullName, locale: dto.locale });
   }
 }

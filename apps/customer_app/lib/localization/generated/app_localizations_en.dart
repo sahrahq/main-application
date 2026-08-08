@@ -95,6 +95,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'You\'ve asked for a few codes already. Try again in a few minutes.';
 
   @override
+  String get errOtpSendingUnavailable =>
+      'We can\'t send codes right now. Please try again shortly.';
+
+  @override
   String get errPacingLimitReached =>
       'The kitchen is at capacity for that time. Try a slot nearby.';
 
@@ -106,6 +110,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errReservationNotFound => 'We couldn\'t find that booking.';
+
+  @override
+  String get errReservationNotModifiable =>
+      'That booking has already started, so it can\'t be changed. You can still cancel it.';
 
   @override
   String get errRestaurantNotFound => 'We couldn\'t find that restaurant.';
@@ -595,8 +603,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reservationCancel => 'Cancel booking';
 
   @override
-  String get reservationNotYetAvailable =>
-      'Not available yet — call the restaurant to change or cancel.';
+  String get reservationCallInstead =>
+      'Something else to change? Call the restaurant.';
+
+  @override
+  String get cancelSheetTitle => 'Cancel this booking?';
+
+  @override
+  String get cancelSheetBody =>
+      'Your table goes back to the restaurant and someone else can take it. You can\'t undo this.';
+
+  @override
+  String get cancelSheetReasonLabel => 'Reason (optional)';
+
+  @override
+  String get cancelSheetReasonHint =>
+      'Anything you\'d like the restaurant to know';
+
+  @override
+  String get cancelSheetConfirm => 'Cancel booking';
+
+  @override
+  String get cancelSheetWorking => 'Cancelling…';
+
+  @override
+  String get cancelSheetKeep => 'Keep my booking';
+
+  @override
+  String get moveSheetTitle => 'Change your booking';
+
+  @override
+  String get moveSheetConfirm => 'Save changes';
+
+  @override
+  String get moveSheetWorking => 'Saving…';
+
+  @override
+  String get accountEditName => 'Edit name';
+
+  @override
+  String get accountEditNameTitle => 'Your name';
+
+  @override
+  String get accountEditNameWhy =>
+      'This is the name the restaurant looks for at the door.';
+
+  @override
+  String get accountEditNameSave => 'Save';
+
+  @override
+  String get accountEditNameSaving => 'Saving…';
 
   @override
   String get reservationVenuePhone => 'Call the restaurant';

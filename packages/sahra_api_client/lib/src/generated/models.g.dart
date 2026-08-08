@@ -216,6 +216,23 @@ class BookRowResponse {
       };
 }
 
+class CancelOwnReservationDto {
+  const CancelOwnReservationDto({
+    this.reason,
+  });
+
+  factory CancelOwnReservationDto.fromJson(Map<String, dynamic> json) => CancelOwnReservationDto(
+        reason: json['reason'] == null ? null : json['reason'] as String,
+      );
+
+  /// Optional. Free text, for the venue.
+  final String? reason;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (reason != null) 'reason': reason!,
+      };
+}
+
 class CancelReservationDto {
   const CancelReservationDto({
     required this.reason,
@@ -654,6 +671,27 @@ class LogoutDto {
         if (allDevices != null) 'allDevices': allDevices!,
         if (deviceToken != null) 'deviceToken': deviceToken!,
         'refreshToken': refreshToken,
+      };
+}
+
+class ModifyReservationDto {
+  const ModifyReservationDto({
+    this.partySize,
+    this.startsAt,
+  });
+
+  factory ModifyReservationDto.fromJson(Map<String, dynamic> json) => ModifyReservationDto(
+        partySize: json['partySize'] == null ? null : (json['partySize'] as num).toInt(),
+        startsAt: json['startsAt'] == null ? null : json['startsAt'] as String,
+      );
+
+  final int? partySize;
+  /// The new start, ISO-8601 UTC. Must be in the future.
+  final String? startsAt;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (partySize != null) 'partySize': partySize!,
+        if (startsAt != null) 'startsAt': startsAt!,
       };
 }
 
@@ -1548,6 +1586,27 @@ class TokenPairResponse {
         'expiresIn': expiresIn,
         'refreshToken': refreshToken,
         'user': user.toJson(),
+      };
+}
+
+class UpdateProfileDto {
+  const UpdateProfileDto({
+    this.fullName,
+    this.locale,
+  });
+
+  factory UpdateProfileDto.fromJson(Map<String, dynamic> json) => UpdateProfileDto(
+        fullName: json['fullName'] == null ? null : json['fullName'] as String,
+        locale: json['locale'] == null ? null : json['locale'] as String,
+      );
+
+  final String? fullName;
+  /// Language for notifications and copy.
+  final String? locale;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (fullName != null) 'fullName': fullName!,
+        if (locale != null) 'locale': locale!,
       };
 }
 

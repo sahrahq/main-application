@@ -242,6 +242,12 @@ abstract class AppLocalizations {
   /// **'You\'ve asked for a few codes already. Try again in a few minutes.'**
   String get errOtpRateLimited;
 
+  /// No description provided for @errOtpSendingUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t send codes right now. Please try again shortly.'**
+  String get errOtpSendingUnavailable;
+
   /// No description provided for @errPacingLimitReached.
   ///
   /// In en, this message translates to:
@@ -265,6 +271,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We couldn\'t find that booking.'**
   String get errReservationNotFound;
+
+  /// No description provided for @errReservationNotModifiable.
+  ///
+  /// In en, this message translates to:
+  /// **'That booking has already started, so it can\'t be changed. You can still cancel it.'**
+  String get errReservationNotModifiable;
 
   /// No description provided for @errRestaurantNotFound.
   ///
@@ -1112,11 +1124,101 @@ abstract class AppLocalizations {
   /// **'Cancel booking'**
   String get reservationCancel;
 
-  /// No description provided for @reservationNotYetAvailable.
+  /// No description provided for @reservationCallInstead.
   ///
   /// In en, this message translates to:
-  /// **'Not available yet — call the restaurant to change or cancel.'**
-  String get reservationNotYetAvailable;
+  /// **'Something else to change? Call the restaurant.'**
+  String get reservationCallInstead;
+
+  /// No description provided for @cancelSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this booking?'**
+  String get cancelSheetTitle;
+
+  /// No description provided for @cancelSheetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your table goes back to the restaurant and someone else can take it. You can\'t undo this.'**
+  String get cancelSheetBody;
+
+  /// No description provided for @cancelSheetReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason (optional)'**
+  String get cancelSheetReasonLabel;
+
+  /// No description provided for @cancelSheetReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything you\'d like the restaurant to know'**
+  String get cancelSheetReasonHint;
+
+  /// No description provided for @cancelSheetConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel booking'**
+  String get cancelSheetConfirm;
+
+  /// No description provided for @cancelSheetWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelling…'**
+  String get cancelSheetWorking;
+
+  /// No description provided for @cancelSheetKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep my booking'**
+  String get cancelSheetKeep;
+
+  /// No description provided for @moveSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change your booking'**
+  String get moveSheetTitle;
+
+  /// No description provided for @moveSheetConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get moveSheetConfirm;
+
+  /// No description provided for @moveSheetWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get moveSheetWorking;
+
+  /// No description provided for @accountEditName.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit name'**
+  String get accountEditName;
+
+  /// No description provided for @accountEditNameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name'**
+  String get accountEditNameTitle;
+
+  /// No description provided for @accountEditNameWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the name the restaurant looks for at the door.'**
+  String get accountEditNameWhy;
+
+  /// No description provided for @accountEditNameSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get accountEditNameSave;
+
+  /// No description provided for @accountEditNameSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get accountEditNameSaving;
 
   /// No description provided for @reservationVenuePhone.
   ///

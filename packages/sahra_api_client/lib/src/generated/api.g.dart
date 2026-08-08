@@ -109,6 +109,20 @@ class SahraApi {
     return UserResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `PATCH /v1/auth/me`
+  ///
+  /// Edit your own name or language
+  Future<UserResponse> updateMe({
+    required UpdateProfileDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'PATCH',
+      path: '/v1/auth/me',
+      body: body.toJson(),
+    );
+    return UserResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `POST /v1/auth/refresh`
   ///
   /// Rotate the refresh token
@@ -544,6 +558,21 @@ class SahraApi {
     return MyReservationResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `PATCH /v1/reservations/{id}`
+  ///
+  /// Change the time or party size of your own booking
+  Future<MyReservationResponse> modify({
+    required String id,
+    required ModifyReservationDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'PATCH',
+      path: '/v1/reservations/$id',
+      body: body.toJson(),
+    );
+    return MyReservationResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `POST /v1/reservations/{id}/acknowledge-cancellation`
   ///
   /// Mark a restaurant-initiated cancellation as seen
@@ -555,6 +584,40 @@ class SahraApi {
       path: '/v1/reservations/$id/acknowledge-cancellation',
     );
     return;
+  }
+
+  /// `GET /v1/reservations/{id}/available-slots`
+  ///
+  /// Times this booking could be moved to
+  Future<AvailabilityResponse> movableSlots({
+    required String id,
+    String? date,
+    String? partySize,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/reservations/$id/available-slots',
+      query: <String, String>{
+        if (date != null) 'date': date,
+        if (partySize != null) 'party_size': partySize,
+      },
+    );
+    return AvailabilityResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `POST /v1/reservations/{id}/cancel`
+  ///
+  /// Cancel your own booking
+  Future<MyReservationResponse> cancelOwn({
+    required String id,
+    required CancelOwnReservationDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/reservations/$id/cancel',
+      body: body.toJson(),
+    );
+    return MyReservationResponse.fromJson(response as Map<String, dynamic>);
   }
 
   /// `GET /v1/restaurants/search`

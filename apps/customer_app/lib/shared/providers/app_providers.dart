@@ -73,6 +73,28 @@ AuthRepository authRepository(Ref ref) => AuthRepositoryImpl(
       () => ref.read(localeCodeProvider),
     );
 
+/// Today, as the app should treat it.
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// A PROVIDER RATHER THAN A CLOCK READ INSIDE A WIDGET
+/// ─────────────────────────────────────────────────────────────────────────
+///
+/// Two screens build a seven-day strip starting from today. Read straight from
+/// the system clock, that makes their pictures change every night — a golden
+/// holding "8 9 10 11 12" is wrong by morning, and the failure it produces
+/// says nothing at all about the code that changed.
+///
+/// The move sheet caught it, on its first golden. The BOOKING screen has had
+/// the same widget since wave 3 and its golden never noticed, because at
+/// 390x844 the date strip sits below the fold — the picture happened not to
+/// contain the thing that varies. That is luck, not determinism, and luck is
+/// what this replaces.
+///
+/// Overridden to a fixed day in `screen_registry.dart`. In the app it is the
+/// real clock.
+@riverpod
+DateTime today(Ref ref) => DateTime.now();
+
 /// Keeps [LocaleCode] in step with the widget tree's `Localizations`.
 class LocaleSync extends ConsumerWidget {
   const LocaleSync({required this.child, super.key});

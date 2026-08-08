@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sahra_design_system/sahra_design_system.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahra_customer_app/core/auth/session.dart';
 import 'package:sahra_customer_app/core/error/failure.dart';
@@ -211,19 +213,88 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
       ..._signedIn,
     ],
   ),
+
+  // ── The two sheets ──────────────────────────────────────────────────────
+  //
+  // Registered as cases so they go through the SAME three matrices as every
+  // screen: four goldens, four accessibility cells, six viewports and a 200%
+  // text cell. A modal built with `showModalBottomSheet` is not something the
+  // registry can construct, so `after` taps it open first.
+  'Reservation/cancel-sheet': ScreenCase(
+    build: (_) => const ReservationScreen(id: _reservationId),
+    overrides: (_) => <Override>[
+      ..._transport(
+        (_, path, __) => path.contains('/restaurants/') ? _profile : _confirmed,
+      ),
+      ..._signedIn,
+    ],
+    after: (tester) => _openActionSheet(tester, first: false),
+  ),
+  'Reservation/move-sheet': ScreenCase(
+    build: (_) => const ReservationScreen(id: _reservationId),
+    overrides: (_) => <Override>[
+      ..._transport(
+        (_, path, __) => switch (path) {
+          final p when p.contains('/restaurants/') => _profile,
+          final p when p.contains('/available-slots') => _slots,
+          _ => _confirmed,
+        },
+      ),
+      ..._signedIn,
+    ],
+    after: (tester) => _openActionSheet(tester, first: true),
+  ),
+  'Account/edit-name-sheet': ScreenCase(
+    build: (_) => const AccountScreen(),
+    overrides: (_) => <Override>[..._transport((_, __, ___) => _profile), ..._signedIn],
+    after: (tester) async {
+      // The Account screen is a short ListView; the edit row is the second
+      // tappable one and is on screen at every viewport in the matrix.
+      await tester.tap(find.byType(InkWell).at(1));
+      await tester.pumpAndSettle();
+    },
+  ),
 };
 
 class ScreenCase {
-  const ScreenCase({required this.build, required this.overrides, this.interactive = true});
+  const ScreenCase({
+    required this.build,
+    required this.overrides,
+    this.interactive = true,
+    this.after,
+  });
 
   final Widget Function(Cell) build;
   final List<Override> Function(Cell) overrides;
+
+  /// Drive the screen to the state under test — opening a sheet, typically.
+  /// Runs in all three matrices, so a modal is covered exactly as a screen is.
+  final ScreenSettle? after;
 
   /// A screen with no tappable control. `Confirmed` has one (Done), so the
   /// only honest members here would be states that genuinely offer nothing —
   /// listed explicitly rather than inferred, because "this one has no action"
   /// is exactly the excuse a broken screen would offer.
   final bool interactive;
+}
+
+/// Scroll to the actions, then open one of the two sheets.
+///
+/// THE SCROLL IS NOT DEFENSIVE PADDING. At 390x844 the buttons are on screen
+/// and a bare `tap` works; at 320x568 they are below the fold, and a `ListView`
+/// does not build what is not visible — so the finder matched nothing and the
+/// viewport case died with "Bad state: No element" rather than reporting a
+/// layout fault. The small phone is the one this project cares most about.
+///
+/// [first] picks modify; otherwise cancel. By index rather than by label, so
+/// the case works in both locales without knowing either.
+Future<void> _openActionSheet(WidgetTester tester, {required bool first}) async {
+  await tester.drag(find.byType(Scrollable).first, const Offset(0, -1200));
+  await tester.pumpAndSettle();
+
+  final buttons = find.byType(SahraButton);
+  await tester.tap(first ? buttons.first : buttons.last);
+  await tester.pumpAndSettle();
 }
 
 const String _venueId = '11111111-1111-4111-8111-111111111111';
@@ -233,6 +304,13 @@ const String _reservationId = '22222222-2222-4222-8222-222222222222';
 ///
 /// The store is overridden too: a golden must never reach a keystore, and on
 /// the test host `flutter_secure_storage` has no platform channel at all.
+/// A FIXED TODAY, so the seven-day strips are the same picture every day.
+///
+/// The move sheet's first golden held "8 9 10 11 12" — correct on the day it
+/// was written and wrong by the following morning. See `todayProvider`.
+final Override _fixedToday =
+    todayProvider.overrideWithValue(DateTime.parse('${kFixtureDate}T12:00:00.000Z'));
+
 final List<Override> _signedIn = <Override>[
   sessionStoreProvider.overrideWithValue(InMemorySessionStore()),
   currentSessionProvider.overrideWith(_SignedInSession.new),
@@ -301,7 +379,11 @@ class _LockedOut extends SignIn {
 List<Override> _transport(
   Object? Function(String, String, Map<String, String>?) handler,
 ) =>
-    <Override>[transportProvider.overrideWithValue(FakeTransport(handler))];
+    <Override>[
+      transportProvider.overrideWithValue(FakeTransport(handler)),
+      // Every case funnels through here, so every case gets a fixed clock.
+      _fixedToday,
+    ];
 
 /// A criteria notifier that starts with text already typed, so the golden
 /// pictures a screen mid-use rather than one waiting for input.
@@ -388,12 +470,25 @@ final Map<String, Object?> _profile = <String, Object?>{
   ],
 };
 
+/// The day the fixtures sit on, and it MUST STAY IN THE FUTURE.
+///
+/// It was 2026-08-05, and by the time modify shipped that date had passed —
+/// so `ReservationScreen` hid its move button and the `Reservation/confirmed`
+/// golden quietly stopped picturing the thing it was named for. Nothing failed;
+/// the picture simply started meaning something else.
+///
+/// A golden has to be deterministic, so this cannot be `now + 3 days`. It is a
+/// fixed date with `registry_fixtures_test.dart` asserting it is still ahead of
+/// the clock — which turns a silent change of meaning into a loud failure with
+/// a year of notice.
+const String kFixtureDate = '2027-08-05';
+
 Map<String, Object?> _reservation({
   required String status,
   bool needsAcknowledgement = false,
   String? cancelledBy,
   String? cancelReason,
-  String date = '2026-08-05',
+  String date = kFixtureDate,
   String? occasion,
   String? specialRequests,
 }) =>
@@ -433,7 +528,7 @@ final Map<String, Object?> _confirmed = _reservation(
   specialRequests: 'A quiet table away from the speakers, please.',
 );
 
-final Map<String, Object?> _pending = _reservation(status: 'pending', date: '2026-08-09');
+final Map<String, Object?> _pending = _reservation(status: 'pending', date: '2027-08-09');
 
 final Map<String, Object?> _completed = _reservation(status: 'completed', date: '2026-07-18');
 

@@ -189,6 +189,16 @@
         ],
         "type": "object"
       },
+      "CancelOwnReservationDto": {
+        "properties": {
+          "reason": {
+            "description": "Optional. Free text, for the venue.",
+            "maxLength": 280,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CancelReservationDto": {
         "properties": {
           "reason": {
@@ -622,6 +632,22 @@
         "required": [
           "refreshToken"
         ],
+        "type": "object"
+      },
+      "ModifyReservationDto": {
+        "properties": {
+          "partySize": {
+            "example": 4,
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "startsAt": {
+            "description": "The new start, ISO-8601 UTC. Must be in the future.",
+            "example": "2026-08-09T17:00:00.000Z",
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "MyReservationResponse": {
@@ -1441,6 +1467,24 @@
         ],
         "type": "object"
       },
+      "UpdateProfileDto": {
+        "properties": {
+          "fullName": {
+            "example": "Nour Hassan",
+            "maxLength": 120,
+            "type": "string"
+          },
+          "locale": {
+            "description": "Language for notifications and copy.",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UpdateRestaurantDto": {
         "properties": {
           "bookingMode": {
@@ -1902,6 +1946,44 @@
           }
         ],
         "summary": "The caller identified by the access token",
+        "tags": [
+          "auth"
+        ]
+      },
+      "patch": {
+        "operationId": "AuthController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "validation_failed — including `unknown_field` for `email` or `phone`. Both are refused rather than ignored: an address here would be unverified (email chain step 3 is not built), and a number is proved by OTP, never typed."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit your own name or language",
         "tags": [
           "auth"
         ]
@@ -3204,6 +3286,59 @@
         "tags": [
           "reservations"
         ]
+      },
+      "patch": {
+        "operationId": "MyReservationsController_modify",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyReservationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "validation_failed — no fields, or a past time"
+          },
+          "404": {
+            "description": "reservation_not_found — ALSO returned for another diner's reservation, deliberately, and byte-identical to an id that exists for nobody."
+          },
+          "409": {
+            "description": "slot_taken | pacing_limit_reached | invalid_status_transition | reservation_not_modifiable (already started)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the time or party size of your own booking",
+        "tags": [
+          "reservations"
+        ]
       }
     },
     "/v1/reservations/{id}/acknowledge-cancellation": {
@@ -3233,6 +3368,118 @@
           }
         ],
         "summary": "Mark a restaurant-initiated cancellation as seen",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/v1/reservations/{id}/available-slots": {
+      "get": {
+        "operationId": "MyReservationsController_movableSlots",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "example": "2026-08-09",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_size",
+            "required": false,
+            "schema": {
+              "example": 2,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "invalid_date | invalid_party_size"
+          },
+          "404": {
+            "description": "reservation_not_found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Times this booking could be moved to",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/v1/reservations/{id}/cancel": {
+      "post": {
+        "operationId": "MyReservationsController_cancelOwn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelOwnReservationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "reservation_not_found"
+          },
+          "409": {
+            "description": "invalid_status_transition — already settled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel your own booking",
         "tags": [
           "reservations"
         ]

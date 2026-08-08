@@ -7,6 +7,7 @@ import '../../../shared/widgets/sahra_async_view.dart';
 import '../../restaurants/presentation/venue_notifier.dart';
 import '../domain/my_reservation.dart';
 import 'my_reservations_notifier.dart';
+import 'reservation_actions.dart';
 import 'reservation_copy.dart';
 
 /// One booking in full — the ticket a diner shows at the door.
@@ -20,16 +21,16 @@ import 'reservation_copy.dart';
 /// and what to do if it needs to change. Reported as a gap rather than invented
 /// silently.
 ///
-/// MODIFY AND CANCEL ARE PRESENT AND DISABLED. C-3.4 (modify) and C-3.5
-/// (diner cancel) have no endpoints — `POST /owner/reservations/{id}/cancel` is
-/// the VENUE's door and routing a diner through it would record the wrong
-/// actor, which is exactly what the whole acknowledgement model keys off.
+/// MODIFY AND CANCEL WORK. Both landed in Group A against their own endpoints —
+/// `PATCH /reservations/{id}` and `POST /reservations/{id}/cancel`, the second
+/// deliberately NOT the venue's `POST /owner/reservations/{id}/cancel`, because
+/// the actor recorded on the row is what the whole acknowledgement model keys
+/// off.
 ///
-/// Disabled rather than absent, and this is the one place in the app where that
-/// is the right call: a diner who needs to cancel and finds no cancel button
-/// concludes the app cannot do it and stops looking. A disabled one with the
-/// restaurant's number underneath tells them what to do instead — which is what
-/// they would have to do anyway.
+/// They were shipped disabled for one batch, under a line saying so. That was
+/// the right call while the endpoints did not exist — a diner who finds no
+/// cancel button concludes the app cannot do it and stops looking — but a
+/// disabled button is a promise with a date on it, and this is the date.
 class ReservationScreen extends ConsumerWidget {
   const ReservationScreen({required this.id, super.key});
 
@@ -92,8 +93,7 @@ class _Detail extends ConsumerWidget {
         _Ticket(reservation: r),
         if (r.specialRequests != null || r.occasion != null) ...<Widget>[
           const SizedBox(height: SahraSpace.s5),
-          if (r.occasion != null)
-            _Detail_Row(label: l10n.reservationOccasion, value: r.occasion!),
+          if (r.occasion != null) _Detail_Row(label: l10n.reservationOccasion, value: r.occasion!),
           if (r.specialRequests != null)
             _Detail_Row(label: l10n.reservationSpecialRequests, value: r.specialRequests!),
         ],
@@ -314,9 +314,8 @@ class _CancelledNotice extends ConsumerWidget {
             size: SahraButtonSize.sm,
             onPressed: busy
                 ? null
-                : () => ref
-                    .read(acknowledgeCancellationProvider.notifier)
-                    .acknowledge(reservation.id),
+                : () =>
+                    ref.read(acknowledgeCancellationProvider.notifier).acknowledge(reservation.id),
           ),
         ],
       ),
@@ -347,23 +346,41 @@ class _Actions extends ConsumerWidget {
     // there is no diner-side handle on it at all.
     if (!r.isAppBooking) return const SizedBox.shrink();
 
+    // Both live now (Group A). The disabled pair and the "not yet available"
+    // line they sat under are gone — a button that has become real must stop
+    // apologising for itself, and the line explaining why it did nothing would
+    // otherwise outlive the reason.
+    //
+    // MODIFY IS HIDDEN ONCE THE BOOKING HAS STARTED, cancel is not. The server
+    // refuses a move after `starts_at` (`reservation_not_modifiable`) because
+    // moving a booking whose time has passed is incoherent, but a late cancel
+    // is strictly better for the venue than the no-show it replaces. Showing a
+    // modify button that can only fail would be a promise the API will break.
+    final canMove = DateTime.tryParse(r.startsAt)?.isAfter(DateTime.now()) ?? false;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        SahraButton(
-          label: l10n.reservationModify,
-          variant: SahraButtonVariant.secondary,
-          onPressed: null,
-        ),
-        const SizedBox(height: SahraSpace.s3),
+        if (canMove) ...<Widget>[
+          SahraButton(
+            label: l10n.reservationModify,
+            variant: SahraButtonVariant.secondary,
+            onPressed: () => showMoveSheet(context, ref, reservation: r),
+          ),
+          const SizedBox(height: SahraSpace.s3),
+        ],
         SahraButton(
           label: l10n.reservationCancel,
           variant: SahraButtonVariant.ghost,
-          onPressed: null,
+          onPressed: () => showCancelSheet(context, ref, reservation: r),
         ),
-        const SizedBox(height: SahraSpace.s3),
+        const SizedBox(height: SahraSpace.s5),
+        // KEPT, and not as a leftover. The venue's number is the answer to
+        // everything these two buttons do not cover — a dietary note, a late
+        // arrival, a table by the window — and it was the only answer at all
+        // before this batch.
         Text(
-          l10n.reservationNotYetAvailable,
+          l10n.reservationCallInstead,
           textAlign: TextAlign.center,
           style: text.bodySmall?.copyWith(color: s.textSoft),
         ),

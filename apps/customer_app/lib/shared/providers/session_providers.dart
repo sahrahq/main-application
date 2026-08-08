@@ -70,6 +70,31 @@ class CurrentSession extends _$CurrentSession {
     state = null;
     await ref.read(sessionStoreProvider).clear();
   }
+
+  /// The diner changed their own name on the server; carry it here too.
+  ///
+  /// The session is the app's only copy of a display name — it is what the
+  /// Account screen, the avatar initials and the bookings header all read. A
+  /// rename that updated the database and not this would show the diner their
+  /// OLD name for as long as the session lived, which on a 30-day refresh
+  /// token is a very long time to be told your correction did not take.
+  ///
+  /// Called only after the server has confirmed the write, so this can never
+  /// display a name that is not stored.
+  Future<void> renamedTo(String fullName) async {
+    final current = state;
+    if (current == null) return;
+
+    final updated = Session(
+      accessToken: current.accessToken,
+      refreshToken: current.refreshToken,
+      userId: current.userId,
+      fullName: fullName,
+      phone: current.phone,
+    );
+    state = updated;
+    await ref.read(sessionStoreProvider).write(updated);
+  }
 }
 
 /// Convenience for widgets that only care whether anyone is signed in.

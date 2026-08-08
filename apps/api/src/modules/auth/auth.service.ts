@@ -449,6 +449,56 @@ export class AuthService {
     };
   }
 
+  /**
+   * `PATCH /auth/me` — the diner corrects their own name, or switches language.
+   *
+   * THE SUBJECT IS THE TOKEN. There is no id in the route and none in the
+   * body, so there is no parameter for anyone to tamper with and no ownership
+   * check to forget — the strongest available shape for a self-service write,
+   * and the reason this is not `PATCH /users/:id`.
+   *
+   * `deletedAt: null` in the WHERE, so a soft-deleted account cannot be edited
+   * back into use by a token issued before the deletion.
+   *
+   * Email is NOT settable here. See `UpdateProfileDto` for why, and for what
+   * step 3 has to land before it can be.
+   */
+  async updateProfile(
+    userId: string,
+    patch: { fullName?: string; locale?: 'ar' | 'en' },
+  ): Promise<{
+    id: string;
+    phone: string;
+    email: string | null;
+    fullName: string;
+    locale: string;
+    status: string;
+    roles: string[];
+  }> {
+    const changed = await this.prisma.user.updateMany({
+      where: { id: userId, deletedAt: null },
+      data: {
+        // Only what was named. `undefined` is Prisma's "leave it alone";
+        // spreading a `null` here would blank a name on a locale change.
+        ...(patch.fullName === undefined ? {} : { fullName: patch.fullName.trim() }),
+        ...(patch.locale === undefined ? {} : { locale: patch.locale }),
+      },
+    });
+
+    if (changed.count === 0) {
+      throw new UnauthorizedException({
+        code: 'unauthenticated',
+        message: 'Your session has expired. Please sign in again.',
+        message_ar: 'انتهت جلستك. سجّل الدخول من جديد.',
+      });
+    }
+
+    // Re-read rather than compose a response from the patch: the row is the
+    // truth, and returning what we were sent would hide a write that silently
+    // did not happen.
+    return this.profile(userId);
+  }
+
   /** Re-send a phone-verification code. Rate limits live in OtpService. */
   async resendOtp(challengeId: string, ctx: RequestCtx = {}): Promise<{ challengeId: string }> {
     // Re-issues against the number the ORIGINAL challenge was sent to, so a

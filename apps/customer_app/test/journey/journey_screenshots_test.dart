@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sahra_design_system/sahra_design_system.dart';
 import 'package:sahra_customer_app/core/auth/session.dart';
 import 'package:sahra_customer_app/localization/generated/app_localizations.dart';
 import 'package:sahra_customer_app/main.dart';
@@ -31,134 +32,187 @@ void main() {
   for (final locale in <Locale>[const Locale('en'), const Locale('ar')]) {
     final tag = locale.languageCode;
 
-    testWidgets('walk-through [$tag]', (tester) async {
-      // THE REAL COPY, LOADED FOR THIS LOCALE. Hardcoding Arabic labels in a
-      // test would make the walk-through break every time the (still
-      // UNREVIEWED) Arabic copy is edited — and the point of the walk-through
-      // is to survive long enough to catch something else.
-      final l10n = await AppLocalizations.delegate.load(locale);
+    testWidgets(
+      'walk-through [$tag]',
+      (tester) async {
+        // THE REAL COPY, LOADED FOR THIS LOCALE. Hardcoding Arabic labels in a
+        // test would make the walk-through break every time the (still
+        // UNREVIEWED) Arabic copy is edited — and the point of the walk-through
+        // is to survive long enough to catch something else.
+        final l10n = await AppLocalizations.delegate.load(locale);
 
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
 
-      var shot = 0;
-      Future<void> capture(String name) async {
-        shot++;
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile(
-            'walkthrough/$tag/${shot.toString().padLeft(2, '0')}-$name.png',
+        var shot = 0;
+        Future<void> capture(String name) async {
+          shot++;
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile(
+              'walkthrough/$tag/${shot.toString().padLeft(2, '0')}-$name.png',
+            ),
+          );
+        }
+
+        final store = InMemorySessionStore();
+        var signedIn = false;
+
+        final container = ProviderContainer(
+          overrides: <Override>[
+            transportProvider.overrideWithValue(
+              FakeTransport((method, path, query) {
+                if (path.contains('/restaurants/search')) return _searchPage;
+                if (path.endsWith('/availability')) return _availability;
+                if (path.contains('/v1/restaurants/')) return _profile;
+                if (path == '/v1/auth/request-otp') {
+                  // A HANDLE AND NOTHING ELSE — identical for a number
+                  // nobody has ever seen. That is AUTH-3 closed.
+                  return <String, Object?>{'challengeId': 'journey-challenge'};
+                }
+                if (path == '/v1/auth/verify-otp') {
+                  // `profile_needed`, because this is a diner who has never
+                  // booked before — the cold-start path, and the only one that
+                  // reaches the name step. A `signed_in` stub here would walk a
+                  // returning diner and never touch the third step at all.
+                  return <String, Object?>{'status': 'profile_needed'};
+                }
+                if (path == '/v1/auth/complete-registration') return _tokenPair;
+                if (path == '/v1/reservations/holds') {
+                  if (!signedIn) throw envelope(401, 'unauthenticated');
+                  return _reservation('held');
+                }
+                if (path.endsWith('/confirm')) return _reservation('confirmed');
+                if (path == '/v1/reservations') return <Object>[_myReservation];
+                if (path == '/v1/reservations/$_reservationId') return _myReservation;
+                // The move picker reads its OWN grid, not the public one.
+                if (path == '/v1/reservations/$_reservationId/available-slots') {
+                  return _availability;
+                }
+                throw StateError('unstubbed: $method $path');
+              }),
+            ),
+            sessionStoreProvider.overrideWithValue(store),
+          ],
+        );
+        addTearDown(container.dispose);
+        container.listen(currentSessionProvider, (_, next) => signedIn = next != null);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: SahraApp(localeOverride: locale),
           ),
         );
-      }
+        await tester.pumpAndSettle();
+        await capture('cold-open');
 
-      final store = InMemorySessionStore();
-      var signedIn = false;
+        await tester.enterText(find.byType(TextField).first, 'layali');
+        await tester.pumpAndSettle(const Duration(milliseconds: 600));
+        await capture('search-results');
 
-      final container = ProviderContainer(
-        overrides: <Override>[
-          transportProvider.overrideWithValue(
-            FakeTransport((method, path, query) {
-              if (path.contains('/restaurants/search')) return _searchPage;
-              if (path.endsWith('/availability')) return _availability;
-              if (path.contains('/v1/restaurants/')) return _profile;
-              if (path == '/v1/auth/request-otp') {
-                // A HANDLE AND NOTHING ELSE — identical for a number
-                // nobody has ever seen. That is AUTH-3 closed.
-                return <String, Object?>{'challengeId': 'journey-challenge'};
-              }
-              if (path == '/v1/auth/verify-otp') {
-                // `profile_needed`, because this is a diner who has never
-                // booked before — the cold-start path, and the only one that
-                // reaches the name step. A `signed_in` stub here would walk a
-                // returning diner and never touch the third step at all.
-                return <String, Object?>{'status': 'profile_needed'};
-              }
-              if (path == '/v1/auth/complete-registration') return _tokenPair;
-              if (path == '/v1/reservations/holds') {
-                if (!signedIn) throw envelope(401, 'unauthenticated');
-                return _reservation('held');
-              }
-              if (path.endsWith('/confirm')) return _reservation('confirmed');
-              if (path == '/v1/reservations') return <Object>[_myReservation];
-              if (path == '/v1/reservations/$_reservationId') return _myReservation;
-              throw StateError('unstubbed: $method $path');
-            }),
-          ),
-          sessionStoreProvider.overrideWithValue(store),
-        ],
-      );
-      addTearDown(container.dispose);
-      container.listen(currentSessionProvider, (_, next) => signedIn = next != null);
+        final venue = tag == 'ar' ? 'ليالي لاونج' : 'Layali Lounge';
 
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: SahraApp(localeOverride: locale),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await capture('cold-open');
+        await tester.tap(find.text(venue).first);
+        await tester.pumpAndSettle();
+        await capture('venue');
 
-      await tester.enterText(find.byType(TextField).first, 'layali');
-      await tester.pumpAndSettle(const Duration(milliseconds: 600));
-      await capture('search-results');
+        await tester.tap(find.text(l10n.venueBook).last);
+        await tester.pumpAndSettle();
+        await capture('slot-picker');
 
-      final venue = tag == 'ar' ? 'ليالي لاونج' : 'Layali Lounge';
+        await tester.tap(find.text('18:00'));
+        await tester.pumpAndSettle();
+        await capture('slot-chosen');
 
-      await tester.tap(find.text(venue).first);
-      await tester.pumpAndSettle();
-      await capture('venue');
+        await tester.tap(find.textContaining(l10n.bookConfirmFor(2, '18:00')));
+        await tester.pumpAndSettle();
+        await capture('sign-in-wall');
 
-      await tester.tap(find.text(l10n.venueBook).last);
-      await tester.pumpAndSettle();
-      await capture('slot-picker');
+        // ONE FIELD on this step now — the name moved to a third step that only
+        // appears for a number with no account.
+        await tester.enterText(find.byType(TextField).first, '01000000000');
+        await tester.tap(find.text(l10n.signInContinue));
+        await tester.pumpAndSettle();
+        await capture('code-step');
 
-      await tester.tap(find.text('18:00'));
-      await tester.pumpAndSettle();
-      await capture('slot-chosen');
+        await tester.enterText(find.byType(TextField).first, '123456');
+        await tester.tap(find.text(l10n.signInVerify));
+        await tester.pumpAndSettle();
+        await capture('name-step');
 
-      await tester.tap(find.textContaining(l10n.bookConfirmFor(2, '18:00')));
-      await tester.pumpAndSettle();
-      await capture('sign-in-wall');
+        await tester.enterText(find.byType(TextField).first, 'Nour');
+        await tester.tap(find.text(l10n.signInNameSubmit));
+        await tester.pumpAndSettle();
+        await capture('confirmed');
 
-      // ONE FIELD on this step now — the name moved to a third step that only
-      // appears for a number with no account.
-      await tester.enterText(find.byType(TextField).first, '01000000000');
-      await tester.tap(find.text(l10n.signInContinue));
-      await tester.pumpAndSettle();
-      await capture('code-step');
+        await tester.tap(find.text(l10n.confirmedDone));
+        await tester.pumpAndSettle();
+        await capture('back-on-discover');
 
-      await tester.enterText(find.byType(TextField).first, '123456');
-      await tester.tap(find.text(l10n.signInVerify));
-      await tester.pumpAndSettle();
-      await capture('name-step');
+        await tester.tap(find.text(l10n.tabBookings));
+        await tester.pumpAndSettle();
+        await capture('my-bookings');
 
-      await tester.enterText(find.byType(TextField).first, 'Nour');
-      await tester.tap(find.text(l10n.signInNameSubmit));
-      await tester.pumpAndSettle();
-      await capture('confirmed');
+        await tester.tap(find.text(venue).first);
+        await tester.pumpAndSettle();
+        await capture('reservation-detail');
 
-      await tester.tap(find.text(l10n.confirmedDone));
-      await tester.pumpAndSettle();
-      await capture('back-on-discover');
+        // ── Group A: the two actions, in both languages ──────────────────────
+        //
+        // The buttons on this screen were disabled in the last walk-through, under
+        // a line saying the feature did not exist. These frames are the evidence
+        // that they are not any more — pictures of what does happen, not an
+        // account of what should.
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, -1200));
+        await tester.pumpAndSettle();
+        await capture('reservation-actions');
 
-      await tester.tap(find.text(l10n.tabBookings));
-      await tester.pumpAndSettle();
-      await capture('my-bookings');
+        await tester.tap(find.widgetWithText(SahraButton, l10n.reservationModify));
+        await tester.pumpAndSettle();
+        await capture('move-sheet');
 
-      await tester.tap(find.text(venue).first);
-      await tester.pumpAndSettle();
-      await capture('reservation-detail');
+        await tester.tap(find.text('19:00'));
+        await tester.pumpAndSettle();
+        await capture('move-sheet-chosen');
 
-      // ignore: avoid_print
-      print('WALK-THROUGH [$tag]: $shot screenshots in '
-          '${Directory('test/journey/walkthrough/$tag').absolute.path}');
-    }, tags: 'golden', timeout: const Timeout(Duration(minutes: 3)),);
+        // Out of the sheet the way a thumb leaves it, so the next capture is not
+        // taken through a scrim.
+        await tester.tapAt(const Offset(20, 20));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.widgetWithText(SahraButton, l10n.reservationCancel));
+        await tester.pumpAndSettle();
+        await capture('cancel-sheet');
+
+        await tester.tap(find.widgetWithText(SahraButton, l10n.cancelSheetKeep));
+        await tester.pumpAndSettle();
+
+        // ── And the profile edit, which has no reference of its own ──────────
+        await tester.tap(find.text(l10n.tabAccount));
+        await tester.pumpAndSettle();
+        await capture('account');
+
+        await tester.tap(find.text(l10n.accountEditName));
+        await tester.pumpAndSettle();
+        await capture('edit-name-sheet');
+
+        // ignore: avoid_print
+        print('WALK-THROUGH [$tag]: $shot screenshots in '
+            '${Directory('test/journey/walkthrough/$tag').absolute.path}');
+      },
+      tags: 'golden',
+      timeout: const Timeout(Duration(minutes: 3)),
+    );
   }
 }
 
+/// Pinned FORWARD, like every other fixture in this suite.
+///
+/// A booking dated in the past renders as a settled one — no modify button —
+/// so the walk would photograph a screen missing the thing it is there to
+/// show, and nothing would say so. See `kFixtureDate` in the screen registry.
 const String _userId = '99999999-9999-4999-8999-999999999999';
 const String _reservationId = '22222222-2222-4222-8222-222222222222';
 
@@ -211,14 +265,14 @@ final Map<String, Object?> _profile = <String, Object?>{
 };
 
 final Map<String, Object?> _availability = <String, Object?>{
-  'date': '2026-08-05',
+  'date': '2027-08-05',
   'partySize': 2,
   'timezone': 'Africa/Cairo',
   'slots': <Object>[
     for (final t in <String>['18:00', '18:30', '19:00'])
       <String, Object?>{
         'time': t,
-        'startsAt': '2026-08-05T$t:00.000Z',
+        'startsAt': '2027-08-05T$t:00.000Z',
         'zones': <String>['indoor'],
       },
   ],
@@ -243,8 +297,8 @@ Map<String, Object?> _reservation(String status) => <String, Object?>{
       'code': 'SAH-7K2M',
       'restaurantId': '4f743baa-3054-4fda-90ce-1a602faf1e77',
       'partySize': 2,
-      'startsAt': '2026-08-05T18:00:00.000Z',
-      'endsAt': '2026-08-05T19:30:00.000Z',
+      'startsAt': '2027-08-05T18:00:00.000Z',
+      'endsAt': '2027-08-05T19:30:00.000Z',
       'status': status,
       'source': 'app',
     };
@@ -254,9 +308,9 @@ final Map<String, Object?> _myReservation = <String, Object?>{
   'code': 'SAH-7K2M',
   'status': 'confirmed',
   'source': 'app',
-  'starts_at': '2026-08-05T18:00:00.000Z',
-  'ends_at': '2026-08-05T19:30:00.000Z',
-  'date': '2026-08-05',
+  'starts_at': '2027-08-05T18:00:00.000Z',
+  'ends_at': '2027-08-05T19:30:00.000Z',
+  'date': '2027-08-05',
   'time': '21:00',
   'party_size': 2,
   'needs_acknowledgement': false,

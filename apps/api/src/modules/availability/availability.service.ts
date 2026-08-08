@@ -8,6 +8,35 @@ export interface SlotQuery {
   /** YYYY-MM-DD */
   date: string;
   partySize: number;
+
+  /**
+   * A reservation whose own tables should be treated as FREE — the one being
+   * moved (C-3.4).
+   *
+   * ── WHY MODIFY DOES NOT WORK WITHOUT THIS ───────────────────────────────
+   *
+   * A diner moving a booking is shown this grid. Their own reservation is
+   * holding a table, so with a 90-minute turn and hourly slots it hides not
+   * only their current time but the two either side of it — the exact slots
+   * "move my booking an hour later" means. `modifyOwn` would accept those
+   * moves (it releases the old allocation before re-checking); the picker
+   * simply never offers them, so at a small venue the feature silently does
+   * almost nothing.
+   *
+   * ── AND WHY IT IS NOT REACHABLE FROM THE PUBLIC GRID ────────────────────
+   *
+   * `GET /restaurants/:id/availability` is deliberately anonymous — browsing
+   * must not require an account — so it has no caller to check an id against,
+   * and it does NOT accept this field. The only route that sets it is
+   * `GET /reservations/:id/available-slots`, which is behind the diner guard
+   * and takes the reservation from the path: the venue, the party and the
+   * ownership all come from a row already proved to belong to the caller.
+   *
+   * That is why this is not an optional parameter on the public endpoint. An
+   * id supplied by an anonymous caller would have to be either trusted (an
+   * oracle for "does this reservation exist") or checked against nobody.
+   */
+  excludeReservationId?: string;
 }
 
 export interface Slot {
@@ -104,7 +133,13 @@ export class AvailabilityService {
       for (let t = open.getTime(); t + duration <= close.getTime(); t += stepMs) {
         const startsAt = new Date(t);
         const endsAt = new Date(t + duration);
-        const free = await this.freeTables(q.restaurantId, q.partySize, startsAt, endsAt);
+        const free = await this.freeTables(
+          q.restaurantId,
+          q.partySize,
+          startsAt,
+          endsAt,
+          q.excludeReservationId,
+        );
         if (free.length === 0) continue;
 
         const iso = startsAt.toISOString();
@@ -136,6 +171,7 @@ export class AvailabilityService {
     partySize: number,
     startsAt: Date,
     endsAt: Date,
+    excludeReservationId?: string,
   ): Promise<FreeTableRow[]> {
     return this.prisma.$queryRaw<FreeTableRow[]>`
       SELECT t.id, t.zone::text AS zone
@@ -149,6 +185,11 @@ export class AvailabilityService {
           WHERE rt.table_id = t.id
             AND rt.active
             AND rt.during && tstzrange(${startsAt}, ${endsAt}, '[)')
+            -- The reservation being moved does not block itself. Ownership of
+            -- this id is settled by the controller before it reaches here;
+            -- this clause trusts it, which is why nothing else may call this
+            -- service with a caller-supplied id.
+            AND rt.reservation_id IS DISTINCT FROM ${excludeReservationId ?? null}::uuid
         )`;
   }
 

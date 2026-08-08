@@ -5,6 +5,7 @@ import 'package:sahra_design_system/sahra_design_system.dart';
 
 import '../../../localization/generated/app_localizations.dart';
 import '../../../routes/routes.dart';
+import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/failure_copy.dart';
 import '../../../shared/widgets/sahra_async_view.dart';
 import '../domain/booking.dart';
@@ -93,7 +94,7 @@ class BookScreen extends ConsumerWidget {
                   SahraSectionLabel(l10n.bookDate),
                   const SizedBox(height: SahraSpace.s2),
                   SahraDateStrip(
-                    days: _nextWeek(context),
+                    days: _nextWeek(context, ref),
                     selectedId: criteria.date,
                     onSelected:
                         ref.read(bookingSelectionProvider(restaurantId).notifier).setDate,
@@ -188,12 +189,12 @@ class BookScreen extends ConsumerWidget {
 
   /// Seven days from today. The first reads "Tonight" rather than a weekday,
   /// as the reference does.
-  List<SahraDay> _nextWeek(BuildContext context) {
+  List<SahraDay> _nextWeek(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).toString();
     final weekday = DateFormat.E(locale);
     final full = DateFormat.yMMMMEEEEd(locale);
-    final today = DateTime.now();
+    final today = ref.watch(todayProvider);
 
     return List<SahraDay>.generate(7, (i) {
       final day = DateTime(today.year, today.month, today.day + i);

@@ -122,4 +122,17 @@ class AuthRepositoryImpl implements AuthRepository {
       ),
     );
   }
+
+  @override
+  Future<String> updateName(String fullName) async {
+    // `UpdateProfileDto` has no `email` field to pass, which is the point: the
+    // generated client cannot express a request the server would refuse, so
+    // the pause on the email chain is enforced by the type rather than by
+    // remembering. When step 3 lands, the spec gains the field and this
+    // signature is what changes.
+    final user = await guarded(
+      () => _api.updateMe(body: UpdateProfileDto(fullName: fullName)),
+    );
+    return user.fullName;
+  }
 }

@@ -193,6 +193,10 @@ void viewportMatrix(
   Widget Function(SahraViewport viewport) build, {
   bool isPage = true,
   List<SahraViewport> viewports = sahraViewports,
+  /// Drive the tree to the state under test before measuring — opening a
+  /// sheet, typically. Without it a modal has no viewport coverage at all,
+  /// while every screen around it has six sizes and a 200%-text cell.
+  Future<void> Function(WidgetTester tester)? after,
 }) {
   for (final vp in viewports) {
     testWidgets('layout: $name [$vp]', (tester) async {
@@ -204,6 +208,7 @@ void viewportMatrix(
       await tester.pumpWidget(build(vp));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
+      if (after != null) await after(tester);
 
       final faults = layoutFaults(tester, viewport: vp.size, isPage: isPage);
       handle.dispose();

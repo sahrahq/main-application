@@ -5,7 +5,7 @@ import '../support/screen_harness.dart';
 /// text — in all four cells.
 void main() {
   screenCases.forEach((name, c) {
-    screenA11y(name, c.build, overrides: c.overrides, interactive: c.interactive);
-    screenTextScale(name, c.build, overrides: c.overrides);
+    screenA11y(name, c.build, overrides: c.overrides, interactive: c.interactive, after: c.after);
+    screenTextScale(name, c.build, overrides: c.overrides, after: c.after);
   });
 }

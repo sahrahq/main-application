@@ -18,6 +18,24 @@ class FakeTransport implements SahraTransport {
 
   final List<String> calls = <String>[];
 
+  /// What each mutation actually PUT ON THE WIRE, in order.
+  ///
+  /// Recorded rather than passed to [handler], so no existing test's signature
+  /// changes. It exists because a handler that returns a correct-looking
+  /// response makes a screen redraw correctly no matter what the screen sent —
+  /// a modify posting the wrong field would look completely healthy. The only
+  /// way to catch that is to read the request.
+  final List<({String method, String path, Object? body})> sent =
+      <({String method, String path, Object? body})>[];
+
+  /// The last body sent to [path], or null if nothing was.
+  Object? bodyFor(String path) {
+    for (final call in sent.reversed) {
+      if (call.path == path) return call.body;
+    }
+    return null;
+  }
+
   @override
   Future<dynamic> send({
     required String method,
@@ -27,6 +45,7 @@ class FakeTransport implements SahraTransport {
     Object? body,
   }) async {
     calls.add('$method $path');
+    sent.add((method: method, path: path, body: body));
 
     // A KEY THAT IS SENT MUST BE WELL FORMED. Nothing more is asserted here,
     // and the reason is worth writing down because this check USED to say

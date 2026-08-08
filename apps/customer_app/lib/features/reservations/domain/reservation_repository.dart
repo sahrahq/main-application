@@ -69,4 +69,51 @@ abstract class ReservationRepository {
   /// existing at all is the difference between a diner knowing and a diner
   /// arriving at a restaurant that is not expecting them.
   Future<void> acknowledgeCancellation(String id);
+
+  /// Move a booking, or change how many are coming (C-3.4).
+  ///
+  /// Returns the reservation as it now stands, so the caller replaces its
+  /// state from the response instead of re-fetching — one round trip, and no
+  /// window in which the screen shows the old time.
+  ///
+  /// NO IDEMPOTENCY KEY, and that is a decision rather than an omission: the
+  /// arguments are absolute, so replaying lands on the same window with the
+  /// same party. Recorded in `idempotency-contract.spec.ts`.
+  ///
+  /// Throws `ConflictFailure(code: 'slot_taken')` when the target went while
+  /// the diner was choosing — the normal path, not an exceptional one. Also
+  /// `invalid_status_transition` and `reservation_not_modifiable`.
+  ///
+  /// At least one of [startsAt] and [partySize] must be given; a call naming
+  /// neither is refused by the server rather than treated as a success.
+  Future<MyReservation> modify({
+    required String id,
+    String? startsAt,
+    int? partySize,
+  });
+
+  /// The diner cancels their own booking (C-3.5).
+  ///
+  /// A DIFFERENT ENDPOINT from the venue's cancel, and it must stay that way:
+  /// the actor recorded on the row is the only input to the acknowledgement
+  /// model. [reason] is optional here and required there — nobody reads the
+  /// diner's with the same stakes, and demanding one would make cancelling
+  /// harder than simply not turning up.
+  Future<MyReservation> cancel({required String id, String? reason});
+
+  /// The times [id] could be moved to on [date].
+  ///
+  /// NOT [slots]. That grid is what a NEW booker sees, and it hides the tables
+  /// this reservation is holding — including the slots either side of it, once
+  /// the turn time is longer than the interval. Those are legal destinations
+  /// for a move, so a picker built on the public grid would leave the diner's
+  /// most likely choices off the screen.
+  ///
+  /// [partySize] defaults to the booking's own on the server, so "same party,
+  /// different time" needs nothing passed.
+  Future<SlotBoard> movableSlots({
+    required String id,
+    required String date,
+    int? partySize,
+  });
 }
