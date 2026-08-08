@@ -28,10 +28,39 @@ export interface UploadedFile {
  * counted as they arrive and the stream is destroyed the moment the total goes
  * over.
  *
- * Scope, stated plainly: ONE file, in the first file part found, ignoring
- * every other field. That is exactly what the admin upload sends. It is not a
- * general multipart parser and must not grow into one — the day a second
- * endpoint needs fields alongside files is the day to ask for `multer`.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  HARD BOUNDARY — ADMIN-AUTHENTICATED INPUT ONLY
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * **This parser must never be reached by an unauthenticated or diner-facing
+ * request.** Its only caller is `AdminImagesController`, which sits behind
+ * `JwtAuthGuard` + `RolesGuard` with `@Roles('admin', 'support')`.
+ *
+ * That is the entire reason writing it was proportionate rather than reckless.
+ * A hand-written parser for a binary wire format is a classic place for a
+ * security hole — an unbounded read, an index off the end of a buffer, a
+ * boundary an attacker controls — and the mitigation here is not that the code
+ * is clever. It is that the population who can reach it is US, and every one
+ * of them is named in a role table.
+ *
+ * ── WHAT THAT FORBIDS, CONCRETELY ─────────────────────────────────────────
+ *
+ *   - No diner-facing upload (review photos, C-4.4) may call this.
+ *   - No owner-facing upload (R-2.2 in `management_app`) may call this.
+ *   - No unauthenticated route may call this, for any reason.
+ *
+ * If any of those arrives, **that is the moment to revisit the dependency** —
+ * ask for `multer`, which is maintained, fuzzed and read by thousands — not
+ * the moment to widen this file's role list or add a second caller.
+ * `admin-upload-parser.contract.spec.ts` pins the caller list so a second one
+ * cannot appear quietly. Recorded in
+ * `docs/decisions/2026-08-09-hand-rolled-multipart.md`.
+ *
+ * ── SCOPE ─────────────────────────────────────────────────────────────────
+ *
+ * ONE file, the first file part found, every other field ignored. That is
+ * exactly what the admin upload sends. It is not a general multipart parser
+ * and must not grow into one.
  */
 export async function readUpload(req: Request): Promise<UploadedFile> {
   const contentType = req.headers['content-type'] ?? '';

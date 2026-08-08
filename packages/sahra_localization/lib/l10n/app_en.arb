@@ -4,6 +4,8 @@
   "@@x-note": "English source copy. Reviewed alongside the Arabic in one pass — see docs/decisions/2026-08-02-a11y-manual-pass-launch-blocker.md",
   "errAccountUnavailable": "This account can't be used right now. Please contact support.",
   "errBadRequest": "Something about that request wasn't right. Please try again.",
+  "errAlreadyOnWaitlist": "You're already on the list for that night.",
+  "errWaitlistEntryNotFound": "We could not find that waitlist request.",
   "errBookingsOutsideNewHours": "Some confirmed bookings fall outside these hours.",
   "errCapacityConflictWithReservations": "Upcoming bookings on this table no longer fit the new capacity.",
   "errConflict": "That doesn't match the current state. Please refresh and try again.",

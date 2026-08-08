@@ -25,6 +25,7 @@ import 'support/screen_harness.dart';
 import 'support/fixture_dates.dart';
 import 'package:sahra_customer_app/shared/widgets/venue_image_provider.dart';
 import 'support/fixture_image.dart';
+import 'package:sahra_customer_app/features/saved/presentation/saved_screen.dart';
 
 /// Every screen STATE that has to be pictured.
 ///
@@ -233,6 +234,26 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
     ],
   ),
 
+  'Saved/list': ScreenCase(
+    build: (_) => const SavedScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => _savedList),
+      ..._signedIn,
+      _fixtureImages,
+    ],
+  ),
+  'Saved/empty': ScreenCase(
+    build: (_) => const SavedScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => <Object>[]),
+      ..._signedIn,
+    ],
+  ),
+  'Saved/signed-out': ScreenCase(
+    build: (_) => const SavedScreen(),
+    overrides: (_) => _transport((_, __, ___) => <Object>[]),
+  ),
+
   // ── The two sheets ──────────────────────────────────────────────────────
   //
   // Registered as cases so they go through the SAME three matrices as every
@@ -356,6 +377,28 @@ final Map<String, Object?> _resultsPageWithCovers = <String, Object?>{
 
 final Override _fixtureImages =
     networkImageFactoryProvider.overrideWithValue((_) => fixtureImage());
+
+/// A saved venue, as the API serves it.
+Map<String, Object?> _savedRow(String id, String en, String ar) => <String, Object?>{
+      'id': id,
+      'slug': 'saved-$id',
+      'name_en': en,
+      'name_ar': ar,
+      'cuisines': <String>['levantine'],
+      'neighborhood': 'Zamalek',
+      'city': 'Cairo',
+      'price_band': 3,
+      'rating': 4.8,
+      'rating_count': 312,
+      'cover': _imageJson(),
+      'saved_at': '${kFutureDate}T18:00:00.000Z',
+    };
+
+final List<Object> _savedList = <Object>[
+  _savedRow('11111111-1111-4111-8111-111111111111', 'Layali Lounge', 'ليالي لاونج'),
+  _savedRow('11111111-1111-4111-8111-111111111112', 'El Fishawy', 'الفيشاوي'),
+  _savedRow('11111111-1111-4111-8111-111111111113', 'Zooba', 'زوبا'),
+];
 
 const String _venueId = '11111111-1111-4111-8111-111111111111';
 const String _reservationId = '22222222-2222-4222-8222-222222222222';

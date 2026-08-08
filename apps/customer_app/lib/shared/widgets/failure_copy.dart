@@ -47,7 +47,9 @@ String failureMessage(Failure failure, AppLocalizations l10n) {
 /// the generic "something went wrong", silently.
 Map<String, String> _byKey(AppLocalizations l) => <String, String>{
       'errAccountUnavailable': l.errAccountUnavailable,
+      'errAlreadyOnWaitlist': l.errAlreadyOnWaitlist,
       'errBadRequest': l.errBadRequest,
+      'errWaitlistEntryNotFound': l.errWaitlistEntryNotFound,
       'errBookingsOutsideNewHours': l.errBookingsOutsideNewHours,
       'errCapacityConflictWithReservations': l.errCapacityConflictWithReservations,
       'errConflict': l.errConflict,

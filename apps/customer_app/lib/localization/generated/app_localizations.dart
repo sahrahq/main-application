@@ -110,6 +110,18 @@ abstract class AppLocalizations {
   /// **'Something about that request wasn\'t right. Please try again.'**
   String get errBadRequest;
 
+  /// No description provided for @errAlreadyOnWaitlist.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re already on the list for that night.'**
+  String get errAlreadyOnWaitlist;
+
+  /// No description provided for @errWaitlistEntryNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not find that waitlist request.'**
+  String get errWaitlistEntryNotFound;
+
   /// No description provided for @errBookingsOutsideNewHours.
   ///
   /// In en, this message translates to:
@@ -1363,6 +1375,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My bookings'**
   String get accountMyBookings;
+
+  /// No description provided for @savedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get savedTitle;
+
+  /// No description provided for @savedFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'That did not save. Check your connection and try again.'**
+  String get savedFailed;
+
+  /// No description provided for @savedEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing saved yet'**
+  String get savedEmptyTitle;
+
+  /// No description provided for @savedEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the heart on a place you like and it will wait for you here.'**
+  String get savedEmptyMessage;
+
+  /// No description provided for @savedEmptyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Find somewhere'**
+  String get savedEmptyAction;
+
+  /// No description provided for @savedSignedOutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to see your saved places'**
+  String get savedSignedOutTitle;
+
+  /// No description provided for @savedSignedOutMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your list follows you between phones.'**
+  String get savedSignedOutMessage;
+
+  /// The accessible name on a FILLED heart. Names the venue, because a screen of cards all announcing "Remove from saved" tells a screen-reader user nothing about which one they are on.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {venue} from saved'**
+  String savedRemoveLabel(String venue);
+
+  /// The accessible name on an EMPTY heart.
+  ///
+  /// In en, this message translates to:
+  /// **'Save {venue}'**
+  String savedAddLabel(String venue);
+
+  /// No description provided for @accountSavedPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved places'**
+  String get accountSavedPlaces;
 
   /// No description provided for @accountSignOut.
   ///

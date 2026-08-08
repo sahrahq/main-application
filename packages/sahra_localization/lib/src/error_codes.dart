@@ -16,7 +16,9 @@ library;
 /// backend code → ARB key.
 const Map<String, String> errorCodeToArbKey = <String, String>{
   'account_unavailable': 'errAccountUnavailable',
+  'already_on_waitlist': 'errAlreadyOnWaitlist',
   'bad_request': 'errBadRequest',
+  'waitlist_entry_not_found': 'errWaitlistEntryNotFound',
   'bookings_outside_new_hours': 'errBookingsOutsideNewHours',
   'capacity_conflict_with_reservations': 'errCapacityConflictWithReservations',
   'conflict': 'errConflict',

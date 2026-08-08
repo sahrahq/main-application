@@ -91,6 +91,23 @@ final authRepositoryProvider = Provider<AuthRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthRepositoryRef = ProviderRef<AuthRepository>;
+String _$savedRepositoryHash() => r'7155cbe6bafa9c17b7964e0f683df7824e3ce42f';
+
+/// See also [savedRepository].
+@ProviderFor(savedRepository)
+final savedRepositoryProvider = Provider<SavedRepository>.internal(
+  savedRepository,
+  name: r'savedRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$savedRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SavedRepositoryRef = ProviderRef<SavedRepository>;
 String _$todayHash() => r'8e8ccdab51e5893dad840fc8792f3e279bb1b541';
 
 /// Today, as the app should treat it.

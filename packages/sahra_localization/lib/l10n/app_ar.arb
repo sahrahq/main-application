@@ -4,6 +4,8 @@
   "@@x-note": "مكتوبة كمحاولة أولى من الهندسة — لسه محتاجة مراجعة كاملة من متحدث مصري أصلي. Written by engineering as a best attempt. NOT yet reviewed by a native Egyptian speaker — see docs/decisions/2026-08-02-a11y-manual-pass-launch-blocker.md",
   "errAccountUnavailable": "الحساب ده مش متاح دلوقتي. كلّم خدمة العملاء لو سمحت.",
   "errBadRequest": "فيه حاجة في الطلب مش مظبوطة. حاول تاني.",
+  "errAlreadyOnWaitlist": "إنت بالفعل في قائمة الانتظار لليلة دي.",
+  "errWaitlistEntryNotFound": "مش لاقيين طلب الانتظار ده.",
   "errBookingsOutsideNewHours": "فيه حجوزات مؤكدة هتقع بره المواعيد دي.",
   "errCapacityConflictWithReservations": "فيه حجوزات قادمة على الطاولة دي مش هتناسب السعة الجديدة.",
   "errConflict": "الحالة اتغيّرت. حدّث الصفحة وحاول تاني.",

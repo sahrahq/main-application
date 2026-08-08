@@ -25,6 +25,8 @@ import '../../features/restaurants/data/restaurant_repository_impl.dart';
 import '../../features/auth/data/auth_repository_impl.dart';
 import '../../features/auth/domain/auth_repository.dart';
 import '../../features/restaurants/domain/restaurant_repository.dart';
+import '../../features/saved/data/saved_repository_impl.dart';
+import '../../features/saved/domain/saved_repository.dart';
 import 'session_providers.dart';
 
 part 'app_providers.g.dart';
@@ -72,6 +74,10 @@ AuthRepository authRepository(Ref ref) => AuthRepositoryImpl(
       ref.watch(apiProvider),
       () => ref.read(localeCodeProvider),
     );
+
+@Riverpod(keepAlive: true)
+SavedRepository savedRepository(Ref ref) =>
+    SavedRepositoryImpl(ref.watch(apiProvider), () => ref.read(localeCodeProvider));
 
 /// Today, as the app should treat it.
 ///

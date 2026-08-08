@@ -136,6 +136,69 @@ export class ImageResponse {
   @ApiProperty({ description: 'The venue hero. Exactly one per owner.' }) is_cover!: boolean;
 }
 
+/**
+ * One saved venue, in the shape a card draws.
+ *
+ * The venue FIELDS, not a venue id. A saved list of ids would mean one request
+ * per row — twenty round trips over a Cairo mobile connection before the first
+ * screenful can draw.
+ */
+export class SavedVenueResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() slug!: string;
+  @ApiProperty() name_en!: string;
+  @ApiProperty() name_ar!: string;
+  @ApiProperty({ type: [String] }) cuisines!: string[];
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) neighborhood?: string | null;
+  @ApiProperty() city!: string;
+  @ApiPropertyOptional({ type: 'integer', nullable: true }) price_band?: number | null;
+  @ApiProperty() rating!: number;
+  @ApiProperty({ type: 'integer' }) rating_count!: number;
+  @ApiPropertyOptional({ type: ImageResponse, nullable: true }) cover?: ImageResponse | null;
+
+  @ApiProperty({ description: 'When it was saved. Drives the newest-first order.' })
+  saved_at!: string;
+}
+
+export class WaitlistVenueResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() slug!: string;
+  @ApiProperty() name_en!: string;
+  @ApiProperty() name_ar!: string;
+  @ApiProperty() city!: string;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) neighborhood?: string | null;
+}
+
+/** A place in a queue for a table that is currently full (C-3.6). */
+export class WaitlistEntryResponse {
+  @ApiProperty() id!: string;
+
+  @ApiProperty({ description: 'waiting | offered | converted | expired | cancelled' })
+  status!: string;
+
+  @ApiProperty({ description: "The VENUE'S wall-clock day, YYYY-MM-DD." })
+  desired_date!: string;
+
+  @ApiProperty({ description: 'Absolute instant. The earliest the diner will accept.' })
+  window_start!: string;
+
+  @ApiProperty({ description: 'And the latest. An offer outside this range is worse than none.' })
+  window_end!: string;
+
+  @ApiProperty({ type: 'integer' }) party_size!: number;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: 'string',
+    description:
+      'Set only while `offered`. C-3.6 gives a 10-minute claim window, and a ' +
+      'CHECK constraint ties the two together in both directions.',
+  })
+  offer_expires_at?: string | null;
+
+  @ApiProperty({ type: WaitlistVenueResponse }) restaurant!: WaitlistVenueResponse;
+}
+
 export class SearchResultResponse {
   @ApiProperty() id!: string;
   @ApiProperty() slug!: string;

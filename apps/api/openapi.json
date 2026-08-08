@@ -640,6 +640,41 @@
         ],
         "type": "object"
       },
+      "JoinWaitlistDto": {
+        "properties": {
+          "desiredDate": {
+            "description": "The VENUE'S wall-clock day.",
+            "example": "2026-08-12",
+            "type": "string"
+          },
+          "partySize": {
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "restaurantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "windowEnd": {
+            "example": "2026-08-12T19:00:00.000Z",
+            "type": "string"
+          },
+          "windowStart": {
+            "description": "Absolute instant.",
+            "example": "2026-08-12T16:00:00.000Z",
+            "type": "string"
+          }
+        },
+        "required": [
+          "restaurantId",
+          "desiredDate",
+          "windowStart",
+          "windowEnd",
+          "partySize"
+        ],
+        "type": "object"
+      },
       "LoginDto": {
         "properties": {
           "identifier": {
@@ -1272,6 +1307,81 @@
         ],
         "type": "object"
       },
+      "SaveVenueDto": {
+        "properties": {
+          "restaurantId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "restaurantId"
+        ],
+        "type": "object"
+      },
+      "SavedVenueResponse": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "cover": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageResponse"
+              }
+            ],
+            "nullable": true
+          },
+          "cuisines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "nullable": true,
+            "type": "string"
+          },
+          "price_band": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "rating_count": {
+            "type": "integer"
+          },
+          "saved_at": {
+            "description": "When it was saved. Drives the newest-first order.",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name_en",
+          "name_ar",
+          "cuisines",
+          "city",
+          "rating",
+          "rating_count",
+          "saved_at"
+        ],
+        "type": "object"
+      },
       "SearchResponse": {
         "properties": {
           "availability_filtered": {
@@ -1750,6 +1860,81 @@
         },
         "required": [
           "status"
+        ],
+        "type": "object"
+      },
+      "WaitlistEntryResponse": {
+        "properties": {
+          "desired_date": {
+            "description": "The VENUE'S wall-clock day, YYYY-MM-DD.",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "offer_expires_at": {
+            "description": "Set only while `offered`. C-3.6 gives a 10-minute claim window, and a CHECK constraint ties the two together in both directions.",
+            "nullable": true,
+            "type": "string"
+          },
+          "party_size": {
+            "type": "integer"
+          },
+          "restaurant": {
+            "$ref": "#/components/schemas/WaitlistVenueResponse"
+          },
+          "status": {
+            "description": "waiting | offered | converted | expired | cancelled",
+            "type": "string"
+          },
+          "window_end": {
+            "description": "And the latest. An offer outside this range is worse than none.",
+            "type": "string"
+          },
+          "window_start": {
+            "description": "Absolute instant. The earliest the diner will accept.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "desired_date",
+          "window_start",
+          "window_end",
+          "party_size",
+          "restaurant"
+        ],
+        "type": "object"
+      },
+      "WaitlistVenueResponse": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "nullable": true,
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name_en",
+          "name_ar",
+          "city"
         ],
         "type": "object"
       }
@@ -3925,6 +4110,208 @@
         "summary": "Bookable slots for a date and party size",
         "tags": [
           "availability"
+        ]
+      }
+    },
+    "/v1/saved": {
+      "get": {
+        "operationId": "FavoritesController_listSaved",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SavedVenueResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's saved venues, newest first",
+        "tags": [
+          "saved"
+        ]
+      },
+      "post": {
+        "operationId": "FavoritesController_save",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveVenueDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Already saved"
+          },
+          "201": {
+            "description": "Saved"
+          },
+          "404": {
+            "description": "restaurant_not_found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a venue (idempotent)",
+        "tags": [
+          "saved"
+        ]
+      }
+    },
+    "/v1/saved/{restaurantId}": {
+      "delete": {
+        "operationId": "FavoritesController_unsave",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Not saved any more, either way"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unsave a venue (idempotent)",
+        "tags": [
+          "saved"
+        ]
+      }
+    },
+    "/v1/waitlists": {
+      "get": {
+        "operationId": "WaitlistController_listWaitlists",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WaitlistEntryResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's live waitlist entries",
+        "tags": [
+          "waitlists"
+        ]
+      },
+      "post": {
+        "operationId": "WaitlistController_join",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinWaitlistDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistEntryResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "description": "Joined"
+          },
+          "400": {
+            "description": "validation_failed — past date, or window inverted"
+          },
+          "404": {
+            "description": "restaurant_not_found"
+          },
+          "409": {
+            "description": "already_on_waitlist"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Join the waitlist for a date and window",
+        "tags": [
+          "waitlists"
+        ]
+      }
+    },
+    "/v1/waitlists/{id}": {
+      "delete": {
+        "operationId": "WaitlistController_leave",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Left (the row is kept, marked cancelled)"
+          },
+          "404": {
+            "description": "waitlist_entry_not_found — ALSO for another diner's entry, deliberately."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Leave the waitlist",
+        "tags": [
+          "waitlists"
         ]
       }
     }

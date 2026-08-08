@@ -87,6 +87,9 @@ void main() {
                 if (path.endsWith('/confirm')) return _reservation('confirmed');
                 if (path == '/v1/reservations') return <Object>[_myReservation];
                 if (path == '/v1/reservations/$_reservationId') return _myReservation;
+              // C-2.7. Empty is the honest state for a diner who signed up
+              // during this very walk-through.
+              if (path == '/v1/saved') return <Object>[];
                 // The move picker reads its OWN grid, not the public one.
                 if (path == '/v1/reservations/$_reservationId/available-slots') {
                   return _availability;
@@ -198,6 +201,17 @@ void main() {
         await tester.tap(find.text(l10n.accountEditName));
         await tester.pumpAndSettle();
         await capture('edit-name-sheet');
+
+        // ── Group C: saved places, reached the ONLY way there is ─────────────
+        //
+        // Out of the sheet first, then the row. A screen with no route to it
+        // is a screen that does not exist, and this walk is the picture of it
+        // being reachable.
+        await tester.tapAt(const Offset(20, 20));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(l10n.accountSavedPlaces));
+        await tester.pumpAndSettle();
+        await capture('saved-places');
 
         // ignore: avoid_print
         print('WALK-THROUGH [$tag]: $shot screenshots in '

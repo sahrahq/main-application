@@ -13,16 +13,17 @@ import 'sign_out_notifier.dart';
 /// WHAT THE REFERENCE DRAWS AND THIS DOES NOT:
 ///
 ///   - **The stats row** — 12 bookings / 34 saved / 4.9 rating. Two of the
-///     three have no source (saved is unbuilt, a diner has no rating) and the
+///     three have no source (no saved COUNT endpoint, a diner has no rating)
+///     and the
 ///     third would need a count endpoint. Three numbers where two are invented
 ///     is worse than none.
 ///   - **The loyalty card** — "240 points, 60 to your free dessert". C-4.5 is
 ///     **P2** and `Env.enableLoyalty` gates it.
-///   - **Four of the seven rows** — saved places, invite friends, payment
-///     methods, help & support. None has an implementation. Rather than draw
-///     rows that fail on tap, one line says which are missing: a diner looking
-///     for payment methods learns they are not there, instead of tapping and
-///     finding out.
+///   - **Three of the seven rows** — invite friends, payment methods, help &
+///     support. None has an implementation. Rather than draw rows that fail on
+///     tap, one line says which are missing: a diner looking for payment
+///     methods learns they are not there, instead of tapping and finding out.
+///     (Saved places was the fourth until C-2.7 landed in Group C.)
 ///   - **The avatar and "member since"** — there is no avatar upload and no
 ///     join date in `UserResponse`. The initials avatar is real; the date is
 ///     not, so it is absent.
@@ -125,6 +126,14 @@ class _SignedIn extends ConsumerWidget {
           icon: 'user',
           label: l10n.accountEditName,
           onTap: () => showEditNameSheet(context, ref, currentName: name),
+        ),
+        // C-2.7, and this row is the ONLY way to reach it. `SavedScreen` with
+        // no route to it would be a screen that passes its own tests and does
+        // not exist — the failure this project has already shipped once.
+        _Row(
+          icon: 'heart',
+          label: l10n.accountSavedPlaces,
+          onTap: () => const SavedRoute().go(context),
         ),
         _Row(
           icon: 'globe',

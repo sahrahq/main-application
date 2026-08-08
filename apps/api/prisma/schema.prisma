@@ -144,6 +144,8 @@ model User {
   refreshTokens   RefreshToken[]
   auditLogs       AuditLog[]
   devices         Device[]
+  favorites       Favorite[]
+  waitlists       Waitlist[]
   notifications   Notification[]
 
   @@index([status], map: "idx_users_status")
@@ -295,6 +297,8 @@ model Restaurant {
   tables       Table[]
   shifts       Shift[]
   reservations Reservation[]
+  favorites    Favorite[]
+  waitlists    Waitlist[]
 
   @@index([status, city, neighborhood], map: "idx_restaurants_status_neighborhood")
   @@map("restaurants")
@@ -338,6 +342,71 @@ model Image {
 
   @@index([ownerType, ownerId, position], map: "idx_images_owner")
   @@map("images")
+}
+
+/// C-2.7 — a venue a diner saved.
+///
+/// doc 04 names this table in its ER diagram (USERS ||--o{ FAVORITES) but
+/// gives it no field table, so the NAME is the document's and the columns are
+/// ours. Deliberately thin — see the migration for why there is no `position`.
+model Favorite {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  restaurantId String   @map("restaurant_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, restaurantId], map: "idx_favorites_unique")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_favorites_user")
+  @@map("favorites")
+}
+
+/// C-3.6 — a diner waiting for a table that is currently full.
+///
+/// Every field is doc 04 §waitlists, and both index names with it.
+model Waitlist {
+  id           String @id @default(uuid()) @db.Uuid
+  restaurantId String @map("restaurant_id") @db.Uuid
+  userId       String @map("user_id") @db.Uuid
+
+  /// The venue's wall-clock day, not an instant.
+  desiredDate DateTime @map("desired_date") @db.Date
+
+  /// The range the diner will actually accept. An offer outside it is worse
+  /// than no offer — it teaches them to ignore the next one.
+  windowStart DateTime @map("window_start") @db.Timestamptz(6)
+  windowEnd   DateTime @map("window_end") @db.Timestamptz(6)
+
+  partySize Int            @map("party_size") @db.SmallInt
+  status    WaitlistStatus @default(waiting)
+
+  /// Set when a table frees and this entry is offered it. C-3.6: 10 minutes.
+  /// A CHECK ties this to `status = 'offered'` in both directions.
+  offerExpiresAt DateTime? @map("offer_expires_at") @db.Timestamptz(6)
+
+  /// doc 04: "loyalty tier boost later". Zero for everyone today.
+  priority Int @default(0) @db.SmallInt
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, desiredDate, status], map: "idx_wait_rest_date")
+  @@map("waitlists")
+}
+
+enum WaitlistStatus {
+  waiting
+  offered
+  converted
+  expired
+  cancelled
+
+  @@map("waitlist_status")
 }
 
 enum ImageOwnerType {

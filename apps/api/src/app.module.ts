@@ -14,6 +14,7 @@ import { AdminModule } from "./modules/admin/admin.module";
 import { SearchModule } from "./modules/search/search.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { ImagesModule } from './modules/images/images.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ImagesModule } from './modules/images/images.module';
     SearchModule,
     AdminModule,
     ImagesModule,
+    FavoritesModule,
     ReservationsModule,
     // LAST, and it has to stay last: its `GET /restaurants/:idOrSlug` is a
     // wildcard that would shadow /restaurants/search and

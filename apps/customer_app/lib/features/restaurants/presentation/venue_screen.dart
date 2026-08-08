@@ -10,6 +10,8 @@ import '../domain/venue.dart';
 import 'amenity_copy.dart';
 import 'venue_meta.dart';
 import 'venue_notifier.dart';
+import '../../../shared/providers/session_providers.dart';
+import '../../saved/presentation/saved_notifier.dart';
 
 /// `docs/design/ui_kits/app/VenueDetailScreen.jsx`.
 ///
@@ -151,6 +153,8 @@ class _Hero extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final s = Theme.of(context).sahra;
     final text = Theme.of(context).textTheme;
+    final signedIn = ref.watch(currentSessionProvider) != null;
+    final saved = ref.watch(saveToggleProvider(venue.id));
 
     return SahraPhoto(
       // FIXED HEIGHT, so the hero reserves its space before a byte arrives and
@@ -183,6 +187,32 @@ class _Hero extends ConsumerWidget {
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
             ),
+            // C-2.7 — the heart, opposite the back button.
+            //
+            // ON THE HERO, not in a menu. `RestaurantCard` puts a save control
+            // on every card in the reference, so a diner who has learned the
+            // gesture on a list looks for it here; burying it would make the
+            // venue screen the one place the pattern does not hold.
+            //
+            // Signed out it is ABSENT rather than disabled: saving needs an
+            // account, and a heart that opens a sign-in wall is a promise the
+            // screen has not earned yet.
+            if (signedIn)
+              PositionedDirectional(
+                end: SahraSpace.s5,
+                top: SahraSpace.s5,
+                child: SahraPhotoIconButton(
+                  icon: 'heart',
+                  // `active` — the component already has the gold saved state
+                  // from the reference. A second way to say "saved" here would
+                  // be a fifth heart that drifts from the other four.
+                  active: saved,
+                  semanticLabel: saved
+                      ? l10n.savedRemoveLabel(venue.name)
+                      : l10n.savedAddLabel(venue.name),
+                  onPressed: () => toggleSavedAndReport(context, ref, restaurantId: venue.id),
+                ),
+              ),
             PositionedDirectional(
               start: SahraSpace.s5,
               end: SahraSpace.s5,

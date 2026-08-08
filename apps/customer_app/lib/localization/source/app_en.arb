@@ -278,6 +278,16 @@
   "accountSignedOutTitle": "You're browsing as a guest",
   "accountSignedOutMessage": "Sign in to book a table and keep your reservations in one place.",
   "accountMyBookings": "My bookings",
+  "savedTitle": "Saved",
+  "savedFailed": "That did not save. Check your connection and try again.",
+  "savedEmptyTitle": "Nothing saved yet",
+  "savedEmptyMessage": "Tap the heart on a place you like and it will wait for you here.",
+  "savedEmptyAction": "Find somewhere",
+  "savedSignedOutTitle": "Sign in to see your saved places",
+  "savedSignedOutMessage": "Your list follows you between phones.",
+  "savedRemoveLabel": "Remove {venue} from saved",
+  "savedAddLabel": "Save {venue}",
+  "accountSavedPlaces": "Saved places",
   "accountSignOut": "Sign out",
   "accountSigningOut": "Signing out…",
   "accountLanguage": "Language",
@@ -320,6 +330,14 @@
   "signInEmailSupport": "Email SAHRA support",
   "contactCannotOpen": "Couldn't open an app for this — copy it instead.",
   "reservationCallVenue": "Call the restaurant",
+  "@savedRemoveLabel": {
+    "placeholders": { "venue": { "type": "String" } },
+    "description": "The accessible name on a FILLED heart. Names the venue, because a screen of cards all announcing \"Remove from saved\" tells a screen-reader user nothing about which one they are on."
+  },
+  "@savedAddLabel": {
+    "placeholders": { "venue": { "type": "String" } },
+    "description": "The accessible name on an EMPTY heart."
+  },
   "@signInNoCodeHelp": {
     "description": "UNCONDITIONAL on the code step, in both locales. Not gated on the delivery stub and not gated on a failure: a code that does not arrive is the one situation where a diner has no way forward, and the lockout design assumes a human can be reached (see the decision doc). The contact itself is a PLACEHOLDER that FAILS THE BUILD until a real one is supplied — see support_contact.dart and support_contact_test.dart. The ADDRESS ITSELF is no longer interpolated here: it is a separate tappable widget, because making the whole sentence a link would give the link the sentence as its accessible name."
   },

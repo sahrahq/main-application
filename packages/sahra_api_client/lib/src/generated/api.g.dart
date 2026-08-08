@@ -720,6 +720,82 @@ class SahraApi {
     );
     return AvailabilityResponse.fromJson(response as Map<String, dynamic>);
   }
+
+  /// `GET /v1/saved`
+  ///
+  /// The caller's saved venues, newest first
+  Future<List<SavedVenueResponse>> listSaved() async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/saved',
+    );
+    return (response as List<dynamic>).map((e) => SavedVenueResponse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// `POST /v1/saved`
+  ///
+  /// Save a venue (idempotent)
+  Future<void> save({
+    required SaveVenueDto body,
+  }) async {
+    await _transport.send(
+      method: 'POST',
+      path: '/v1/saved',
+      body: body.toJson(),
+    );
+    return;
+  }
+
+  /// `DELETE /v1/saved/{restaurantId}`
+  ///
+  /// Unsave a venue (idempotent)
+  Future<void> unsave({
+    required String restaurantId,
+  }) async {
+    await _transport.send(
+      method: 'DELETE',
+      path: '/v1/saved/$restaurantId',
+    );
+    return;
+  }
+
+  /// `GET /v1/waitlists`
+  ///
+  /// The caller's live waitlist entries
+  Future<List<WaitlistEntryResponse>> listWaitlists() async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/waitlists',
+    );
+    return (response as List<dynamic>).map((e) => WaitlistEntryResponse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// `POST /v1/waitlists`
+  ///
+  /// Join the waitlist for a date and window
+  Future<WaitlistEntryResponse> join({
+    required JoinWaitlistDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/waitlists',
+      body: body.toJson(),
+    );
+    return WaitlistEntryResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `DELETE /v1/waitlists/{id}`
+  ///
+  /// Leave the waitlist
+  Future<void> leave({
+    required String id,
+  }) async {
+    await _transport.send(
+      method: 'DELETE',
+      path: '/v1/waitlists/$id',
+    );
+    return;
+  }
 }
 
 /// Endpoints in the spec that this client deliberately does NOT expose.

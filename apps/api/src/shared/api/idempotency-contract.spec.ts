@@ -120,6 +120,25 @@ describe('Idempotency-Key coverage across mutations', () => {
    * venue's gallery, and at that point the key stops being optional.
    *
    * The DELETE is idempotent by nature — the second one 404s.
+   *
+   * ── AND THE FOUR ADDED IN GROUP C ──────────────────────────────────────
+   *
+   * `POST /v1/saved` and `DELETE /v1/saved/{restaurantId}` are BOTH
+   * idempotent by construction, and that is the feature rather than a
+   * convenience. Saving is guarded by a unique index and the collision is
+   * caught and answered 200; unsaving answers 204 whether or not it was
+   * saved. The control is a TOGGLE — a diner who taps twice, or whose first
+   * response was lost, must not be shown an error for arriving at the state
+   * they asked for.
+   *
+   * `POST /v1/waitlists` is guarded by the PARTIAL unique index on
+   * (restaurant, user, date) over the live statuses: a replay finds the
+   * existing entry and gets a 409 rather than creating a second place in the
+   * queue. `DELETE /v1/waitlists/{id}` is a conditional UPDATE to
+   * `cancelled`, so the second one finds nothing live and 404s.
+   *
+   * None of the four can produce a duplicate row, which is what a key would
+   * have been protecting against.
    */
   it('the mutations WITHOUT a key are the known list, and no more', () => {
     expect(withoutKey.sort()).toEqual([
@@ -127,6 +146,8 @@ describe('Idempotency-Key coverage across mutations', () => {
       'DELETE /v1/devices',
       'DELETE /v1/owner/restaurants/{restaurantId}/shifts/{shiftId}',
       'DELETE /v1/owner/restaurants/{restaurantId}/tables/{tableId}',
+      'DELETE /v1/saved/{restaurantId}',
+      'DELETE /v1/waitlists/{id}',
       'PATCH /v1/auth/me',
       'PATCH /v1/owner/restaurants/{id}',
       'PATCH /v1/owner/restaurants/{restaurantId}/shifts/{shiftId}',
@@ -151,6 +172,8 @@ describe('Idempotency-Key coverage across mutations', () => {
       'POST /v1/owner/restaurants/{restaurantId}/tables',
       'POST /v1/reservations/{id}/acknowledge-cancellation',
       'POST /v1/reservations/{id}/cancel',
+      'POST /v1/saved',
+      'POST /v1/waitlists',
     ]);
   });
 });

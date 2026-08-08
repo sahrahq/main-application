@@ -16,6 +16,7 @@ import '../features/auth/presentation/sign_in_screen.dart';
 import '../features/reservations/presentation/book_screen.dart';
 import '../features/reservations/presentation/confirmed_screen.dart';
 import '../features/reservations/presentation/my_bookings_screen.dart';
+import '../features/saved/presentation/saved_screen.dart';
 import '../features/reservations/presentation/reservation_screen.dart';
 import '../features/restaurants/presentation/search_screen.dart';
 import '../features/restaurants/presentation/venue_screen.dart';
@@ -87,6 +88,19 @@ class AccountRoute {
   void go(BuildContext context) => context.go(path);
 }
 
+/// C-2.7. Reached from the Account screen, not a tab.
+///
+/// FOUR TABS WERE CONSIDERED AND REJECTED. `ProfileScreen.jsx` lists "Saved
+/// places" as a row inside the profile, and the bottom bar in every reference
+/// has three items. Adding a fourth would be a change to the navigation the
+/// designer drew, to save one tap on a screen a diner visits occasionally.
+class SavedRoute {
+  const SavedRoute();
+
+  static const String path = '/saved';
+  void go(BuildContext context) => context.push(path);
+}
+
 class ReservationRoute {
   const ReservationRoute(this.id);
   final String id;
@@ -147,6 +161,10 @@ GoRouter buildRouter() => GoRouter(
                       ReservationScreen(id: state.pathParameters['id']!),
                 ),
               ],
+            ),
+            GoRoute(
+              path: SavedRoute.path,
+              builder: (_, __) => const SavedScreen(),
             ),
             GoRoute(
               path: AccountRoute.path,

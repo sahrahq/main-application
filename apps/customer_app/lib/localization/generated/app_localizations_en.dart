@@ -17,6 +17,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Something about that request wasn\'t right. Please try again.';
 
   @override
+  String get errAlreadyOnWaitlist =>
+      'You\'re already on the list for that night.';
+
+  @override
+  String get errWaitlistEntryNotFound =>
+      'We could not find that waitlist request.';
+
+  @override
   String get errBookingsOutsideNewHours =>
       'Some confirmed bookings fall outside these hours.';
 
@@ -731,6 +739,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountMyBookings => 'My bookings';
+
+  @override
+  String get savedTitle => 'Saved';
+
+  @override
+  String get savedFailed =>
+      'That did not save. Check your connection and try again.';
+
+  @override
+  String get savedEmptyTitle => 'Nothing saved yet';
+
+  @override
+  String get savedEmptyMessage =>
+      'Tap the heart on a place you like and it will wait for you here.';
+
+  @override
+  String get savedEmptyAction => 'Find somewhere';
+
+  @override
+  String get savedSignedOutTitle => 'Sign in to see your saved places';
+
+  @override
+  String get savedSignedOutMessage => 'Your list follows you between phones.';
+
+  @override
+  String savedRemoveLabel(String venue) {
+    return 'Remove $venue from saved';
+  }
+
+  @override
+  String savedAddLabel(String venue) {
+    return 'Save $venue';
+  }
+
+  @override
+  String get accountSavedPlaces => 'Saved places';
 
   @override
   String get accountSignOut => 'Sign out';

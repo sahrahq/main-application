@@ -667,6 +667,40 @@ class ImageResponse {
       };
 }
 
+class JoinWaitlistDto {
+  const JoinWaitlistDto({
+    required this.desiredDate,
+    required this.partySize,
+    required this.restaurantId,
+    required this.windowEnd,
+    required this.windowStart,
+  });
+
+  factory JoinWaitlistDto.fromJson(Map<String, dynamic> json) => JoinWaitlistDto(
+        desiredDate: json['desiredDate'] as String,
+        partySize: (json['partySize'] as num).toInt(),
+        restaurantId: json['restaurantId'] as String,
+        windowEnd: json['windowEnd'] as String,
+        windowStart: json['windowStart'] as String,
+      );
+
+  /// The VENUE'S wall-clock day.
+  final String desiredDate;
+  final int partySize;
+  final String restaurantId;
+  final String windowEnd;
+  /// Absolute instant.
+  final String windowStart;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'desiredDate': desiredDate,
+        'partySize': partySize,
+        'restaurantId': restaurantId,
+        'windowEnd': windowEnd,
+        'windowStart': windowStart,
+      };
+}
+
 class LoginDto {
   const LoginDto({
     required this.identifier,
@@ -1372,6 +1406,83 @@ class RevokeDeviceDto {
       };
 }
 
+class SaveVenueDto {
+  const SaveVenueDto({
+    required this.restaurantId,
+  });
+
+  factory SaveVenueDto.fromJson(Map<String, dynamic> json) => SaveVenueDto(
+        restaurantId: json['restaurantId'] as String,
+      );
+
+  final String restaurantId;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'restaurantId': restaurantId,
+      };
+}
+
+class SavedVenueResponse {
+  const SavedVenueResponse({
+    required this.city,
+    this.cover,
+    required this.cuisines,
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    this.neighborhood,
+    this.priceBand,
+    required this.rating,
+    required this.ratingCount,
+    required this.savedAt,
+    required this.slug,
+  });
+
+  factory SavedVenueResponse.fromJson(Map<String, dynamic> json) => SavedVenueResponse(
+        city: json['city'] as String,
+        cover: json['cover'] == null ? null : ImageResponse.fromJson(json['cover'] as Map<String, dynamic>),
+        cuisines: (json['cuisines'] as List<dynamic>).map((e) => e as String).toList(),
+        id: json['id'] as String,
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
+        priceBand: json['price_band'] == null ? null : (json['price_band'] as num).toInt(),
+        rating: (json['rating'] as num).toDouble(),
+        ratingCount: (json['rating_count'] as num).toInt(),
+        savedAt: json['saved_at'] as String,
+        slug: json['slug'] as String,
+      );
+
+  final String city;
+  final ImageResponse? cover;
+  final List<String> cuisines;
+  final String id;
+  final String nameAr;
+  final String nameEn;
+  final String? neighborhood;
+  final int? priceBand;
+  final double rating;
+  final int ratingCount;
+  /// When it was saved. Drives the newest-first order.
+  final String savedAt;
+  final String slug;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'city': city,
+        if (cover != null) 'cover': cover!.toJson(),
+        'cuisines': cuisines.map((e) => e).toList(),
+        'id': id,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        if (neighborhood != null) 'neighborhood': neighborhood!,
+        if (priceBand != null) 'price_band': priceBand!,
+        'rating': rating,
+        'rating_count': ratingCount,
+        'saved_at': savedAt,
+        'slug': slug,
+      };
+}
+
 class SearchResponse {
   const SearchResponse({
     required this.availabilityFiltered,
@@ -1888,6 +1999,91 @@ class VerifyOtpResponse {
   Map<String, dynamic> toJson() => <String, dynamic>{
         'status': status,
         if (tokens != null) 'tokens': tokens!.toJson(),
+      };
+}
+
+class WaitlistEntryResponse {
+  const WaitlistEntryResponse({
+    required this.desiredDate,
+    required this.id,
+    this.offerExpiresAt,
+    required this.partySize,
+    required this.restaurant,
+    required this.status,
+    required this.windowEnd,
+    required this.windowStart,
+  });
+
+  factory WaitlistEntryResponse.fromJson(Map<String, dynamic> json) => WaitlistEntryResponse(
+        desiredDate: json['desired_date'] as String,
+        id: json['id'] as String,
+        offerExpiresAt: json['offer_expires_at'] == null ? null : json['offer_expires_at'] as String,
+        partySize: (json['party_size'] as num).toInt(),
+        restaurant: WaitlistVenueResponse.fromJson(json['restaurant'] as Map<String, dynamic>),
+        status: json['status'] as String,
+        windowEnd: json['window_end'] as String,
+        windowStart: json['window_start'] as String,
+      );
+
+  /// The VENUE'S wall-clock day, YYYY-MM-DD.
+  final String desiredDate;
+  final String id;
+  /// Set only while `offered`. C-3.6 gives a 10-minute claim window, and a CHECK constraint ties the two together in both directions.
+  final String? offerExpiresAt;
+  final int partySize;
+  final WaitlistVenueResponse restaurant;
+  /// waiting | offered | converted | expired | cancelled
+  final String status;
+  /// And the latest. An offer outside this range is worse than none.
+  final String windowEnd;
+  /// Absolute instant. The earliest the diner will accept.
+  final String windowStart;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'desired_date': desiredDate,
+        'id': id,
+        if (offerExpiresAt != null) 'offer_expires_at': offerExpiresAt!,
+        'party_size': partySize,
+        'restaurant': restaurant.toJson(),
+        'status': status,
+        'window_end': windowEnd,
+        'window_start': windowStart,
+      };
+}
+
+class WaitlistVenueResponse {
+  const WaitlistVenueResponse({
+    required this.city,
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    this.neighborhood,
+    required this.slug,
+  });
+
+  factory WaitlistVenueResponse.fromJson(Map<String, dynamic> json) => WaitlistVenueResponse(
+        city: json['city'] as String,
+        id: json['id'] as String,
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
+        slug: json['slug'] as String,
+      );
+
+  final String city;
+  final String id;
+  final String nameAr;
+  final String nameEn;
+  final String? neighborhood;
+  final String slug;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'city': city,
+        'id': id,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        if (neighborhood != null) 'neighborhood': neighborhood!,
+        'slug': slug,
       };
 }
 

@@ -16,6 +16,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errBadRequest => 'فيه حاجة في الطلب مش مظبوطة. حاول تاني.';
 
   @override
+  String get errAlreadyOnWaitlist => 'إنت بالفعل في قائمة الانتظار لليلة دي.';
+
+  @override
+  String get errWaitlistEntryNotFound => 'مش لاقيين طلب الانتظار ده.';
+
+  @override
   String get errBookingsOutsideNewHours =>
       'فيه حجوزات مؤكدة هتقع بره المواعيد دي.';
 
@@ -715,6 +721,41 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get accountMyBookings => 'حجوزاتي';
+
+  @override
+  String get savedTitle => 'المحفوظة';
+
+  @override
+  String get savedFailed => 'الحفظ مانجحش. اتأكد من النت وحاول تاني.';
+
+  @override
+  String get savedEmptyTitle => 'لسه مافيش حاجة محفوظة';
+
+  @override
+  String get savedEmptyMessage =>
+      'دوس على القلب في أي مكان يعجبك وهتلاقيه مستنيك هنا.';
+
+  @override
+  String get savedEmptyAction => 'دوّر على مكان';
+
+  @override
+  String get savedSignedOutTitle => 'سجّل دخول عشان تشوف أماكنك المحفوظة';
+
+  @override
+  String get savedSignedOutMessage => 'قائمتك بتيجي معاك على أي موبايل.';
+
+  @override
+  String savedRemoveLabel(String venue) {
+    return 'شيل $venue من المحفوظة';
+  }
+
+  @override
+  String savedAddLabel(String venue) {
+    return 'احفظ $venue';
+  }
+
+  @override
+  String get accountSavedPlaces => 'الأماكن المحفوظة';
 
   @override
   String get accountSignOut => 'تسجيل الخروج';
