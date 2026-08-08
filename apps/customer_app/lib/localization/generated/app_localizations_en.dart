@@ -744,6 +744,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get savedTitle => 'Saved';
 
   @override
+  String discoverGreeting(String name) {
+    return 'Good evening, $name';
+  }
+
+  @override
+  String get discoverGreetingAnonymous => 'Good evening';
+
+  @override
+  String get discoverCity => 'Cairo';
+
+  @override
+  String get discoverTonight => 'Available tonight';
+
+  @override
+  String get discoverSeeAll => 'See all';
+
+  @override
+  String get discoverNothingTonightTitle => 'Nothing free tonight';
+
+  @override
+  String get discoverNothingTonightMessage =>
+      'Every table we can see is taken. Try another night.';
+
+  @override
+  String get discoverNothingTonightAction => 'Search';
+
+  @override
+  String get tabDiscoverHome => 'Discover';
+
+  @override
   String get savedFailed =>
       'That did not save. Check your connection and try again.';
 
@@ -784,6 +814,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountLanguage => 'Language';
+
+  @override
+  String get languageFollowDevice => 'Follows your device';
 
   @override
   String get accountLanguageValue => 'Follows your device';

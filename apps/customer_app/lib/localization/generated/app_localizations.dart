@@ -1382,6 +1382,60 @@ abstract class AppLocalizations {
   /// **'Saved'**
   String get savedTitle;
 
+  /// The FIRST name only. "Good evening, Nour Hassan Mohamed" is a form letter.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening, {name}'**
+  String discoverGreeting(String name);
+
+  /// No description provided for @discoverGreetingAnonymous.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get discoverGreetingAnonymous;
+
+  /// The city we serve, NOT a picker. The reference draws a chevron next to it; there is no location permission, no geocoding and no city list, so the chevron is absent. A control that opens nothing is the defect this screen exists to fix.
+  ///
+  /// In en, this message translates to:
+  /// **'Cairo'**
+  String get discoverCity;
+
+  /// No description provided for @discoverTonight.
+  ///
+  /// In en, this message translates to:
+  /// **'Available tonight'**
+  String get discoverTonight;
+
+  /// No description provided for @discoverSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get discoverSeeAll;
+
+  /// No description provided for @discoverNothingTonightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing free tonight'**
+  String get discoverNothingTonightTitle;
+
+  /// No description provided for @discoverNothingTonightMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Every table we can see is taken. Try another night.'**
+  String get discoverNothingTonightMessage;
+
+  /// No description provided for @discoverNothingTonightAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get discoverNothingTonightAction;
+
+  /// No description provided for @tabDiscoverHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover'**
+  String get tabDiscoverHome;
+
   /// No description provided for @savedFailed.
   ///
   /// In en, this message translates to:
@@ -1453,6 +1507,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Language'**
   String get accountLanguage;
+
+  /// No description provided for @languageFollowDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows your device'**
+  String get languageFollowDevice;
 
   /// No description provided for @accountLanguageValue.
   ///

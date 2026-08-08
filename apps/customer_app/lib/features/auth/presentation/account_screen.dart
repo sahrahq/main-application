@@ -5,7 +5,9 @@ import 'package:sahra_design_system/sahra_design_system.dart';
 import '../../../localization/generated/app_localizations.dart';
 import '../../../routes/routes.dart';
 import '../../../shared/providers/session_providers.dart';
+import '../../../shared/providers/locale_override.dart';
 import 'edit_name_sheet.dart';
+import 'language_sheet.dart';
 import 'sign_out_notifier.dart';
 
 /// `docs/design/ui_kits/app/ProfileScreen.jsx`.
@@ -135,13 +137,31 @@ class _SignedIn extends ConsumerWidget {
           label: l10n.accountSavedPlaces,
           onTap: () => const SavedRoute().go(context),
         ),
+        // AMENDED 2026-08-09 — it IS a control now.
+        //
+        // The original decision, kept here because the reasoning is still
+        // instructive: "the app follows the device, and an in-app language
+        // switch that disagreed with the phone's setting is a second source of
+        // truth for something the phone already knows."
+        //
+        // That was wrong about this market. A large share of people in Egypt
+        // run their phone in English and want to read Arabic, or the reverse;
+        // the handset language is a fact about the handset, not about what
+        // somebody wants to read over dinner. Overruled by the product owner
+        // as a market fact.
+        //
+        // The phone is still the DEFAULT — see `LocaleOverride`, where null is
+        // the ordinary state and nothing is written until somebody chooses.
+        // THEME still follows the device, and that half of the original
+        // decision stands: light and dark are about the room you are in, which
+        // the phone genuinely does know.
         _Row(
           icon: 'globe',
           label: l10n.accountLanguage,
-          // Not a control. The app follows the device (main.dart), and an
-          // in-app language switch that disagreed with the phone's setting is
-          // a second source of truth for something the phone already knows.
-          value: l10n.accountLanguageValue,
+          value: ref.watch(localeOverrideProvider) == null
+              ? l10n.languageFollowDevice
+              : l10n.accountLanguageValue,
+          onTap: () => showLanguageSheet(context, ref),
         ),
         const SizedBox(height: SahraSpace.s5),
         Text(

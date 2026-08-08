@@ -55,7 +55,7 @@ final savedVenueIdsProvider = AutoDisposeProvider<Set<String>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SavedVenueIdsRef = AutoDisposeProviderRef<Set<String>>;
-String _$saveToggleHash() => r'956d361015cb8fdf7be1f549d7f61cc2bb69363b';
+String _$saveToggleHash() => r'c8f75b293dd03f8aaec3d149817de7119713fa24';
 
 /// Copied from Dart SDK
 class _SystemHash {

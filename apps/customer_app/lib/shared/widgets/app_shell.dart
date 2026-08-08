@@ -71,6 +71,9 @@ class AppShell extends ConsumerWidget {
   /// going through a tab — a deep link, a back button, the post-booking `go`.
   static String _activeTab(String location) {
     if (location.startsWith(BookingsRoute.path)) return 'bookings';
+    // `/saved` hangs off Account, so the Account tab stays lit while you are
+    // in it — a bottom bar with nothing selected reads as "you are lost".
+    if (location.startsWith(SavedRoute.path)) return 'account';
     if (location.startsWith(AccountRoute.path)) return 'account';
     return 'discover';
   }
@@ -93,7 +96,11 @@ class AppShell extends ConsumerWidget {
   /// account.
   Future<void> _open(BuildContext context, WidgetRef ref, String id) async {
     if (id == 'discover') {
-      const SearchRoute().go(context);
+      // HOME, not search. The tab was pointed at `SearchScreen` while
+      // `DiscoverScreen.jsx` sat unbuilt, so the label said Discover and the
+      // screen asked you to type. Search is still one tap away, from the
+      // "See all" on Discover and from its own route.
+      const DiscoverRoute().go(context);
       return;
     }
 

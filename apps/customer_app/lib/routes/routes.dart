@@ -18,13 +18,14 @@ import '../features/reservations/presentation/confirmed_screen.dart';
 import '../features/reservations/presentation/my_bookings_screen.dart';
 import '../features/saved/presentation/saved_screen.dart';
 import '../features/reservations/presentation/reservation_screen.dart';
+import '../features/restaurants/presentation/discover_screen.dart';
 import '../features/restaurants/presentation/search_screen.dart';
 import '../features/restaurants/presentation/venue_screen.dart';
 import '../shared/widgets/app_shell.dart';
 
 class SearchRoute {
   const SearchRoute();
-  static const String path = '/';
+  static const String path = '/search';
   void go(BuildContext context) => context.go(path);
 }
 
@@ -94,6 +95,19 @@ class AccountRoute {
 /// places" as a row inside the profile, and the bottom bar in every reference
 /// has three items. Adding a fourth would be a change to the navigation the
 /// designer drew, to save one tap on a screen a diner visits occasionally.
+/// The HOME screen — `DiscoverScreen.jsx`.
+///
+/// `/` was `SearchScreen` until Group F, so the tab labelled Discover opened a
+/// search field: the first thing a diner ever saw was an empty box asking them
+/// what they wanted. Search keeps its own route and its own tab entry point;
+/// what changed is which screen the app opens on.
+class DiscoverRoute {
+  const DiscoverRoute();
+
+  static const String path = '/';
+  void go(BuildContext context) => context.go(path);
+}
+
 class SavedRoute {
   const SavedRoute();
 
@@ -139,7 +153,7 @@ class ConfirmedRoute {
 /// mid-booking should not be one tap from silently abandoning it, and the
 /// confirmation is a full-screen moment in the reference.
 GoRouter buildRouter() => GoRouter(
-      initialLocation: SearchRoute.path,
+      initialLocation: DiscoverRoute.path,
       routes: <RouteBase>[
         ShellRoute(
           builder: (context, state, child) => AppShell(
@@ -147,6 +161,10 @@ GoRouter buildRouter() => GoRouter(
             child: child,
           ),
           routes: <RouteBase>[
+            GoRoute(
+              path: DiscoverRoute.path,
+              builder: (_, __) => const DiscoverScreen(),
+            ),
             GoRoute(
               path: SearchRoute.path,
               builder: (_, __) => const SearchScreen(),

@@ -122,7 +122,22 @@ void main() {
         reason: 'browsing was gated',
       );
 
-      // ── 2. Search. ────────────────────────────────────────────────────────
+      // ── 1b. AND IT OPENS ON A HOME SCREEN, NOT A SEARCH BOX. ─────────────
+      //
+      // The tab labelled Discover used to render `SearchScreen`, so the first
+      // thing a diner saw was an empty field asking what they wanted. This
+      // asserts the home screen is what launches — and the hop below asserts
+      // search is still one tap from it.
+      expect(
+        find.text('Available tonight'),
+        findsOneWidget,
+        reason: 'the app opened on something other than the home screen',
+      );
+
+      // ── 2. Search, reached from the home screen. ─────────────────────────
+      await tester.tap(find.text('See all'));
+      await tester.pumpAndSettle();
+
       await tester.enterText(find.byType(TextField).first, 'layali');
       await tester.pumpAndSettle(const Duration(milliseconds: 600));
       expect(

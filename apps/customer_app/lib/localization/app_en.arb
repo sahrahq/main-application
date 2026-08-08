@@ -356,6 +356,15 @@
   "accountSignedOutMessage": "Sign in to book a table and keep your reservations in one place.",
   "accountMyBookings": "My bookings",
   "savedTitle": "Saved",
+  "discoverGreeting": "Good evening, {name}",
+  "discoverGreetingAnonymous": "Good evening",
+  "discoverCity": "Cairo",
+  "discoverTonight": "Available tonight",
+  "discoverSeeAll": "See all",
+  "discoverNothingTonightTitle": "Nothing free tonight",
+  "discoverNothingTonightMessage": "Every table we can see is taken. Try another night.",
+  "discoverNothingTonightAction": "Search",
+  "tabDiscoverHome": "Discover",
   "savedFailed": "That did not save. Check your connection and try again.",
   "savedEmptyTitle": "Nothing saved yet",
   "savedEmptyMessage": "Tap the heart on a place you like and it will wait for you here.",
@@ -368,6 +377,7 @@
   "accountSignOut": "Sign out",
   "accountSigningOut": "Signing out…",
   "accountLanguage": "Language",
+  "languageFollowDevice": "Follows your device",
   "accountLanguageValue": "Follows your device",
   "accountNotBuilt": "Saved places, payment methods and notification settings are not built yet.",
   "searchLocationSemantic": "Searching in {city}",
@@ -407,6 +417,17 @@
   "signInEmailSupport": "Email SAHRA support",
   "contactCannotOpen": "Couldn't open an app for this — copy it instead.",
   "reservationCallVenue": "Call the restaurant",
+  "@discoverGreeting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    },
+    "description": "The FIRST name only. \"Good evening, Nour Hassan Mohamed\" is a form letter."
+  },
+  "@discoverCity": {
+    "description": "The city we serve, NOT a picker. The reference draws a chevron next to it; there is no location permission, no geocoding and no city list, so the chevron is absent. A control that opens nothing is the defect this screen exists to fix."
+  },
   "@savedRemoveLabel": {
     "placeholders": {
       "venue": {

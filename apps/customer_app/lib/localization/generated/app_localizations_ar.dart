@@ -726,6 +726,36 @@ class AppLocalizationsAr extends AppLocalizations {
   String get savedTitle => 'المحفوظة';
 
   @override
+  String discoverGreeting(String name) {
+    return 'مساء الخير يا $name';
+  }
+
+  @override
+  String get discoverGreetingAnonymous => 'مساء الخير';
+
+  @override
+  String get discoverCity => 'القاهرة';
+
+  @override
+  String get discoverTonight => 'متاح الليلة';
+
+  @override
+  String get discoverSeeAll => 'الكل';
+
+  @override
+  String get discoverNothingTonightTitle => 'مافيش حاجة فاضية الليلة';
+
+  @override
+  String get discoverNothingTonightMessage =>
+      'كل الترابيزات اللي شايفينها محجوزة. جرّب ليلة تانية.';
+
+  @override
+  String get discoverNothingTonightAction => 'دوّر';
+
+  @override
+  String get tabDiscoverHome => 'استكشف';
+
+  @override
   String get savedFailed => 'الحفظ مانجحش. اتأكد من النت وحاول تاني.';
 
   @override
@@ -765,6 +795,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get accountLanguage => 'اللغة';
+
+  @override
+  String get languageFollowDevice => 'زي إعدادات جهازك';
 
   @override
   String get accountLanguageValue => 'زي إعدادات جهازك';

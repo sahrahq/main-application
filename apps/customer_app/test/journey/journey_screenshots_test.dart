@@ -112,6 +112,13 @@ void main() {
         await tester.pumpAndSettle();
         await capture('cold-open');
 
+        // Search is one tap from the home screen — and the walk photographs
+        // both, because "the app opens on a home screen" is the change this
+        // batch is judged by.
+        await capture('home');
+        await tester.tap(find.text(l10n.discoverSeeAll));
+        await tester.pumpAndSettle();
+
         await tester.enterText(find.byType(TextField).first, 'layali');
         await tester.pumpAndSettle(const Duration(milliseconds: 600));
         await capture('search-results');

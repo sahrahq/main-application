@@ -26,6 +26,7 @@ import 'support/fixture_dates.dart';
 import 'package:sahra_customer_app/shared/widgets/venue_image_provider.dart';
 import 'support/fixture_image.dart';
 import 'package:sahra_customer_app/features/saved/presentation/saved_screen.dart';
+import 'package:sahra_customer_app/features/restaurants/presentation/discover_screen.dart';
 
 /// Every screen STATE that has to be pictured.
 ///
@@ -230,6 +231,30 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
     overrides: (_) => <Override>[
       ..._transport((_, __, ___) => _resultsPageWithCovers),
       searchCriteriaProvider.overrideWith(() => _TypedQuery('layali')),
+      _fixtureImages,
+    ],
+  ),
+
+  // ── Discover — THE HOME SCREEN ──────────────────────────────────────────
+  'Discover/tonight': ScreenCase(
+    build: (_) => const DiscoverScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => _resultsPageWithCovers),
+      ..._signedIn,
+      _fixtureImages,
+    ],
+  ),
+  'Discover/nothing-tonight': ScreenCase(
+    build: (_) => const DiscoverScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => _emptyPage),
+      ..._signedIn,
+    ],
+  ),
+  'Discover/signed-out': ScreenCase(
+    build: (_) => const DiscoverScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => _resultsPageWithCovers),
       _fixtureImages,
     ],
   ),

@@ -7,10 +7,11 @@ import 'localization/generated/app_localizations.dart';
 import 'routes/routes.dart';
 import 'shared/providers/app_providers.dart';
 import 'shared/widgets/device_frame.dart';
+import 'shared/providers/locale_override.dart';
 
 void main() => runApp(const ProviderScope(child: SahraApp()));
 
-class SahraApp extends StatelessWidget {
+class SahraApp extends ConsumerWidget {
   const SahraApp({this.localeOverride, super.key});
 
   /// FOR THE JOURNEY WALK-THROUGH ONLY. Production passes nothing.
@@ -28,8 +29,18 @@ class SahraApp extends StatelessWidget {
   final Locale? localeOverride;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final router = buildRouter();
+
+    // THE DINER'S CHOICE, over the device, under the review flag.
+    //
+    // Three layers and the order is deliberate: `localeOverride` is the test
+    // and walk-through parameter and wins outright; `chosen` is what somebody
+    // picked in the language sheet; `forcedLocale()` is the --dart-define for
+    // reviewing Arabic without changing an OS setting. Null all the way down
+    // means the device decides, which is what it did before Group F and what
+    // it still does for anybody who never opens the sheet.
+    final chosen = ref.watch(localeOverrideProvider);
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
@@ -39,7 +50,7 @@ class SahraApp extends StatelessWidget {
       // pins it, so Arabic can be reviewed without changing an operating
       // system's language. Half of this product is Arabic; making it awkward
       // to look at is how it stops being looked at.
-      locale: localeOverride ?? forcedLocale(),
+      locale: localeOverride ?? (chosen == null ? null : Locale(chosen)) ?? forcedLocale(),
 
       // ARABIC IS FIRST, and that is not alphabetical ordering.
       // `supportedLocales.first` is what Flutter falls back to when the device
