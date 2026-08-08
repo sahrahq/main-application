@@ -1,41 +1,66 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sahra_customer_app/config/support_contact.dart';
 
-/// THIS TEST IS SUPPOSED TO BE FAILING RIGHT NOW.
+/// The support contact, and the property that keeps it cheap to change.
 ///
-/// It is the build-failing placeholder the product owner asked for, and it goes
-/// green the moment `SupportContact.value` is a real contact.
+/// This file used to fail on purpose — it was the build-failing placeholder
+/// that made "add a support contact before launch" impossible to ship past. A
+/// real address is set now, so it guards two things instead:
 ///
-/// It exists because two deliberate dead ends in this product are only humane
-/// if a human can be reached from them:
+///   1. that a contact is still configured, and
+///   2. that the literal lives in exactly ONE file.
 ///
-///   - the 15-minute verify lock, which a diner can hit through no fault of
-///     their own and which asking for a new code cannot clear;
-///   - stubbed OTP delivery (OPS-1), where no SMS is sent at all, so a diner
-///     who never receives a code has no way forward inside the app.
-///
-/// A comment saying "add a support contact before launch" is a comment somebody
-/// reads, agrees with, and ships past. A red suite is not.
-///
-/// **Do not make this pass by deleting it or by loosening the assertion.** The
-/// only correct fix is a real contact in `support_contact.dart`.
+/// (2) is the one that matters over time. The address is interim — a Gmail
+/// account, moving to a domain address once the sending domain exists — and an
+/// address that has leaked into ARB copy, a widget, or a test fixture is an
+/// address whose replacement is a search-and-replace with something missed.
 void main() {
-  test('a real support contact has been supplied', () {
+  test('a real support contact is configured', () {
     expect(
       SupportContact.isConfigured,
       isTrue,
-      reason: 'SupportContact.value is still the placeholder. The verify lock '
+      reason: 'SupportContact.value is not a writable address. The verify lock '
           'and stubbed OTP delivery both dead-end a diner whose only exit is a '
-          'human — see lib/config/support_contact.dart. Supply a real contact '
-          '(a WhatsApp number suits this market) rather than deleting this '
-          'test.',
+          'human — see lib/config/support_contact.dart.',
     );
   });
 
-  test('the placeholder is a sentinel nobody could type by accident', () {
-    // If the sentinel were something like an empty string, a half-finished edit
-    // would silently satisfy `isConfigured` and the guard would be gone.
-    expect(SupportContact.unset, 'SUPPORT_CONTACT_NOT_SET');
-    expect(SupportContact.unset.contains(' '), isFalse);
+  test('the mailto URI is built from the same constant', () {
+    // Not a second copy of the address in a different shape.
+    expect(SupportContact.mailto.scheme, 'mailto');
+    expect(SupportContact.mailto.path, SupportContact.value);
+  });
+
+  test('the address literal appears in ONE file only', () {
+    // The property that makes moving to a domain address a one-line change.
+    // Scans lib/ and the ARB sources — a copy hiding in a translated string is
+    // exactly the case the `{contact}` placeholder exists to prevent.
+    final offenders = <String>[];
+
+    for (final dir in <String>['lib', 'test']) {
+      final root = Directory(dir);
+      if (!root.existsSync()) continue;
+      for (final entity in root.listSync(recursive: true)) {
+        if (entity is! File) continue;
+        final path = entity.path.replaceAll(r'\', '/');
+        if (!path.endsWith('.dart') && !path.endsWith('.arb')) continue;
+        // This file names the address in a comment about not naming it.
+        if (path.endsWith('lib/config/support_contact.dart')) continue;
+        if (path.endsWith('test/config/support_contact_test.dart')) continue;
+        if (entity.readAsStringSync().contains(SupportContact.value)) {
+          offenders.add(path);
+        }
+      }
+    }
+
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'The support address is hard-coded outside its one home. Use '
+          'SupportContact.value and the {contact} placeholder:\n  '
+          '${offenders.join('\n  ')}',
+    );
   });
 }

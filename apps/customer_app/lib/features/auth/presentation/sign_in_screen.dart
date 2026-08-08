@@ -141,14 +141,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     ],
                     const SizedBox(height: SahraSpace.s6),
                     switch (state) {
-                      SignInPhone() ||
-                      SignInSending() =>
-                        _PhoneStep(phone: _phone, state: state),
-                      SignInCode() ||
-                      SignInVerifying() =>
-                        _CodeStep(code: _code, state: state),
-                      SignInNeedsName() =>
-                        _NameStep(name: _name, state: state),
+                      SignInPhone() || SignInSending() => _PhoneStep(phone: _phone, state: state),
+                      SignInCode() || SignInVerifying() => _CodeStep(code: _code, state: state),
+                      SignInNeedsName() => _NameStep(name: _name, state: state),
                       // Terminal. The route pops on this; drawing the code step
                       // one last frame keeps the transition from flashing.
                       SignInDone() => _CodeStep(code: _code, state: state),
@@ -358,8 +353,9 @@ class _PhoneStep extends ConsumerWidget {
         const SizedBox(height: SahraSpace.s6),
         SahraButton(
           label: sending ? l10n.signInSending : l10n.signInContinue,
-          onPressed:
-              sending ? null : () => ref.read(signInProvider.notifier).requestCode(phone.text.trim()),
+          onPressed: sending
+              ? null
+              : () => ref.read(signInProvider.notifier).requestCode(phone.text.trim()),
         ),
       ],
     );
@@ -422,90 +418,113 @@ class _CodeStep extends ConsumerWidget {
     final resending = state is SignInCode && (state as SignInCode).resending;
     final failure = state is SignInCode ? (state as SignInCode).failure : null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        SahraInput(
-          label: l10n.signInCodeLabel,
-          variant: SahraInputVariant.line,
-          controller: code,
-          keyboardType: TextInputType.number,
-          error: failure == null ? null : failureMessage(failure, l10n),
-        ),
-        const SizedBox(height: SahraSpace.s6),
-        SahraButton(
-          label: verifying ? l10n.signInVerifying : l10n.signInVerify,
-          onPressed:
-              verifying ? null : () => ref.read(signInProvider.notifier).verify(code.text.trim()),
-        ),
-        const SizedBox(height: SahraSpace.s4),
-        // A Wrap. At 200% text "Send another code" and "Use a different
-        // number" together are 255px wider than the screen, and a Row cannot
-        // give that back — the two are pushed onto separate lines instead.
-        Wrap(
-          spacing: SahraSpace.s2,
-          runSpacing: SahraSpace.s1,
-          children: <Widget>[
-            SahraButton(
-              label: resending ? l10n.signInResending : l10n.signInResend,
-              variant: SahraButtonVariant.ghost,
-              size: SahraButtonSize.sm,
-              onPressed:
-                  resending || verifying ? null : ref.read(signInProvider.notifier).resend,
-            ),
-            SahraButton(
-              label: l10n.signInChangePhone,
-              variant: SahraButtonVariant.ghost,
-              size: SahraButtonSize.sm,
-              onPressed: verifying
-                  ? null
-                  : () {
-                      code.clear();
-                      ref.read(signInProvider.notifier).changePhone();
-                    },
+    return SelectionArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SahraInput(
+            label: l10n.signInCodeLabel,
+            variant: SahraInputVariant.line,
+            controller: code,
+            keyboardType: TextInputType.number,
+            error: failure == null ? null : failureMessage(failure, l10n),
+          ),
+          const SizedBox(height: SahraSpace.s6),
+          SahraButton(
+            label: verifying ? l10n.signInVerifying : l10n.signInVerify,
+            onPressed:
+                verifying ? null : () => ref.read(signInProvider.notifier).verify(code.text.trim()),
+          ),
+          const SizedBox(height: SahraSpace.s4),
+          // A Wrap. At 200% text "Send another code" and "Use a different
+          // number" together are 255px wider than the screen, and a Row cannot
+          // give that back — the two are pushed onto separate lines instead.
+          Wrap(
+            spacing: SahraSpace.s2,
+            runSpacing: SahraSpace.s1,
+            children: <Widget>[
+              SahraButton(
+                label: resending ? l10n.signInResending : l10n.signInResend,
+                variant: SahraButtonVariant.ghost,
+                size: SahraButtonSize.sm,
+                onPressed: resending || verifying ? null : ref.read(signInProvider.notifier).resend,
+              ),
+              SahraButton(
+                label: l10n.signInChangePhone,
+                variant: SahraButtonVariant.ghost,
+                size: SahraButtonSize.sm,
+                onPressed: verifying
+                    ? null
+                    : () {
+                        code.clear();
+                        ref.read(signInProvider.notifier).changePhone();
+                      },
+              ),
+            ],
+          ),
+          // WHERE THE CODE ACTUALLY WENT, while delivery is a stub.
+          //
+          // OPS-1: `LoggingOtpDelivery` writes the code to the API console and no
+          // SMS is sent. Without this line the screen asks for a code that, as
+          // far as the person holding the phone can tell, was never sent — and
+          // the first thing they conclude is that the app is broken. That is
+          // exactly what happened on the first real run-through.
+          //
+          // TWO CONDITIONS, not one. `Env.otpDeliveryIsStubbed` tracks the API's
+          // behaviour and is a define anyone can set; `kReleaseMode` makes the
+          // note impossible in a shipped build whatever the defines say. See
+          // `showsOtpDevHint` for why the predicate is a free function.
+          if (showsOtpDevHint(
+            releaseMode: kReleaseMode,
+            stubbed: Env.otpDeliveryIsStubbed,
+          )) ...<Widget>[
+            const SizedBox(height: SahraSpace.s5),
+            Text(
+              l10n.signInDevHint(ltrRun('OTP CODE')),
+              style: text.bodySmall?.copyWith(color: s.textFaint),
             ),
           ],
-        ),
-        // WHERE THE CODE ACTUALLY WENT, while delivery is a stub.
-        //
-        // OPS-1: `LoggingOtpDelivery` writes the code to the API console and no
-        // SMS is sent. Without this line the screen asks for a code that, as
-        // far as the person holding the phone can tell, was never sent — and
-        // the first thing they conclude is that the app is broken. That is
-        // exactly what happened on the first real run-through.
-        //
-        // TWO CONDITIONS, not one. `Env.otpDeliveryIsStubbed` tracks the API's
-        // behaviour and is a define anyone can set; `kReleaseMode` makes the
-        // note impossible in a shipped build whatever the defines say. See
-        // `showsOtpDevHint` for why the predicate is a free function.
-        if (showsOtpDevHint(
-          releaseMode: kReleaseMode,
-          stubbed: Env.otpDeliveryIsStubbed,
-        )) ...<Widget>[
+
+          // UNCONDITIONAL. Not behind a build flag, not behind a failure, not
+          // behind a retry count.
+          //
+          // A code that never arrives is the one dead end this screen can produce
+          // where the diner has nothing left to try: a resend cannot help if
+          // delivery is broken, and the 15-minute lock cannot be cleared by
+          // asking. The lockout design assumes a human is reachable (see the
+          // decision doc), and this line is that assumption made visible.
+          //
+          // `SupportContact.value` is a placeholder that FAILS THE BUILD until a
+          // real contact is supplied — `support_contact_test.dart`.
           const SizedBox(height: SahraSpace.s5),
+          // SELECTABLE, so the address can be copied on every platform.
+          //
+          // NOT YET TAPPABLE. Opening a mail composer needs `url_launcher`, which
+          // is not in the doc 08 §5 stack table, and CLAUDE.md says stop and ask
+          // before adding one. So this is the fallback half of what was asked
+          // for: readable and copyable everywhere. When the dependency is
+          // approved, wrap this in the tap and use `SupportContact.mailto` — the
+          // address itself does not move.
+          //
+          // ISOLATED. A Latin address inside Arabic copy reorders around the `@`
+          // and the dot without `ltrRun`, which turns a correct address into one
+          // a diner would mistype.
+          // COPYABLE VIA `SelectionArea` ON THE STEP, not a `SelectableText` here.
+          //
+          // A `SelectableText` publishes its own long-press action, so the
+          // accessibility guideline counted it as a tap target and measured it at
+          // 350x38 — under the 44 minimum, in all four cells. Padding it to 44
+          // would have made the guard pass without making the target real.
+          //
+          // `SelectionArea` provides selection for the whole step at once, which
+          // is both what a diner wants (select the address, or the code label
+          // above it) and what stops every line of text becoming a control.
           Text(
-            l10n.signInDevHint(ltrRun('OTP CODE')),
-            style: text.bodySmall?.copyWith(color: s.textFaint),
+            l10n.signInNoCodeHelp(ltrRun(SupportContact.value)),
+            style: text.bodySmall?.copyWith(color: s.textSoft),
           ),
         ],
-
-        // UNCONDITIONAL. Not behind a build flag, not behind a failure, not
-        // behind a retry count.
-        //
-        // A code that never arrives is the one dead end this screen can produce
-        // where the diner has nothing left to try: a resend cannot help if
-        // delivery is broken, and the 15-minute lock cannot be cleared by
-        // asking. The lockout design assumes a human is reachable (see the
-        // decision doc), and this line is that assumption made visible.
-        //
-        // `SupportContact.value` is a placeholder that FAILS THE BUILD until a
-        // real contact is supplied — `support_contact_test.dart`.
-        const SizedBox(height: SahraSpace.s5),
-        Text(
-          l10n.signInNoCodeHelp(ltrRun(SupportContact.value)),
-          style: text.bodySmall?.copyWith(color: s.textSoft),
-        ),
-      ],
+      ),
     );
   }
 }

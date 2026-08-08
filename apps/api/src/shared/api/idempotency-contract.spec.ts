@@ -84,6 +84,7 @@ describe('Idempotency-Key coverage across mutations', () => {
       'PATCH /v1/owner/restaurants/{restaurantId}/tables/{tableId}',
       'POST /v1/admin/restaurants/{id}/approve',
       'POST /v1/admin/restaurants/{id}/reject',
+      'POST /v1/auth/complete-registration',
       'POST /v1/auth/login',
       'POST /v1/auth/logout',
       'POST /v1/auth/refresh',
