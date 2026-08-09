@@ -218,6 +218,26 @@ Two things to try, because they are the states that ship broken:
   Prices read `320.00 ج.م` in Arabic — the figure is Latin, the currency is
   not, and both stay on the right side of each other.
 
+### The filter sheet — tap "Filters"
+
+Cuisine, price, rating, amenities, **distance** and **sort**.
+
+**"Near me" is the only control in the app that asks for location permission**,
+and it asks on the tap that turns it on — not at launch, not when the sheet
+opens. In Chrome that is the browser's own location prompt.
+
+Worth doing both ways:
+
+- **Allow it.** The chip relabels to "Within 5 km", "Nearest first" appears
+  under SORT BY, and each result row gains a distance on the end of its meta
+  line. All three come from the server: the client sends `lat`/`lng`/`radius_km`
+  and reads `distance_km` back.
+- **Deny it.** The chip goes back to "Near me", a line underneath says why, and
+  "Nearest first" does not appear at all. Search keeps working. Deny it
+  *permanently* in Chrome (the site settings padlock) and the sentence changes
+  — the OS will not show the dialog again, so "try again" would be an
+  instruction that cannot work.
+
 ### Booking — tap "Book a table"
 
 A seven-day strip starting at **Tonight**, a party stepper, and the real
@@ -291,7 +311,6 @@ Stated plainly so you are not hunting for it:
 | **Most venues having a photograph at all** | The image table is real (R-2.2) but every upload is manual and admin-only, so a venue nobody has photographed shows the mashrabiya placeholder — the reference's own no-photo state |
 | **The Collections / Lists / Events chips** | P1/P2. Only `Tonight` ships, and it is wired to the real filter |
 | **Being OFFERED a table from a waitlist** | You can join one (C-3.6). Nothing notifies you when a table frees — only the join half is built |
-| **Distance filter and distance sort** | C-2.2/C-2.3. The app collects no location, so the controls are absent rather than ranking against nothing |
 | **Share** | No implementation — so the button is absent rather than dead |
 | **Add to calendar, invite friends** | No implementation — so the buttons are absent rather than dead |
 | **Payment or deposit** | C-4.1, blocked on company registration, not on code |

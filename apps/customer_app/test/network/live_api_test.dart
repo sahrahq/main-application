@@ -12,6 +12,7 @@ import 'package:sahra_customer_app/core/utils/idempotency_key.dart';
 import 'package:sahra_customer_app/features/reservations/data/reservation_repository_impl.dart';
 import 'package:sahra_customer_app/features/reservations/domain/my_reservation.dart';
 import 'package:sahra_customer_app/features/restaurants/data/restaurant_repository_impl.dart';
+import 'package:sahra_customer_app/features/restaurants/domain/search_sort.dart';
 
 /// The whole chain against a RUNNING backend — real Dio, real socket, real
 /// Postgres, real reservation engine.
@@ -116,6 +117,60 @@ void main() {
   String isoDate(DateTime d) => '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
+
+  test('DISTANCE over a real socket — Meilisearch geo, and a real haversine', () async {
+    // NOTHING FAKE COVERS THIS CHAIN. `_geoRadius` and `_geoPoint:asc` are
+    // Meilisearch features, `distance_km` is a haversine in the API, and the
+    // seeded venues' coordinates are in PostGIS. A FakeTransport proves the
+    // client sends the right query and nothing about whether any of that works.
+    //
+    // Zamalek, where the seed puts Layali and Sequoia.
+    const double lat = 30.0622;
+    const double lng = 31.2185;
+
+    final page = await restaurants.search(
+      lat: lat,
+      lng: lng,
+      radiusKm: kNearMeRadiusKm,
+      sort: SearchSort.distance,
+    );
+
+    expect(page.results, isNotEmpty, reason: 'run `pnpm seed` first');
+
+    // 1. EVERY RESULT CARRIES A DISTANCE. The API computes it only when the
+    //    query had a position, so this is also the proof the position arrived.
+    for (final venue in page.results) {
+      expect(
+        venue.distanceKm,
+        isNotNull,
+        reason: '${venue.name} came back with no distance_km despite a '
+            'positioned query',
+      );
+      // 2. AND IT IS INSIDE THE RADIUS WE ASKED FOR. A `_geoRadius` filter that
+      //    silently did nothing would return the whole city, every venue with a
+      //    plausible distance, and look perfectly healthy.
+      expect(venue.distanceKm!, lessThanOrEqualTo(kNearMeRadiusKm));
+    }
+
+    // 3. NEAREST FIRST ACTUALLY MEANS NEAREST FIRST.
+    final List<double> distances =
+        page.results.map((v) => v.distanceKm!).toList();
+    final List<double> ascending = <double>[...distances]..sort();
+    expect(distances, ascending,
+        reason: 'sort=distance returned $distances — not ascending, so either '
+            'Meilisearch ignored the sort or the geo point is wrong',);
+
+    // 4. AND THE RADIUS EXCLUDES SOMETHING. Maadi is ~10km from Zamalek, so a
+    //    filter that works must drop Kazoku — without this the three
+    //    assertions above all pass on an unfiltered list.
+    final unfiltered = await restaurants.search();
+    expect(
+      unfiltered.results.length,
+      greaterThan(page.results.length),
+      reason: 'the 5km radius excluded nothing. Every seeded venue is inside '
+          'it, or `_geoRadius` is not being applied.',
+    );
+  });
 
   test('GROUP D over a real socket — the menu, and the price as a STRING', () async {
     // THE ONE THING NO FAKE CAN PROVE.

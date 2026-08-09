@@ -1136,4 +1136,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String venueGalleryLabel(int index, int total) {
     return 'Photo $index of $total';
   }
+
+  @override
+  String get filterDistance => 'Distance';
+
+  @override
+  String get filterNearMe => 'Near me';
+
+  @override
+  String filterNearMeRadius(String km) {
+    return 'Within $km km';
+  }
+
+  @override
+  String get filterSort => 'Sort by';
+
+  @override
+  String get sortRelevance => 'Best match';
+
+  @override
+  String get sortRating => 'Highest rated';
+
+  @override
+  String get sortDistance => 'Nearest first';
+
+  @override
+  String get locationAsking => 'Finding you…';
+
+  @override
+  String get locationDenied =>
+      'We can\'t sort by distance without your location.';
+
+  @override
+  String get locationDeniedForever =>
+      'Location is off for SAHRA. Turn it on in your phone\'s settings to sort by distance.';
+
+  @override
+  String get locationServiceDisabled =>
+      'Location is switched off on this phone.';
+
+  @override
+  String get locationUnavailable =>
+      'We couldn\'t find you. Search a neighbourhood instead.';
+
+  @override
+  String resultDistance(String km) {
+    return '$km km';
+  }
 }

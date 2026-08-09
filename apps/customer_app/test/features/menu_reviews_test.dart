@@ -5,6 +5,7 @@ import 'package:sahra_customer_app/features/reservations/presentation/reservatio
 import 'package:sahra_customer_app/features/restaurants/presentation/venue_screen.dart';
 import 'package:sahra_customer_app/localization/generated/app_localizations.dart';
 import 'package:sahra_customer_app/shared/providers/app_providers.dart';
+import 'package:sahra_customer_app/shared/widgets/tappable_contact.dart';
 
 import '../support/fakes.dart';
 import '../support/fixture_dates.dart';
@@ -77,6 +78,17 @@ void main() {
         'dietary_tags': <String>['vegetarian'],
         'image': null,
       };
+
+  List<Object> menusPdfOnly() => <Object>[
+        <String, Object?>{
+          'id': 'menu-pdf',
+          'name_en': 'The menu',
+          'name_ar': 'المنيو',
+          'kind': 'food',
+          'pdf_url': 'https://storage.test/menus/venue/carte.pdf',
+          'categories': <Object>[],
+        },
+      ];
 
   List<Object> menus() => <Object>[
         <String, Object?>{
@@ -217,6 +229,83 @@ void main() {
 
       final BuildContext context = tester.element(find.byType(VenueScreen));
       expect(find.text(AppLocalizations.of(context).venueMenuTitle), findsNothing);
+    });
+  });
+
+  group('the menu PDF handoff — the scope it runs under', () {
+    // This shipped in Group D calling `launchUrl` directly on an `https:` URL.
+    // `url_launcher` was approved for `mailto:` and `tel:` with "Not approved
+    // for arbitrary https: links" written beside it, and the call also bypassed
+    // the seam that makes a launch degrade.
+    //
+    // The scope was widened NARROWLY on 2026-08-09 — a document we host at a
+    // key we control, explicitly not a link arriving from venue data — and the
+    // call now goes through `contactLauncherProvider`, the same door the phone
+    // number uses.
+    //
+    // The no-handler path is tested HERE rather than assumed, for the reason
+    // the phone number's version exists: on a Windows test runner the real
+    // launcher answers "succeeded", so a test that used it would prove nothing.
+    Future<void> openPdfSheet(
+      WidgetTester tester, {
+      required ContactLauncher launcher,
+    }) async {
+      await _pump(
+        tester,
+        const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+        overrides: <Override>[
+          transportProvider
+              .overrideWithValue(venueTransport(menuList: menusPdfOnly())),
+          contactLauncherProvider.overrideWithValue(launcher),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(find.byType(VenueScreen));
+      // Through the real control, on the real screen. A test that built the
+      // handoff directly would prove the button works and nothing about
+      // whether anything opens it.
+      await tester.tap(find.text(AppLocalizations.of(context).venueMenuFull));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a platform with no handler says so instead of doing nothing',
+        (tester) async {
+      await openPdfSheet(tester, launcher: (_) async => false);
+
+      final BuildContext context = tester.element(find.byType(VenueScreen));
+      final AppLocalizations l10n = AppLocalizations.of(context);
+
+      expect(find.text(l10n.menuPdfOpen), findsOneWidget);
+      expect(find.text(l10n.contactCannotOpen), findsNothing);
+
+      await tester.tap(find.text(l10n.menuPdfOpen));
+      await tester.pumpAndSettle();
+
+      // A tap that silently does nothing teaches a diner the app is broken.
+      expect(find.text(l10n.contactCannotOpen), findsOneWidget);
+    });
+
+    testWidgets('and says nothing when it worked', (tester) async {
+      Uri? launched;
+      await openPdfSheet(
+        tester,
+        launcher: (uri) async {
+          launched = uri;
+          return true;
+        },
+      );
+
+      final BuildContext context = tester.element(find.byType(VenueScreen));
+      final AppLocalizations l10n = AppLocalizations.of(context);
+
+      await tester.tap(find.text(l10n.menuPdfOpen));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.contactCannotOpen), findsNothing);
+      // And it is OUR url, composed by the API from `menus.pdf_key` — the
+      // narrow thing the widened scope covers.
+      expect(launched.toString(), 'https://storage.test/menus/venue/carte.pdf');
     });
   });
 

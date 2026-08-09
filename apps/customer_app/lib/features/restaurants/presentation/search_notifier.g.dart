@@ -6,7 +6,7 @@ part of 'search_notifier.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$searchResultsHash() => r'16578417016a4d7bc5554a44dc6feb4637d705c3';
+String _$searchResultsHash() => r'df242a220f61ba75d00412f91e298aad22a696a4';
 
 /// The results. One notifier per screen (doc 07 §5), side-effects only here.
 ///
@@ -29,7 +29,7 @@ final searchResultsProvider = AutoDisposeFutureProvider<SearchPage>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SearchResultsRef = AutoDisposeFutureProviderRef<SearchPage>;
-String _$searchCriteriaHash() => r'61e3a9738a1722c72fcf40b7ced916f6205cd785';
+String _$searchCriteriaHash() => r'23a5665d4450fc366ee0de539c3408745081131e';
 
 /// See also [SearchCriteria].
 @ProviderFor(SearchCriteria)

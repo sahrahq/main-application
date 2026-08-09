@@ -17,6 +17,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sahra_api_client/sahra_api_client.dart';
 
+import '../widgets/tappable_contact.dart';
+
 import '../../config/env/env.dart';
 import '../../core/network/dio_transport.dart';
 import '../../features/reservations/data/reservation_repository_impl.dart';
@@ -58,6 +60,22 @@ SahraTransport transport(Ref ref) => DioTransport(
 
 @Riverpod(keepAlive: true)
 SahraApi api(Ref ref) => SahraApi(ref.watch(transportProvider));
+
+/// How the app hands a URI to the platform.
+///
+/// A PROVIDER RATHER THAN A CONSTRUCTOR PARAMETER, unlike
+/// `SahraTappableContact.launcher`, and the difference is about reachability.
+/// That widget is public, so a test can build it and pass a fake. The menu PDF
+/// button is private to its sheet — a test that could only reach it by making
+/// it public would be a test proving a widget works while saying nothing about
+/// whether anything opens it.
+///
+/// Overriding this instead lets the test tap "Full menu" on the real venue
+/// screen, land in the real sheet, press the real button, and still control
+/// what the platform answers. The failing path is the one that matters here,
+/// and on a Windows test runner the real launcher answers "succeeded".
+@Riverpod(keepAlive: true)
+ContactLauncher contactLauncher(Ref ref) => kDefaultLauncher;
 
 @Riverpod(keepAlive: true)
 RestaurantRepository restaurantRepository(Ref ref) => RestaurantRepositoryImpl(

@@ -291,17 +291,37 @@ describe('the type conventions doc 04 states in its header', () => {
 //  ownership and grants — the half of layer 1 that cannot be applied by us
 // ═══════════════════════════════════════════════════════════════════════════
 describe('the Data API lockdown, verified rather than assumed', () => {
-  it('every table in public is owned by postgres', async () => {
-    /**
-     * This is the rule that actually keeps `anon` out of new tables, and
-     * nothing was checking it.
-     *
-     * `postgres`'s own DEFAULT PRIVILEGES no longer grant `anon` anything — that
-     * part of the lockdown worked. But `supabase_admin` still holds default
-     * privileges that DO grant `anon` full access to tables it creates. So a
-     * table created by any role other than `postgres` arrives with the door
-     * open, and no migration would look wrong.
-     */
+  /**
+   * ╔═══════════════════════════════════════════════════════════════════════╗
+   * ║  THE LOAD-BEARING CHECK.                                              ║
+   * ║                                                                       ║
+   * ║  Do not delete, weaken, or move this without reading                  ║
+   * ║  `docs/decisions/2026-08-09-data-api-lockdown.md` first.              ║
+   * ╚═══════════════════════════════════════════════════════════════════════╝
+   *
+   * Of the five mechanisms the Data API lockdown appeared to have, **this is
+   * the one keeping `anon` out of tables created after it ran.**
+   *
+   *   · The table-level REVOKE works — but it cannot reach a future table.
+   *   · `REVOKE USAGE ON SCHEMA public` DID NOTHING. The schema belongs to
+   *     `supabase_admin` and a REVOKE by `postgres` removes only what
+   *     `postgres` granted. It reported success. Asserted below as still
+   *     granted, so nobody mistakes it for closed.
+   *   · `ALTER DEFAULT PRIVILEGES` is scoped to the issuing role. It covers
+   *     tables `postgres` creates — which is only useful *because* `postgres`
+   *     is the creator, i.e. because of this check.
+   *   · RLS did not carry forward at all; five tables ran on one layer for
+   *     three batches. `rls-coverage.e2e-spec.ts` now covers that.
+   *
+   * `supabase_admin` still holds default privileges granting `anon` full
+   * access to tables IT creates. So a table created by any role other than
+   * `postgres` arrives with `SELECT, INSERT, UPDATE, DELETE` open to the
+   * publishable key that ships inside the APK — **and no migration file would
+   * look wrong.**
+   *
+   * Nothing was checking this until 2026-08-09.
+   */
+  it('THE LOAD-BEARING CHECK: every table in public is owned by postgres', async () => {
     const rows = await prisma.$queryRaw<{ tablename: string; tableowner: string }[]>`
       SELECT tablename, tableowner FROM pg_tables WHERE schemaname = 'public'`;
 
@@ -394,7 +414,8 @@ describe('every index doc 04 names by name exists', () => {
         'Nothing reads `read_at` yet — the notifications READ half is Group G — ' +
         'so building it now would be an index Postgres maintains on every ' +
         'insert for a query nobody makes. It goes in with Group G, under this ' +
-        'name. Recorded 2026-08-09.',
+        'name. Recorded 2026-08-09; the instructions for Group G are in ' +
+        'prisma/migrations/20260802020000_notifications_stage_1/README.md.',
     ],
   ]);
 

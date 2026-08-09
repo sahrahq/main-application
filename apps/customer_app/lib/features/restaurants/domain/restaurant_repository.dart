@@ -1,5 +1,6 @@
 import 'menu.dart';
 import 'review.dart';
+import 'search_sort.dart';
 import 'venue.dart';
 
 /// What the presentation layer is allowed to know about restaurants.
@@ -23,11 +24,15 @@ abstract class RestaurantRepository {
   /// client simply never asked. Threading them through here is what the filter
   /// sheet needed — no backend change at all.
   ///
-  /// NO `distance`, and that is a capability gap rather than an oversight. The
-  /// API takes lat/lng and a radius, and nothing in this app collects a
-  /// location: there is no permission prompt and no geocoding. A filter that
-  /// silently ranked by a location we do not have would be worse than its
-  /// absence.
+  /// [lat], [lng] and [radiusKm] are C-2.2's distance filter, and [sort] is
+  /// C-2.3. They arrive together or not at all: the API needs a position for
+  /// both `radius_km` and `sort=distance`, and refuses half a distance query
+  /// the same way it refuses half an availability one.
+  ///
+  /// The caller is responsible for having a position before asking. Nothing
+  /// here guesses one — a filter that silently ranked against a location we do
+  /// not have would be worse than its absence, which is why it did not ship
+  /// until the app could actually ask.
   Future<SearchPage> search({
     String? query,
     String? neighborhood,
@@ -38,6 +43,10 @@ abstract class RestaurantRepository {
     int? priceBand,
     double? ratingMin,
     List<String> amenities = const <String>[],
+    double? lat,
+    double? lng,
+    double? radiusKm,
+    SearchSort sort = SearchSort.relevance,
   });
 
   /// The full profile, by id or slug (doc 06 §3).

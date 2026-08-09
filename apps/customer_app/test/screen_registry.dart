@@ -18,6 +18,8 @@ import 'package:sahra_customer_app/features/restaurants/presentation/search_noti
 import 'package:sahra_customer_app/features/restaurants/presentation/search_screen.dart';
 import 'package:sahra_customer_app/features/restaurants/presentation/venue_screen.dart';
 import 'package:sahra_customer_app/localization/generated/app_localizations.dart';
+import 'package:sahra_customer_app/shared/location/location_notifier.dart';
+import 'package:sahra_customer_app/shared/location/location_source.dart';
 import 'package:sahra_customer_app/shared/providers/app_providers.dart';
 import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 
@@ -238,6 +240,55 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
       searchCriteriaProvider.overrideWith(() => _TypedQuery('layali')),
       _fixtureImages,
     ],
+  ),
+
+  // ── The location half-batch ─────────────────────────────────────────────
+  //
+  // Two cases, and the second is the one that ships broken elsewhere: a diner
+  // who declined. The filter sheet must look complete and useful without a
+  // position, because most diners will not give one.
+  'Filters/near-me': ScreenCase(
+    build: (_) => const SearchScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => _resultsPage),
+      searchCriteriaProvider.overrideWith(() => _TypedQuery('layali')),
+      locationSourceProvider
+          .overrideWithValue(const FixedLocationSource.zamalek()),
+    ],
+    interactive: true,
+    after: (tester) async {
+      final BuildContext context = tester.element(find.byType(SearchScreen));
+      final AppLocalizations l10n = AppLocalizations.of(context);
+      await tester.tap(find.text(l10n.filterOpen).first);
+      await tester.pumpAndSettle();
+      final Finder nearMe = find.text(l10n.filterNearMe);
+      await tester.ensureVisible(nearMe);
+      await tester.pumpAndSettle();
+      await tester.tap(nearMe);
+      await tester.pumpAndSettle();
+    },
+  ),
+  'Filters/location-refused': ScreenCase(
+    build: (_) => const SearchScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => _resultsPage),
+      searchCriteriaProvider.overrideWith(() => _TypedQuery('layali')),
+      locationSourceProvider.overrideWithValue(
+        const FixedLocationSource.refused(LocationOutcome.deniedForever),
+      ),
+    ],
+    interactive: true,
+    after: (tester) async {
+      final BuildContext context = tester.element(find.byType(SearchScreen));
+      final AppLocalizations l10n = AppLocalizations.of(context);
+      await tester.tap(find.text(l10n.filterOpen).first);
+      await tester.pumpAndSettle();
+      final Finder nearMe = find.text(l10n.filterNearMe);
+      await tester.ensureVisible(nearMe);
+      await tester.pumpAndSettle();
+      await tester.tap(nearMe);
+      await tester.pumpAndSettle();
+    },
   ),
 
   // ── Group D: menus and reviews ──────────────────────────────────────────
@@ -859,6 +910,18 @@ List<Override> _transport(
       transportProvider.overrideWithValue(FakeTransport(handler)),
       // Every case funnels through here, so every case gets a fixed clock.
       _fixedToday,
+      // AND A FIXED POSITION. `geolocator` is a platform channel; in a test
+      // binding it either throws or hangs for the eight-second timeout, per
+      // cell, in four cells. Overriding here rather than per case means a
+      // screen added tomorrow cannot forget it — the same reason the clock is
+      // here.
+      //
+      // `refused`, not a position: the DEFAULT state of every golden is a
+      // diner who has not shared one, which is what almost every diner is.
+      // The cases that want a position say so.
+      locationSourceProvider.overrideWithValue(
+        const FixedLocationSource.refused(LocationOutcome.denied),
+      ),
     ];
 
 /// A criteria notifier that starts with text already typed, so the golden

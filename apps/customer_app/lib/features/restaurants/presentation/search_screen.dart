@@ -187,6 +187,13 @@ class _Results extends ConsumerWidget {
           rating: venue.rating,
           reviews: venue.ratingCount,
           meta: venueMeta(l10n, venue.cuisines, venue.priceBand, venue.neighborhood),
+          // ONLY WHEN THE SERVER COMPUTED ONE. Null unless the diner shared a
+          // position, so a row never shows a distance from somewhere they are
+          // not. One decimal — a venue 1.4km away and one 1.43km away are the
+          // same walk.
+          distance: venue.distanceKm == null
+              ? null
+              : l10n.resultDistance(venue.distanceKm!.toStringAsFixed(1)),
           availability: venue.nextAvailable.isEmpty
               ? null
               : l10n.searchNextAvailable(venue.nextAvailable.first),

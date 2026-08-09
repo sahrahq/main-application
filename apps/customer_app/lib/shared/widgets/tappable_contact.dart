@@ -42,6 +42,16 @@ import '../../localization/generated/app_localizations.dart';
 /// runner turned out to be "succeed", quietly proving nothing.
 typedef ContactLauncher = Future<bool> Function(Uri uri);
 
+/// The default, exported so a caller that is not a `SahraTappableContact` can
+/// still go through the same door.
+///
+/// The menu PDF is such a caller: it is a BUTTON, not a line of readable text,
+/// so the widget above is the wrong shape for it — but the launch itself must
+/// behave identically, including `canLaunchUrl` first and a false rather than
+/// a thrown exception. It shipped calling `launchUrl` directly, which is how a
+/// second, slightly worse launch path starts.
+const ContactLauncher kDefaultLauncher = _defaultLauncher;
+
 Future<bool> _defaultLauncher(Uri uri) async {
   // `canLaunchUrl` first, and the result is acted on rather than logged. On
   // Android 11+ this needs the `<queries>` entries in the manifest or it

@@ -4,6 +4,7 @@ import '../../../core/error/guarded.dart';
 import '../domain/menu.dart';
 import '../domain/restaurant_repository.dart';
 import '../domain/review.dart';
+import '../domain/search_sort.dart';
 import '../domain/venue.dart';
 
 /// Wire → domain, and the ONE place `name_en` / `name_ar` is resolved.
@@ -35,6 +36,10 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
     int? priceBand,
     double? ratingMin,
     List<String> amenities = const <String>[],
+    double? lat,
+    double? lng,
+    double? radiusKm,
+    SearchSort sort = SearchSort.relevance,
   }) async {
     final response = await guarded(
       () => _api.find(
@@ -56,6 +61,16 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
         availableAt: partySize == null ? null : availableOn,
         partySize: availableOn == null ? null : partySize?.toString(),
         cursor: cursor,
+        // TOGETHER OR NOT AT ALL. The API refuses `radius_km` without a
+        // position and `sort=distance` without one, so the notifier resolves
+        // "the diner asked but declined" to no-position before it gets here —
+        // this layer sends what it is given and does not second-guess it.
+        lat: lat?.toString(),
+        lng: lng?.toString(),
+        radiusKm: radiusKm?.toString(),
+        // `relevance` is the server's default; sending it explicitly is noise
+        // on every ordinary search.
+        sort: sort == SearchSort.relevance ? null : sort.name,
       ),
     );
 
@@ -189,6 +204,7 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
       );
 
   VenueSummary _summary(SearchResultResponse r) => VenueSummary(
+        distanceKm: r.distanceKm,
         id: r.id,
         slug: r.slug,
         name: _isArabic ? r.nameAr : r.nameEn,

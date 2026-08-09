@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../localization/generated/app_localizations.dart';
+import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/venue_image_provider.dart';
 import '../domain/menu.dart';
 import 'menu_copy.dart';
@@ -308,10 +308,54 @@ class _MenuRow extends ConsumerWidget {
 }
 
 /// R-2.3's fallback: hand the document to whatever the phone already has.
-class _PdfHandoff extends StatelessWidget {
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// THE SCOPE THIS RUNS UNDER, AND WHY IT IS NARROW
+/// ─────────────────────────────────────────────────────────────────────────
+///
+/// `url_launcher` was approved for `mailto:` and `tel:` (doc 08 §5), with
+/// "Not approved for arbitrary `https:` links" written next to it. This
+/// shipped in Group D calling `launchUrl` on an `https:` URL, outside that
+/// scope and bypassing the seam. Both halves were wrong; the second was worse.
+///
+/// The scope was widened on 2026-08-09, and NARROWLY:
+///
+/// > `https:` is approved for **a document WE host at a key WE control** — a
+/// > menu PDF in our own bucket, whose address this app composes from
+/// > `menus.pdf_key`. It is NOT approved for a link arriving from venue data.
+/// > **The venue website link is not covered.**
+///
+/// The distinction is the point. An arbitrary URL from a venue profile is the
+/// app opening whatever somebody typed into a form, which is a different
+/// decision.
+///
+/// ── AND IT DEGRADES ──────────────────────────────────────────────────────
+///
+/// Through `kDefaultLauncher`, the same door the phone number uses:
+/// `canLaunchUrl` first, a false rather than a throw, and a message that
+/// leaves the diner with something to do. A tablet with no PDF handler gets a
+/// line telling it what happened, not a dead tap.
+class _PdfHandoff extends ConsumerStatefulWidget {
   const _PdfHandoff({required this.url});
 
   final String url;
+
+  @override
+  ConsumerState<_PdfHandoff> createState() => _PdfHandoffState();
+}
+
+class _PdfHandoffState extends ConsumerState<_PdfHandoff> {
+  bool _cannotOpen = false;
+
+  Future<void> _open() async {
+    // Through `contactLauncherProvider`, which a test overrides — see the
+    // provider for why this seam is a provider rather than a constructor
+    // parameter. No try/catch swallowing: the default returns false rather
+    // than throwing, which is the contract the phone number already relies on.
+    final bool ok = await ref.read(contactLauncherProvider)(Uri.parse(widget.url));
+    if (!mounted) return;
+    setState(() => _cannotOpen = !ok);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -325,9 +369,7 @@ class _PdfHandoff extends StatelessWidget {
         SahraButton(
           label: l10n.menuPdfOpen,
           variant: SahraButtonVariant.secondary,
-          onPressed: () => unawaited(
-            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
-          ),
+          onPressed: () => unawaited(_open()),
         ),
         const SizedBox(height: SahraSpace.s1),
         // SAID BEFORE IT HAPPENS. A tap that throws the diner out of the app
@@ -336,6 +378,15 @@ class _PdfHandoff extends StatelessWidget {
           l10n.menuPdfNote,
           style: text.bodySmall?.copyWith(color: s.textFaint),
         ),
+        if (_cannotOpen) ...<Widget>[
+          const SizedBox(height: SahraSpace.s2),
+          // SHOWN, not swallowed. Same sentence the phone number uses when
+          // nothing can open it — one message for one situation.
+          Text(
+            l10n.contactCannotOpen,
+            style: text.bodySmall?.copyWith(color: s.error),
+          ),
+        ],
       ],
     );
   }

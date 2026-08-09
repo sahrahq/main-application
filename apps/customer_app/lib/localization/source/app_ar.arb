@@ -258,5 +258,18 @@
   "writeReviewNeedsRating": "اختار تقييم الأول.",
   "reviewAlreadyWritten": "إنت قيّمت الزيارة دي",
   "reviewPublicNote": "هيظهر اسمك الأول وأول حرف من اسم العيلة.",
-  "venueGalleryLabel": "صورة {index} من {total}"
+  "venueGalleryLabel": "صورة {index} من {total}",
+  "filterDistance": "المسافة",
+  "filterNearMe": "قريب مني",
+  "filterNearMeRadius": "في حدود {km} كم",
+  "filterSort": "ترتيب حسب",
+  "sortRelevance": "الأنسب",
+  "sortRating": "الأعلى تقييماً",
+  "sortDistance": "الأقرب",
+  "locationAsking": "بندوّر عليك…",
+  "locationDenied": "مش هنعرف نرتب بالمسافة من غير موقعك.",
+  "locationDeniedForever": "الموقع مقفول لسهرة. افتحه من إعدادات التليفون عشان الترتيب بالمسافة.",
+  "locationServiceDisabled": "الموقع مقفول على التليفون ده.",
+  "locationUnavailable": "مقدرناش نلاقيك. دوّر على منطقة بدل كده.",
+  "resultDistance": "{km} كم"
 }

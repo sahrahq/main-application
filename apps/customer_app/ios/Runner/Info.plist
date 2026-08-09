@@ -2,6 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Shown verbatim in the iOS permission dialog, so it says what we do with
+	     it rather than "this app needs your location". WhenInUse only; there is
+	     no NSLocationAlwaysUsageDescription and there must not be. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>SAHRA uses your location only to sort restaurants by how near they are. It is never stored or shared.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

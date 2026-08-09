@@ -8,6 +8,8 @@ import 'package:sahra_customer_app/features/restaurants/presentation/venue_scree
 import 'package:sahra_customer_app/core/auth/session.dart';
 import 'package:sahra_customer_app/localization/generated/app_localizations.dart';
 import 'package:sahra_customer_app/main.dart';
+import 'package:sahra_customer_app/shared/location/location_notifier.dart';
+import 'package:sahra_customer_app/shared/location/location_source.dart';
 import 'package:sahra_customer_app/shared/providers/app_providers.dart';
 import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 
@@ -87,9 +89,27 @@ void main() {
 
         final container = ProviderContainer(
           overrides: <Override>[
+            // A FIXED POSITION. `geolocator` is a platform channel and this
+            // walk runs in a test binding — without the override the distance
+            // node would hang for the eight-second timeout and then fail.
+            //
+            // Zamalek, which is where the seeded venues are, so the distances
+            // in the picture are the ones a diner standing there would see.
+            locationSourceProvider
+                .overrideWithValue(const FixedLocationSource.zamalek()),
             transportProvider.overrideWithValue(
               FakeTransport((method, path, query) {
-                if (path.contains('/restaurants/search')) return _searchPage;
+                if (path.contains('/restaurants/search')) {
+                  // ANSWERS THE QUERY, rather than returning one blob.
+                  //
+                  // The real API only computes `distance_km` when the request
+                  // carried lat/lng. A static fixture ignored that, so the
+                  // node named `search-by-distance` pictured a search with no
+                  // distance on it — a screenshot that had stopped showing the
+                  // thing it was named after, which is the fixture failure
+                  // this project keeps finding.
+                  return _searchPage(withDistance: query?['lat'] != null);
+                }
                 if (path.endsWith('/availability')) return _availability;
                 // GROUP D, and BEFORE the profile branch — `/menus` and
                 // `/reviews` both start with `/v1/restaurants/`, so the profile
@@ -171,6 +191,32 @@ void main() {
         await tester.enterText(find.byType(TextField).first, 'layali');
         await tester.pumpAndSettle(const Duration(milliseconds: 600));
         await capture('search-results');
+
+        // THE DISTANCE FILTER, and the permission prompt with it.
+        //
+        // Two more nodes, because "near me" is the only control in the app that
+        // asks for location and the walk-through is where the product owner
+        // sees what a diner sees. The prompt fires on the TAP — everything
+        // before this frame is a diner who has been asked for nothing.
+        await tester.tap(find.text(l10n.filterOpen).first);
+        await tester.pumpAndSettle();
+        final Finder nearMe = find.text(l10n.filterNearMe);
+        await tester.ensureVisible(nearMe);
+        await tester.pumpAndSettle();
+        await capture('filters');
+
+        await tester.tap(nearMe);
+        await tester.pumpAndSettle();
+        await capture('filters-near-me');
+
+        // Apply it, so the next frame shows distances on the rows rather than
+        // a filter set and never used.
+        final Finder apply = find.text(l10n.filterApply);
+        await tester.ensureVisible(apply);
+        await tester.pumpAndSettle();
+        await tester.tap(apply);
+        await tester.pumpAndSettle();
+        await capture('search-by-distance');
 
         final venue = tag == 'ar' ? 'ليالي لاونج' : 'Layali Lounge';
 
@@ -311,25 +357,29 @@ void main() {
 const String _userId = '99999999-9999-4999-8999-999999999999';
 const String _reservationId = '22222222-2222-4222-8222-222222222222';
 
-final Map<String, Object?> _searchPage = <String, Object?>{
-  'results': <Object>[
-    <String, Object?>{
-      'id': '4f743baa-3054-4fda-90ce-1a602faf1e77',
-      'slug': 'layali-lounge-zamalek',
-      'name_en': 'Layali Lounge',
-      'name_ar': 'ليالي لاونج',
-      'cuisines': <String>['levantine'],
-      'neighborhood': 'Zamalek',
-      'price_band': 3,
-      'rating': 4.8,
-      'rating_count': 312,
-      'next_available': <String>['18:00'],
-    },
-  ],
-  'next_cursor': null,
-  'estimated_total': 1,
-  'availability_filtered': true,
-};
+Map<String, Object?> _searchPage({bool withDistance = false}) => <String, Object?>{
+      'results': <Object>[
+        <String, Object?>{
+          'id': '4f743baa-3054-4fda-90ce-1a602faf1e77',
+          'slug': 'layali-lounge-zamalek',
+          'name_en': 'Layali Lounge',
+          'name_ar': 'ليالي لاونج',
+          'cuisines': <String>['levantine'],
+          'neighborhood': 'Zamalek',
+          'price_band': 3,
+          'rating': 4.8,
+          'rating_count': 312,
+          'next_available': <String>['18:00'],
+          // Only when the query carried a position, exactly as the API does.
+          // 0.8km is Layali from the seeded Zamalek fix — near enough that the
+          // figure is plausible to somebody who knows the city.
+          if (withDistance) 'distance_km': 0.8,
+        },
+      ],
+      'next_cursor': null,
+      'estimated_total': 1,
+      'availability_filtered': true,
+    };
 
 /// GROUP D fixtures for the walk-through.
 ///

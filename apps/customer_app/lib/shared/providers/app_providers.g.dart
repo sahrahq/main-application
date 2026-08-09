@@ -38,6 +38,37 @@ final apiProvider = Provider<SahraApi>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ApiRef = ProviderRef<SahraApi>;
+String _$contactLauncherHash() => r'18242b7f6c14e6f0f5f38a6325a9b5226f8e50ff';
+
+/// How the app hands a URI to the platform.
+///
+/// A PROVIDER RATHER THAN A CONSTRUCTOR PARAMETER, unlike
+/// `SahraTappableContact.launcher`, and the difference is about reachability.
+/// That widget is public, so a test can build it and pass a fake. The menu PDF
+/// button is private to its sheet — a test that could only reach it by making
+/// it public would be a test proving a widget works while saying nothing about
+/// whether anything opens it.
+///
+/// Overriding this instead lets the test tap "Full menu" on the real venue
+/// screen, land in the real sheet, press the real button, and still control
+/// what the platform answers. The failing path is the one that matters here,
+/// and on a Windows test runner the real launcher answers "succeeded".
+///
+/// Copied from [contactLauncher].
+@ProviderFor(contactLauncher)
+final contactLauncherProvider = Provider<ContactLauncher>.internal(
+  contactLauncher,
+  name: r'contactLauncherProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$contactLauncherHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ContactLauncherRef = ProviderRef<ContactLauncher>;
 String _$restaurantRepositoryHash() =>
     r'cb74a0e174d00e7b1bfffb9a29b2ced36374c89b';
 

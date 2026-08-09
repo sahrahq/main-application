@@ -55,6 +55,7 @@ dependencies:
     path: ../../packages/sahra_localization
   url_launcher: ^6.3.2
   cached_network_image: ^3.4.1
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

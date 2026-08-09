@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../theme/sahra_scales.dart';
+import '../theme/sahra_bidi.dart';
 import '../theme/sahra_semantics.dart';
+import '../theme/sahra_typography.dart';
 import 'sahra_badge.dart';
 import 'sahra_icon.dart';
 import 'sahra_photo.dart';
@@ -27,12 +29,24 @@ class SahraResultRow extends StatelessWidget {
     required this.semanticLabel,
     this.image,
     this.availability,
+    this.distance,
     this.saved = false,
     this.onSave,
     this.saveLabel,
     this.onTap,
     super.key,
   });
+
+  /// Pre-formatted, e.g. `1.4 km` / «1.4 كم».
+  ///
+  /// A STRING, not a number, and the component does no arithmetic on it. The
+  /// figure comes from the server, the unit comes from the ARB, and the join
+  /// happens once at the call site — so a row cannot render a distance in one
+  /// unit while the filter above it says another.
+  ///
+  /// Null is the ordinary case: the API only computes a distance when the
+  /// diner shared a position.
+  final String? distance;
 
   final String name;
   final double rating;
@@ -134,12 +148,37 @@ class SahraResultRow extends StatelessWidget {
                             SahraRatingStars(rating: rating, reviews: reviews, size: 12),
                             Expanded(
                               child: Text(
-                                ' · $meta',
+                                // The leading separator goes with the stars —
+                                // `SahraRatingStars` draws nothing when nobody
+                                // has rated the venue, and a dangling "·" at
+                                // the start of the line was the exact defect
+                                // that produced on the venue hero.
+                                reviews == 0 ? meta : ' · $meta',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: text.bodySmall?.copyWith(color: s.textSoft),
                               ),
                             ),
+                            // DISTANCE LAST, and it does not shrink.
+                            //
+                            // It is the shortest thing on the line and the one
+                            // the diner asked for by name when they turned the
+                            // filter on — so the cuisine ellipsises and this
+                            // does not. `ltrRun` because "1.4 km" is a figure
+                            // and a Latin-or-Arabic unit, and in an Arabic
+                            // paragraph the two swap sides.
+                            if (distance != null) ...<Widget>[
+                              SizedBox(width: SahraSpace.s2),
+                              Text(
+                                ltrRun(distance!),
+                                style: SahraTypography.numeric(
+                                  text.bodySmall!.copyWith(
+                                    color: s.textFaint,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

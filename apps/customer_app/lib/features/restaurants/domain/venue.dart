@@ -72,6 +72,7 @@ class VenueSummary {
     this.priceBand,
     this.nextAvailable = const <String>[],
     this.cover,
+    this.distanceKm,
   });
 
   final String id;
@@ -87,6 +88,14 @@ class VenueSummary {
 
   /// 1–4, rendered as `$`–`$$$$`.
   final int? priceBand;
+
+  /// How far this venue is, in kilometres, AS THE SERVER COMPUTED IT.
+  ///
+  /// Null unless the diner shared a position — the API only returns it when
+  /// the query carried lat/lng. Never computed here: the client would need the
+  /// venue's coordinates and a haversine of its own, and two implementations of
+  /// one distance is two answers on one screen.
+  final double? distanceKm;
 
   /// Local `HH:MM` teasers. **A HINT, NEVER BOOKABLE** — they carry no
   /// absolute instant precisely so no screen can pass one to a booking call

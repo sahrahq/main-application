@@ -1,8 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../shared/location/location_notifier.dart';
+import '../../../shared/location/location_source.dart';
+
 import '../../../shared/providers/app_providers.dart';
 import '../domain/restaurant_repository.dart';
+import '../domain/search_sort.dart';
 import '../domain/venue.dart';
 
 part 'search_notifier.g.dart';
@@ -18,6 +22,8 @@ class SearchQuery {
     this.priceBand,
     this.ratingMin,
     this.amenities = const <String>{},
+    this.nearMe = false,
+    this.sort = SearchSort.relevance,
   });
 
   final String text;
@@ -51,6 +57,22 @@ class SearchQuery {
   /// filter, which is not the same as a venue with no amenities.
   final Set<String> amenities;
 
+  /// C-2.2's distance filter.
+  ///
+  /// A BOOLEAN, not a radius. The reference has no radius slider and a diner
+  /// choosing between 3km and 5km in a city where a 3km trip can take forty
+  /// minutes is choosing badly with confidence. On means "within
+  /// [kNearMeRadiusKm] of where I am", which the API applies as `radius_km`.
+  ///
+  /// **This is the only control in the app that raises a permission dialog**,
+  /// and it raises it on the tap that turns it on. See `DinerLocation`.
+  final bool nearMe;
+
+  /// C-2.3. `distance` is only legal with a position — the API needs lat/lng to
+  /// order by it — so `SearchNotifier` degrades it to relevance rather than
+  /// sending a sort the server would refuse.
+  final SearchSort sort;
+
   /// Whether anything beyond the text and the Tonight chip is narrowing the
   /// results. Drives the count on the filter button, so a diner can see they
   /// have filters on without opening the sheet — the commonest way somebody
@@ -59,13 +81,21 @@ class SearchQuery {
       (cuisine == null ? 0 : 1) +
       (priceBand == null ? 0 : 1) +
       (ratingMin == null ? 0 : 1) +
+      (nearMe ? 1 : 0) +
       amenities.length;
 
   /// `copyWith` CANNOT CLEAR A FILTER, deliberately: `cuisine: null` means
   /// "leave it alone" in every `copyWith` ever written, and a sheet that could
   /// not express "any cuisine" would be a sheet with no way back. Clearing
   /// goes through [cleared] and [withFilters], which take the whole set.
-  SearchQuery copyWith({String? text, bool? tonightOnly, int? partySize}) => SearchQuery(
+  SearchQuery copyWith({
+    String? text,
+    bool? tonightOnly,
+    int? partySize,
+    bool? nearMe,
+    SearchSort? sort,
+  }) =>
+      SearchQuery(
         text: text ?? this.text,
         tonightOnly: tonightOnly ?? this.tonightOnly,
         partySize: partySize ?? this.partySize,
@@ -73,6 +103,8 @@ class SearchQuery {
         priceBand: priceBand,
         ratingMin: ratingMin,
         amenities: amenities,
+        nearMe: nearMe ?? this.nearMe,
+        sort: sort ?? this.sort,
       );
 
   /// Replace every filter at once — what the sheet applies.
@@ -81,6 +113,8 @@ class SearchQuery {
     required int? priceBand,
     required double? ratingMin,
     required Set<String> amenities,
+    required bool nearMe,
+    required SearchSort sort,
   }) =>
       SearchQuery(
         text: text,
@@ -90,9 +124,14 @@ class SearchQuery {
         priceBand: priceBand,
         ratingMin: ratingMin,
         amenities: amenities,
+        nearMe: nearMe,
+        sort: sort,
       );
 
   /// Text and Tonight survive; every filter goes.
+  /// Text and Tonight survive; every filter goes — INCLUDING the distance one,
+  /// and including a distance SORT, which cannot outlive the filter that gave
+  /// it a position to sort against.
   SearchQuery get cleared => SearchQuery(
         text: text,
         tonightOnly: tonightOnly,
@@ -123,12 +162,16 @@ class SearchCriteria extends _$SearchCriteria {
     required int? priceBand,
     required double? ratingMin,
     required Set<String> amenities,
+    bool nearMe = false,
+    SearchSort sort = SearchSort.relevance,
   }) =>
       state = state.withFilters(
         cuisine: cuisine,
         priceBand: priceBand,
         ratingMin: ratingMin,
         amenities: amenities,
+        nearMe: nearMe,
+        sort: sort,
       );
 
   void clearFilters() => state = state.cleared;
@@ -153,6 +196,25 @@ Future<SearchPage> searchResults(Ref ref) async {
     );
   }
 
+  // WHERE THE DINER IS, IF THEY HAVE TOLD US.
+  //
+  // `watch`, so granting permission re-runs the search on its own — the filter
+  // sheet turns `nearMe` on and asks in the same gesture, and the two land in
+  // either order.
+  final LocationResult? here = ref.watch(dinerLocationProvider);
+  final bool positioned = criteria.nearMe && (here?.hasPosition ?? false);
+
+  // DEGRADE, NEVER SEND A QUERY WE KNOW IS REFUSED.
+  //
+  // The API needs lat/lng for both `radius_km` and `sort=distance`. A diner who
+  // switched "near me" on and then declined the prompt has `nearMe` true and no
+  // position — the honest response is an unfiltered, relevance-ordered list
+  // plus a line on the screen saying why, not a 400.
+  final SearchSort sort =
+      criteria.sort == SearchSort.distance && !positioned
+          ? SearchSort.relevance
+          : criteria.sort;
+
   return ref.watch(restaurantRepositoryProvider).search(
         query: criteria.text.trim().isEmpty ? null : criteria.text.trim(),
         availableOn: criteria.tonightOnly ? _today() : null,
@@ -161,6 +223,10 @@ Future<SearchPage> searchResults(Ref ref) async {
         ratingMin: criteria.ratingMin,
         amenities: criteria.amenities.toList(),
         partySize: criteria.tonightOnly ? criteria.partySize : null,
+        lat: positioned ? here!.lat : null,
+        lng: positioned ? here!.lng : null,
+        radiusKm: positioned ? kNearMeRadiusKm : null,
+        sort: sort,
       );
 }
 

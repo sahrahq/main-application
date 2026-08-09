@@ -1,4 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- COARSE ONLY, and that is the whole permission story.
+         `LocationSource` asks for `LocationAccuracy.low` — "which restaurants
+         are near me" needs a neighbourhood, not a doorway — so FINE would be
+         asking for precision we do not use and will not spend a diner's trust
+         on. ACCESS_BACKGROUND_LOCATION is deliberately absent and must stay
+         absent: nothing in this product follows anybody around. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
         android:label="sahra_customer_app"
         android:name="${applicationName}"

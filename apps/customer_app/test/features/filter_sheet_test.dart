@@ -57,6 +57,24 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Scroll a control into view, then tap it.
+  ///
+  /// EVERY TAP IN THIS FILE GOES THROUGH HERE, and it did not used to. The
+  /// sheet grew two sections in the location half-batch — distance and sort —
+  /// and "Show results" moved below the fold of the 800x600 default surface.
+  /// Six tests failed with `derived an Offset that would not hit test`, which
+  /// reads as a broken button and is a viewport that is smaller than the sheet.
+  ///
+  /// Scrolling first is also what the diner does, so the test now exercises
+  /// the same path they take rather than one that only worked while the sheet
+  /// was short.
+  Future<void> tapInSheet(WidgetTester tester, Finder target) async {
+    await tester.ensureVisible(target);
+    await tester.pumpAndSettle();
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('THE BUTTON IS REACHABLE, and says nothing is set', (tester) async {
     final transport = FakeTransport((_, __, ___) => page());
     await pump(tester, transport: transport);
@@ -70,9 +88,9 @@ void main() {
     await pump(tester, transport: transport);
 
     await openSheet(tester);
-    await tester.tap(find.widgetWithText(SahraChip, 'Levantine'));
+    await tapInSheet(tester, find.widgetWithText(SahraChip, 'Levantine'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(SahraButton, 'Show results'));
+    await tapInSheet(tester, find.widgetWithText(SahraButton, 'Show results'));
     await tester.pumpAndSettle(const Duration(milliseconds: 600));
 
     final sent = transport.sent.where((c) => c.path.contains('/search')).toList();
@@ -87,9 +105,9 @@ void main() {
     final container = await pump(tester, transport: transport);
 
     await openSheet(tester);
-    await tester.tap(find.widgetWithText(SahraChip, 'Levantine'));
+    await tapInSheet(tester, find.widgetWithText(SahraChip, 'Levantine'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(SahraButton, 'Show results'));
+    await tapInSheet(tester, find.widgetWithText(SahraButton, 'Show results'));
     await tester.pumpAndSettle(const Duration(milliseconds: 600));
 
     expect(container.read(searchCriteriaProvider).isBlank, isFalse);
@@ -100,11 +118,11 @@ void main() {
     await pump(tester, transport: transport);
 
     await openSheet(tester);
-    await tester.tap(find.widgetWithText(SahraChip, 'Levantine'));
+    await tapInSheet(tester, find.widgetWithText(SahraChip, 'Levantine'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(SahraChip, r'$$'));
+    await tapInSheet(tester, find.widgetWithText(SahraChip, r'$$'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(SahraButton, 'Show results'));
+    await tapInSheet(tester, find.widgetWithText(SahraButton, 'Show results'));
     await tester.pumpAndSettle(const Duration(milliseconds: 600));
 
     expect(find.widgetWithText(SahraChip, 'Filters (2)'), findsOneWidget);
@@ -117,11 +135,11 @@ void main() {
     final container = await pump(tester, transport: transport);
 
     await openSheet(tester);
-    await tester.tap(find.widgetWithText(SahraChip, 'Levantine'));
+    await tapInSheet(tester, find.widgetWithText(SahraChip, 'Levantine'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(SahraChip, 'Levantine'));
+    await tapInSheet(tester, find.widgetWithText(SahraChip, 'Levantine'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(SahraButton, 'Show results'));
+    await tapInSheet(tester, find.widgetWithText(SahraButton, 'Show results'));
     await tester.pumpAndSettle(const Duration(milliseconds: 600));
 
     expect(container.read(searchCriteriaProvider).cuisine, isNull);
@@ -132,11 +150,11 @@ void main() {
     final container = await pump(tester, transport: transport);
 
     await openSheet(tester);
-    await tester.tap(find.widgetWithText(SahraChip, 'Outdoor seating'));
+    await tapInSheet(tester, find.widgetWithText(SahraChip, 'Outdoor seating'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(SahraChip, 'Shisha'));
+    await tapInSheet(tester, find.widgetWithText(SahraChip, 'Shisha'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(SahraButton, 'Show results'));
+    await tapInSheet(tester, find.widgetWithText(SahraButton, 'Show results'));
     await tester.pumpAndSettle(const Duration(milliseconds: 600));
 
     expect(container.read(searchCriteriaProvider).amenities, <String>{'outdoor', 'shisha'});
@@ -150,14 +168,14 @@ void main() {
     final container = await pump(tester, transport: transport);
 
     await openSheet(tester);
-    await tester.tap(find.widgetWithText(SahraChip, 'Levantine'));
+    await tapInSheet(tester, find.widgetWithText(SahraChip, 'Levantine'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(SahraButton, 'Show results'));
+    await tapInSheet(tester, find.widgetWithText(SahraButton, 'Show results'));
     await tester.pumpAndSettle(const Duration(milliseconds: 600));
     expect(container.read(searchCriteriaProvider).cuisine, 'levantine');
 
     await openSheet(tester);
-    await tester.tap(find.widgetWithText(SahraButton, 'Clear all'));
+    await tapInSheet(tester, find.widgetWithText(SahraButton, 'Clear all'));
     await tester.pump();
 
     // Still applied — Clear only touched the draft.
@@ -175,9 +193,9 @@ void main() {
     await pump(tester, transport: transport);
 
     await openSheet(tester);
-    await tester.tap(find.widgetWithText(SahraChip, 'Levantine'));
+    await tapInSheet(tester, find.widgetWithText(SahraChip, 'Levantine'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(SahraButton, 'Show results'));
+    await tapInSheet(tester, find.widgetWithText(SahraButton, 'Show results'));
     await tester.pumpAndSettle(const Duration(milliseconds: 600));
 
     await openSheet(tester);

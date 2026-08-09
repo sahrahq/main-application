@@ -2035,6 +2035,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Photo {index} of {total}'**
   String venueGalleryLabel(int index, int total);
+
+  /// No description provided for @filterDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get filterDistance;
+
+  /// No description provided for @filterNearMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Near me'**
+  String get filterNearMe;
+
+  /// Arrives pre-formatted so no locale renders Arabic-Indic figures. The radius is a constant (kNearMeRadiusKm), not something the diner picks — see search_sort.dart for why there is no slider.
+  ///
+  /// In en, this message translates to:
+  /// **'Within {km} km'**
+  String filterNearMeRadius(String km);
+
+  /// No description provided for @filterSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get filterSort;
+
+  /// No description provided for @sortRelevance.
+  ///
+  /// In en, this message translates to:
+  /// **'Best match'**
+  String get sortRelevance;
+
+  /// No description provided for @sortRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Highest rated'**
+  String get sortRating;
+
+  /// No description provided for @sortDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearest first'**
+  String get sortDistance;
+
+  /// No description provided for @locationAsking.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding you…'**
+  String get locationAsking;
+
+  /// No description provided for @locationDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t sort by distance without your location.'**
+  String get locationDenied;
+
+  /// No description provided for @locationDeniedForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is off for SAHRA. Turn it on in your phone\'s settings to sort by distance.'**
+  String get locationDeniedForever;
+
+  /// No description provided for @locationServiceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is switched off on this phone.'**
+  String get locationServiceDisabled;
+
+  /// No description provided for @locationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t find you. Search a neighbourhood instead.'**
+  String get locationUnavailable;
+
+  /// One decimal, pre-formatted. Shown on a result row ONLY when the server computed it, i.e. only when the diner shared a position.
+  ///
+  /// In en, this message translates to:
+  /// **'{km} km'**
+  String resultDistance(String km);
 }
 
 class _AppLocalizationsDelegate

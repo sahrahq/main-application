@@ -7,6 +7,9 @@ import 'package:sahra_design_system/sahra_design_system.dart';
 import '../../../localization/generated/app_localizations.dart';
 import 'amenity_copy.dart';
 import 'cuisine_copy.dart';
+import '../../../shared/location/location_notifier.dart';
+import '../../../shared/location/location_source.dart';
+import '../domain/search_sort.dart';
 import 'search_notifier.dart';
 import 'venue_meta.dart';
 
@@ -24,16 +27,24 @@ import 'venue_meta.dart';
 ///
 /// ── WHAT IS NOT HERE ─────────────────────────────────────────────────────
 ///
-/// **Distance.** C-2.2 lists it and the API takes `lat`/`lng`/`radius_km`,
-/// but nothing in this app collects a location: there is no permission
-/// prompt, no geocoding, no "near me". A distance filter ranking against a
-/// location we do not have would be a control that quietly does nothing —
-/// which is the failure Discover was rebuilt to fix. It needs a capability,
-/// not a screen.
+/// **Nothing, any more.** Distance and sort were the two absences, and both
+/// landed in the location half-batch.
 ///
-/// **Sort** (C-2.3). Same sheet eventually, but relevance/rating/price is a
-/// different question from "narrow this down", and mixing them makes a sheet
-/// nobody reads. The API's `sort` is untouched and defaults to relevance.
+/// ── THE ONLY PERMISSION PROMPT IN THE APP ────────────────────────────────
+///
+/// "Near me" is the single control that can raise the OS location dialog, and
+/// it raises it on the tap that switches it on. Not at launch, not when this
+/// sheet opens, not when the screen behind it builds.
+///
+/// That is the agreement — "I don't want a permission prompt in the app before
+/// there's a reason for one" — enforced by shape rather than by discipline:
+/// `DinerLocation.build()` returns null and asks nothing, so the dialog cannot
+/// appear unless something calls `request()`, and this is the only caller.
+///
+/// **The toggle flips only if a position arrives.** A diner who taps it and
+/// then declines gets the switch back where it was and a line saying why —
+/// rather than a filter that is on, changes nothing, and has to be discovered
+/// to be useless. Which is the failure Discover was rebuilt to fix.
 ///
 /// ── AND WHY EVERYTHING IS LOCAL UNTIL "APPLY" ────────────────────────────
 ///
@@ -85,6 +96,16 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
   late int? _priceBand;
   late double? _ratingMin;
   late Set<String> _amenitySet;
+  late bool _nearMe;
+  late SearchSort _sort;
+
+  /// Set when the diner asked for "near me" and the platform said no. Cleared
+  /// on the next attempt, so the message belongs to the last thing they did.
+  LocationOutcome? _refused;
+
+  /// The prompt can take a second or two. Without this the toggle sits
+  /// unchanged and the sheet looks frozen.
+  bool _locating = false;
 
   @override
   void initState() {
@@ -96,7 +117,55 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
     _priceBand = criteria.priceBand;
     _ratingMin = criteria.ratingMin;
     _amenitySet = <String>{...criteria.amenities};
+    _nearMe = criteria.nearMe;
+    _sort = criteria.sort;
   }
+
+  /// The one place in the app that can raise the location dialog.
+  Future<void> _toggleNearMe() async {
+    if (_nearMe) {
+      // Turning it OFF forgets the position too, so the next tap asks again
+      // rather than reusing a fix from an hour and one taxi ride ago. A
+      // distance SORT cannot outlive the filter that gave it a position.
+      ref.read(dinerLocationProvider.notifier).clear();
+      setState(() {
+        _nearMe = false;
+        _refused = null;
+        if (_sort == SearchSort.distance) _sort = SearchSort.relevance;
+      });
+      return;
+    }
+
+    setState(() {
+      _locating = true;
+      _refused = null;
+    });
+
+    final LocationResult result =
+        await ref.read(dinerLocationProvider.notifier).request();
+    if (!mounted) return;
+
+    setState(() {
+      _locating = false;
+      // THE SWITCH FOLLOWS THE POSITION, not the tap. On refusal it stays off
+      // and the reason appears underneath.
+      _nearMe = result.hasPosition;
+      _refused = result.hasPosition ? null : result.outcome;
+    });
+  }
+
+  /// Four different sentences, because four different things are true and
+  /// three of them cannot be fixed by tapping again. `deniedForever`
+  /// especially: the OS will not show the dialog, so "try again" would be an
+  /// instruction that cannot work.
+  String _refusalMessage(LocationOutcome outcome, AppLocalizations l10n) =>
+      switch (outcome) {
+        LocationOutcome.denied => l10n.locationDenied,
+        LocationOutcome.deniedForever => l10n.locationDeniedForever,
+        LocationOutcome.serviceDisabled => l10n.locationServiceDisabled,
+        LocationOutcome.unavailable => l10n.locationUnavailable,
+        LocationOutcome.ok => '',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -214,6 +283,59 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 ],
               ),
 
+              // Distance — C-2.2, and the permission prompt.
+              const SizedBox(height: SahraSpace.s5),
+              SahraSectionLabel(l10n.filterDistance),
+              const SizedBox(height: SahraSpace.s2),
+              SahraChip(
+                label: _locating
+                    ? l10n.locationAsking
+                    : _nearMe
+                        // Says WHAT "near me" means once it is on. A filter
+                        // whose reach is invisible is one a diner cannot tell
+                        // is working.
+                        ? l10n.filterNearMeRadius(
+                            kNearMeRadiusKm.toStringAsFixed(0),
+                          )
+                        : l10n.filterNearMe,
+                active: _nearMe,
+                onPressed:
+                    _locating ? null : () => unawaited(_toggleNearMe()),
+              ),
+              if (_refused != null) ...<Widget>[
+                const SizedBox(height: SahraSpace.s2),
+                Text(
+                  _refusalMessage(_refused!, l10n),
+                  style: text.bodySmall?.copyWith(color: s.textSoft),
+                ),
+              ],
+
+              // Sort — C-2.3.
+              const SizedBox(height: SahraSpace.s5),
+              SahraSectionLabel(l10n.filterSort),
+              const SizedBox(height: SahraSpace.s2),
+              Wrap(
+                spacing: SahraSpace.s2,
+                runSpacing: SahraSpace.s2,
+                children: <Widget>[
+                  for (final option in SearchSort.values)
+                    // NEAREST FIRST IS ABSENT UNTIL THERE IS A POSITION, not
+                    // present and disabled. A disabled control invites the
+                    // question "why"; an absent one is answered by the
+                    // distance filter directly above it.
+                    if (option != SearchSort.distance || _nearMe)
+                      SahraChip(
+                        label: switch (option) {
+                          SearchSort.relevance => l10n.sortRelevance,
+                          SearchSort.rating => l10n.sortRating,
+                          SearchSort.distance => l10n.sortDistance,
+                        },
+                        active: _sort == option,
+                        onPressed: () => setState(() => _sort = option),
+                      ),
+                ],
+              ),
+
               const SizedBox(height: SahraSpace.s6),
               SahraButton(
                 label: l10n.filterApply,
@@ -223,6 +345,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                         priceBand: _priceBand,
                         ratingMin: _ratingMin,
                         amenities: _amenitySet,
+                        nearMe: _nearMe,
+                        sort: _sort,
                       );
                   unawaited(Navigator.of(context).maybePop());
                 },
@@ -239,6 +363,9 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   _priceBand = null;
                   _ratingMin = null;
                   _amenitySet = <String>{};
+                  _nearMe = false;
+                  _sort = SearchSort.relevance;
+                  _refused = null;
                 }),
               ),
               const SizedBox(height: SahraSpace.s3),

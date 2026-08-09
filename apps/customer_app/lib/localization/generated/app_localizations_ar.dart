@@ -1116,4 +1116,48 @@ class AppLocalizationsAr extends AppLocalizations {
   String venueGalleryLabel(int index, int total) {
     return 'صورة $index من $total';
   }
+
+  @override
+  String get filterDistance => 'المسافة';
+
+  @override
+  String get filterNearMe => 'قريب مني';
+
+  @override
+  String filterNearMeRadius(String km) {
+    return 'في حدود $km كم';
+  }
+
+  @override
+  String get filterSort => 'ترتيب حسب';
+
+  @override
+  String get sortRelevance => 'الأنسب';
+
+  @override
+  String get sortRating => 'الأعلى تقييماً';
+
+  @override
+  String get sortDistance => 'الأقرب';
+
+  @override
+  String get locationAsking => 'بندوّر عليك…';
+
+  @override
+  String get locationDenied => 'مش هنعرف نرتب بالمسافة من غير موقعك.';
+
+  @override
+  String get locationDeniedForever =>
+      'الموقع مقفول لسهرة. افتحه من إعدادات التليفون عشان الترتيب بالمسافة.';
+
+  @override
+  String get locationServiceDisabled => 'الموقع مقفول على التليفون ده.';
+
+  @override
+  String get locationUnavailable => 'مقدرناش نلاقيك. دوّر على منطقة بدل كده.';
+
+  @override
+  String resultDistance(String km) {
+    return '$km كم';
+  }
 }

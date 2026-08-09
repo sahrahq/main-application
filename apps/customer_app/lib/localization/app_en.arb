@@ -627,5 +627,34 @@
       }
     },
     "description": "SEMANTIC ONLY. 'Photo' repeated four times tells a screen-reader user nothing about how many there are."
+  },
+  "filterDistance": "Distance",
+  "filterNearMe": "Near me",
+  "filterNearMeRadius": "Within {km} km",
+  "filterSort": "Sort by",
+  "sortRelevance": "Best match",
+  "sortRating": "Highest rated",
+  "sortDistance": "Nearest first",
+  "locationAsking": "Finding you…",
+  "locationDenied": "We can't sort by distance without your location.",
+  "locationDeniedForever": "Location is off for SAHRA. Turn it on in your phone's settings to sort by distance.",
+  "locationServiceDisabled": "Location is switched off on this phone.",
+  "locationUnavailable": "We couldn't find you. Search a neighbourhood instead.",
+  "resultDistance": "{km} km",
+  "@filterNearMeRadius": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    },
+    "description": "Arrives pre-formatted so no locale renders Arabic-Indic figures. The radius is a constant (kNearMeRadiusKm), not something the diner picks — see search_sort.dart for why there is no slider."
+  },
+  "@resultDistance": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    },
+    "description": "One decimal, pre-formatted. Shown on a result row ONLY when the server computed it, i.e. only when the diner shared a position."
   }
 }
