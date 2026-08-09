@@ -15,6 +15,8 @@ import { SearchModule } from "./modules/search/search.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { ImagesModule } from './modules/images/images.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
+import { MenusModule } from './modules/menus/menus.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -47,6 +49,10 @@ import { FavoritesModule } from './modules/favorites/favorites.module';
     AdminModule,
     ImagesModule,
     FavoritesModule,
+    // Both mount two-segment routes under /restaurants, so they go above the
+    // one-segment wildcard for the same reason search and availability do.
+    MenusModule,
+    ReviewsModule,
     ReservationsModule,
     // LAST, and it has to stay last: its `GET /restaurants/:idOrSlug` is a
     // wildcard that would shadow /restaurants/search and

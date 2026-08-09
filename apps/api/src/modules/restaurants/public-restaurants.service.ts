@@ -3,6 +3,10 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { ImagesService, ImageView } from '../images/images.service';
 import { amenityKeys } from '../search/search-doc';
+// Shared with the menus and reviews reads. See `live-restaurant.ts` for why the
+// predicate stopped being duplicated once there were four copies of it in three
+// files.
+import { LIVE_ONLY, SLUG_RE, UUID_RE, restaurantNotFound } from './live-restaurant';
 
 /**
  * The public restaurant profile — doc 06 §3, `GET /restaurants/:idOrSlug`.
@@ -97,8 +101,6 @@ function hhmm(t: Date): string {
   return t.toISOString().slice(11, 16);
 }
 
-const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,79}$/;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const PROFILE_SELECT = Prisma.sql`
   SELECT r.id, r.slug, r.name_en, r.name_ar,
@@ -110,14 +112,6 @@ const PROFILE_SELECT = Prisma.sql`
          r.phone, r.website, r.amenities, r.policies,
          r.timezone, r.booking_mode::text AS booking_mode
     FROM restaurants r`;
-
-/**
- * Repeated in both lookups deliberately, the same way `loadLiveRows` does it:
- * an inactive or soft-deleted venue must be invisible on EVERY path, and a
- * shared predicate that one caller forgets is how a suspended listing comes
- * back to life.
- */
-const LIVE_ONLY = Prisma.sql`AND r.status = 'active' AND r.deleted_at IS NULL`;
 
 @Injectable()
 export class PublicRestaurantsService {
@@ -205,10 +199,6 @@ export class PublicRestaurantsService {
   }
 
   private notFound(): NotFoundException {
-    return new NotFoundException({
-      code: 'restaurant_not_found',
-      message: 'We could not find that restaurant.',
-      message_ar: 'مش لاقيين المطعم ده.',
-    });
+    return restaurantNotFound();
   }
 }

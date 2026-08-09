@@ -21,6 +21,8 @@ signal that it was never cosmetic.
 | 5 | Splash animates the fade and the hairline only — no mark settle, no wordmark letter-spacing, no lattice fade | `splash_screen.dart` | Group F | Animating letter-spacing rebuilds the `TextStyle` every frame |
 | 6 | Splash draws the wordmark as TEXT — there is no logo asset in the repo | `splash_screen.dart` | Group F | Add `assets/logo.png`, which the reference expects |
 | 7 | Onboarding's "Already with us? Sign in" wraps to two lines | `onboarding_screen.dart` | Group F | Shorter copy, or a Row that shrinks |
+| 8 | The Arabic venue name on the hero touches the right edge — «ليالي لاونج» loses part of its last glyph | `Venue/*.ar.*` goldens | **Pre-existing**, seen in Group D | The display face's Arabic glyphs overrun their box; needs a `strutStyle` or a wider inset |
+| 9 | A menu sheet and a reviews sheet have no visible close control — drag, scrim or back button only | `menu_section.dart`, `reviews_section.dart` | Group D | Platform-standard, but it is why both are `interactive: false` in the registry |
 
 ## Not on this list, on purpose
 
@@ -29,6 +31,12 @@ the standing rule is that AA wins over the reference without asking. The
 Discover "See all" label is the most recent example: the reference sets
 `--gold-dark`, gold-as-text measures 2.5–2.8:1, and it ships as
 `accentOnSurface` instead.
+
+**A rating that does not distinguish itself.** Review cards briefly drew
+`SahraRatingStars(showValue: false)`, which is one star and no figure — so a
+three-star review and a five-star one were the same picture. Not carried: a
+control that looks like it is telling you something and is not is a defect, not
+a polish item. Fixed in Group D by showing the figure.
 
 **Anything that overflows.** A `RenderFlex` overflow is silent in a release
 build, so it is a defect that the person it breaks for cannot even report. Two

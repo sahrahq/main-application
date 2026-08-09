@@ -46,6 +46,11 @@ void main() {
       // (DESIGN-RULES.md), and there is no Arabic form of "+" meaning "or
       // better". A translation here could only be the same three characters.
       'filterRatingPlus',
+      // "{price} {currency}" — two placeholders and a space, and no word of
+      // either language in it. The CURRENCY is what differs (`EGP` / «ج.م»)
+      // and it is a separate key that this one interpolates, so translating
+      // this would mean translating a space.
+      'menuPrice',
     };
 
     final untranslated = <String>[];

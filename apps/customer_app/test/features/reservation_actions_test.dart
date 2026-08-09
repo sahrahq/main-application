@@ -37,6 +37,7 @@ void main() {
     int partySize = 2,
     String? cancelledBy,
     String? at,
+    bool canReview = false,
   }) =>
       <String, Object?>{
         'id': id,
@@ -56,6 +57,11 @@ void main() {
         'cancelled_at': cancelledBy == null ? null : startsAt,
         'cancel_reason': null,
         'needs_acknowledgement': false,
+        // Group D. The SERVER decides this; a fixture that
+        // omitted it would be testing a response shape the API
+        // never sends.
+        'can_review': canReview,
+        'review_id': null,
         'restaurant': <String, Object?>{
           'id': venueId,
           'slug': 'layali-lounge',

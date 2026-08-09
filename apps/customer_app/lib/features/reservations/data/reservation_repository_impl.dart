@@ -2,6 +2,7 @@ import 'package:sahra_api_client/sahra_api_client.dart';
 
 import '../../../core/error/guarded.dart';
 import '../../../core/utils/idempotency_key.dart';
+import '../../restaurants/domain/review.dart';
 import '../domain/booking.dart';
 import '../domain/my_reservation.dart';
 import '../domain/reservation_repository.dart';
@@ -150,6 +151,48 @@ class ReservationRepositoryImpl implements ReservationRepository {
   }
 
   @override
+  Future<Review> createReview({
+    required String reservationId,
+    required int rating,
+    int? foodRating,
+    int? serviceRating,
+    int? ambienceRating,
+    String? body,
+  }) async {
+    final trimmed = body?.trim();
+    final r = await guarded(
+      () => _api.createReview(
+        body: CreateReviewDto(
+          reservationId: reservationId,
+          rating: rating,
+          foodRating: foodRating,
+          serviceRating: serviceRating,
+          ambienceRating: ambienceRating,
+          // EMPTY BECOMES NULL. A body of spaces is the empty body it actually
+          // is, and the CHECK constraint refuses a present-but-blank one — so
+          // sending it would turn a stray keystroke into a 500-shaped error
+          // for something the diner did not intend to write.
+          body: trimmed == null || trimmed.isEmpty ? null : trimmed,
+        ),
+      ),
+    );
+
+    return Review(
+      id: r.id,
+      rating: r.rating,
+      author: r.author,
+      createdAt: DateTime.parse(r.createdAt),
+      body: r.body,
+      foodRating: r.foodRating,
+      serviceRating: r.serviceRating,
+      ambienceRating: r.ambienceRating,
+      ownerReply: r.ownerReply,
+      ownerRepliedAt:
+          r.ownerRepliedAt == null ? null : DateTime.parse(r.ownerRepliedAt!),
+    );
+  }
+
+  @override
   Future<SlotBoard> movableSlots({
     required String id,
     required String date,
@@ -172,6 +215,8 @@ class ReservationRepositoryImpl implements ReservationRepository {
         time: r.time,
         partySize: r.partySize,
         needsAcknowledgement: r.needsAcknowledgement,
+        canReview: r.canReview,
+        reviewId: r.reviewId,
         // Parsed to an enum HERE, once, rather than compared to a string in
         // three widgets. An unrecognised value becomes null, which the screens
         // already handle as "cancelled, actor unknown" — a server that gains a

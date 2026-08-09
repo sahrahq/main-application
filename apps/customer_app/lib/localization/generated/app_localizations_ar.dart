@@ -22,6 +22,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errWaitlistEntryNotFound => 'مش لاقيين طلب الانتظار ده.';
 
   @override
+  String get errReviewAlreadyExists => 'إنت قيّمت الزيارة دي قبل كده.';
+
+  @override
+  String get errReviewNotEligible => 'التقييم بيكون للزيارات اللي حصلت فعلاً.';
+
+  @override
+  String get errReviewTooEarly => 'تقدر تقيّم بعد ما ميعاد الطاولة يخلص.';
+
+  @override
   String get errBookingsOutsideNewHours =>
       'فيه حجوزات مؤكدة هتقع بره المواعيد دي.';
 
@@ -928,4 +937,183 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reservationCallVenue => 'كلّم المطعم';
+
+  @override
+  String get venueMenuTitle => 'من المنيو';
+
+  @override
+  String get venueMenuFull => 'المنيو كامل';
+
+  @override
+  String get menuSheetTitle => 'المنيو';
+
+  @override
+  String get menuEmptyTitle => 'مفيش منيو لسه';
+
+  @override
+  String get menuEmptyMessage =>
+      'المطعم ده لسه ما شاركش المنيو معانا. كلّمهم وهيقولولك إيه الحلو النهارده.';
+
+  @override
+  String get menuPdfOpen => 'افتح المنيو';
+
+  @override
+  String get menuPdfNote => 'منيو المكان ده ملف. هيفتح برّه التطبيق.';
+
+  @override
+  String menuItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count طبق',
+      few: '$count أطباق',
+      two: 'طبقين',
+      one: 'طبق واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String menuPrice(String price, String currency) {
+    return '$price $currency';
+  }
+
+  @override
+  String get currencyEgp => 'ج.م';
+
+  @override
+  String get dietVegetarian => 'نباتي';
+
+  @override
+  String get dietVegan => 'نباتي صرف';
+
+  @override
+  String get dietGlutenFree => 'من غير جلوتين';
+
+  @override
+  String get dietNutFree => 'من غير مكسرات';
+
+  @override
+  String get dietDairyFree => 'من غير ألبان';
+
+  @override
+  String get dietShellfish => 'فيه قشريات';
+
+  @override
+  String get dietSpicy => 'حرّاق';
+
+  @override
+  String get dietContainsAlcohol => 'فيه كحول';
+
+  @override
+  String get dietContainsPork => 'فيه لحم خنزير';
+
+  @override
+  String get venueReviewsTitle => 'التقييمات';
+
+  @override
+  String get venueReviewsAll => 'كل التقييمات';
+
+  @override
+  String get reviewsSheetTitle => 'التقييمات';
+
+  @override
+  String get reviewsEmptyTitle => 'مفيش تقييمات لسه';
+
+  @override
+  String get reviewsEmptyMessage =>
+      'التقييم بيكتبه بس اللي حجز وجه فعلاً، فأول واحد بياخد وقت.';
+
+  @override
+  String reviewsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تقييم',
+      few: '$count تقييمات',
+      two: 'تقييمين',
+      one: 'تقييم واحد',
+      zero: 'مفيش تقييمات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reviewsVerifiedNote => 'كل تقييم هنا من زبون حجز طاولة وجه فعلاً.';
+
+  @override
+  String get reviewOwnerReply => 'رد المطعم';
+
+  @override
+  String get reviewFood => 'الأكل';
+
+  @override
+  String get reviewService => 'الخدمة';
+
+  @override
+  String get reviewAmbience => 'الجو';
+
+  @override
+  String get reviewsShowMore => 'اعرض كمان';
+
+  @override
+  String reviewStarsLabel(String rating) {
+    return '$rating من 5';
+  }
+
+  @override
+  String reviewBreakdownLabel(int stars, int count) {
+    return '$stars نجوم: $count';
+  }
+
+  @override
+  String get writeReviewCta => 'اكتب تقييم';
+
+  @override
+  String get writeReviewTitle => 'كانت عاملة إيه؟';
+
+  @override
+  String writeReviewVenue(String name, String date) {
+    return '$name، $date';
+  }
+
+  @override
+  String get writeReviewOverall => 'بشكل عام';
+
+  @override
+  String get writeReviewDetail => 'تفاصيل أكتر، لو حابب';
+
+  @override
+  String get writeReviewBodyLabel => 'حاجة كنت هتقولها لصاحبك؟';
+
+  @override
+  String get writeReviewBodyHint => 'أكلت إيه، قعدت فين، وهترجع تاني ولا لأ.';
+
+  @override
+  String get writeReviewSubmit => 'انشر التقييم';
+
+  @override
+  String get writeReviewSubmitting => 'بننشر…';
+
+  @override
+  String get writeReviewPosted => 'اتنشر. شكراً ليك.';
+
+  @override
+  String writeReviewStar(int n) {
+    return '$n من 5 نجوم';
+  }
+
+  @override
+  String get writeReviewNeedsRating => 'اختار تقييم الأول.';
+
+  @override
+  String get reviewAlreadyWritten => 'إنت قيّمت الزيارة دي';
+
+  @override
+  String get reviewPublicNote => 'هيظهر اسمك الأول وأول حرف من اسم العيلة.';
+
+  @override
+  String venueGalleryLabel(int index, int total) {
+    return 'صورة $index من $total';
+  }
 }

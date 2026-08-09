@@ -27,6 +27,7 @@ export 'src/components/sahra_result_row.dart';
 export 'src/components/sahra_search_bar.dart';
 export 'src/components/sahra_section_label.dart';
 export 'src/components/sahra_skeleton.dart';
+export 'src/components/sahra_star_input.dart';
 export 'src/components/sahra_tab_bar.dart';
 export 'src/gallery/contrast_audit_page.dart';
 export 'src/theme/sahra_bidi.dart';

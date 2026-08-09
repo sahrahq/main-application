@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
 
@@ -120,6 +121,76 @@ void main() {
       // And that the remedy applies to it, unlike to the plain figure, where
       // the library doc says not to bother.
       expect(ltrRun(signed).codeUnitAt(0), 0x2066);
+    });
+  });
+
+  group('contentDirection — whose words these are decides which way they run', () {
+    // FOUND IN THE ARABIC REVIEWS GOLDEN. An English review inside an Arabic
+    // page ended `.whatever the menu says` and the author read `.Nour H` — the
+    // full stop taking the paragraph's direction. `ltrRun` cannot fix it,
+    // because the problem is the whole paragraph rather than a run inside one,
+    // and applying it blindly would lay an Arabic name out backwards.
+    test('Latin content is left-to-right, punctuation and all', () {
+      expect(contentDirection('Nour H.'), TextDirection.ltr);
+      expect(contentDirection('Food was excellent. Service slowed.'),
+          TextDirection.ltr);
+      // Leading punctuation and digits are NOT strong — the first LETTER
+      // decides, which is bidi rule P2.
+      expect(contentDirection('"Great" — 5/5'), TextDirection.ltr);
+      expect(contentDirection('4/5 stars'), TextDirection.ltr);
+    });
+
+    test('Arabic content is right-to-left', () {
+      expect(contentDirection('نور ح.'), TextDirection.rtl);
+      expect(contentDirection('الأكل ممتاز والخدمة بطيئة.'), TextDirection.rtl);
+      // Same rule from the other side: the digits are skipped.
+      expect(contentDirection('4/5 — عظيم'), TextDirection.rtl);
+    });
+
+    test('and null when there is nothing strong to go on', () {
+      // Null means "inherit". A string with no direction of its own belongs to
+      // the page it is on, and forcing one would be a guess.
+      expect(contentDirection(''), isNull);
+      expect(contentDirection('5'), isNull);
+      expect(contentDirection('★★★★★'), isNull);
+      expect(contentDirection('...'), isNull);
+    });
+
+    testWidgets('and it actually changes the layout of an Arabic page',
+        (tester) async {
+      // The claim that matters, and a string test cannot see it: the same
+      // review laid out with and without its own direction.
+      const String review = 'Food was excellent. Service slowed.';
+
+      await tester.pumpWidget(
+        harness(
+          Cell.arLight,
+          Column(
+            children: <Widget>[
+              const Text(review, style: TextStyle(fontSize: 14)),
+              Text(
+                review,
+                textDirection: contentDirection(review),
+                style: const TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      );
+      await stabilise(tester);
+
+      final Iterable<Element> texts = find.text(review).evaluate();
+      expect(texts.length, 2);
+      // Both render; what differs is where the sentence starts. A Rect cannot
+      // express glyph order, so the checkable claim is that the two are laid
+      // out in DIFFERENT directions rather than identically.
+      final RenderParagraph a =
+          texts.first.findRenderObject()! as RenderParagraph;
+      final RenderParagraph b =
+          texts.last.findRenderObject()! as RenderParagraph;
+      expect(a.textDirection, TextDirection.rtl);
+      expect(b.textDirection, TextDirection.ltr);
+      expect(tester.takeException(), isNull);
     });
   });
 }

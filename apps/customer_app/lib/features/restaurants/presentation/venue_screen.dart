@@ -8,6 +8,9 @@ import '../../../shared/widgets/sahra_async_view.dart';
 import '../../../shared/widgets/venue_image_provider.dart';
 import '../domain/venue.dart';
 import 'amenity_copy.dart';
+import 'gallery_strip.dart';
+import 'menu_section.dart';
+import 'reviews_section.dart';
 import 'venue_meta.dart';
 import 'venue_notifier.dart';
 import '../../../shared/providers/session_providers.dart';
@@ -20,14 +23,6 @@ import '../../saved/presentation/saved_notifier.dart';
 /// restaurant page that invents its own menu prices is worse than one that
 /// admits it has none:
 ///
-///   - **Menu section** (`t.menu`, four dishes with EGP prices) — R-2.3, no
-///     menu tables in the schema.
-///   - **Photo gallery** (four thumbnails). NOT a missing data source any
-///     more: Group B built the image table, `VenueProfile.images` is populated
-///     cover-first, and the hero above draws `images.first`. Everything after
-///     the first image is fetched and then not rendered. This is the one item
-///     on this list that is a GAP rather than a dependency, and it is the
-///     cheapest thing here to close.
 ///   - **"Nour & 11 friends have been here"** (`AvatarStack`) — the social
 ///     graph is C-3.8, P2.
 ///   - **"Sunset offer — 20% off"** — promotions are R-4.2, P1/P2.
@@ -36,8 +31,13 @@ import '../../saved/presentation/saved_notifier.dart';
 ///     package is in the doc 08 stack table.
 ///
 /// What DOES render is everything the schema actually holds: name, rating,
-/// cuisines, price band, neighbourhood, description, amenities, opening hours
-/// and phone — which is most of C-2.6.
+/// cuisines, price band, neighbourhood, description, amenities, opening hours,
+/// phone, **the photo gallery, the menu and the reviews** — which is C-2.6
+/// except for the map and the two P1/P2 features above.
+///
+/// Group D added the last three. The gallery is the one worth naming: the
+/// images were already arriving and only the first was drawn, so the strip was
+/// a rendering gap rather than a missing capability. See `GalleryStrip`.
 class VenueScreen extends ConsumerWidget {
   const VenueScreen({required this.idOrSlug, super.key});
 
@@ -104,10 +104,38 @@ class _Content extends StatelessWidget {
             padding: EdgeInsets.zero,
             children: <Widget>[
               _Hero(venue: venue),
+              // OUTSIDE the horizontal padding, deliberately. The reference
+              // scrolls the strip edge to edge, and a thumbnail half off the
+              // screen is what tells a diner there are more — the padding moves
+              // onto the list's own content instead.
+              //
+              // ── AND IT SITS ABOVE THE DESCRIPTION, WHICH THE REFERENCE DOES
+              // NOT ──
+              //
+              // `VenueDetailScreen.jsx` draws description → gallery. Swapping
+              // them is a real deviation and it is here for a real reason:
+              // full-bleed means the strip cannot live inside the page's
+              // horizontal padding, so putting it between the description and
+              // everything else left the description alone in a full-width
+              // block of its own.
+              //
+              // That merged into ONE semantics node spanning the whole width,
+              // and `textContrastGuideline` then sampled far more background
+              // than glyph and read the paragraph's colour off an
+              // anti-aliased edge — 3.73:1 for text that measures 8.77:1. The
+              // copy never changed colour; the node around it did.
+              //
+              // Two ways out: shape the code around a measurement artefact, or
+              // move one block. Moving the block also puts the photographs
+              // directly under the hero, which is where a diner deciding
+              // whether to look further is already looking.
+              GalleryStrip(images: venue.images),
               Padding(
-                padding: SahraSpace.symmetric(
-                  horizontal: SahraSpace.s5,
-                  vertical: SahraSpace.s4,
+                padding: SahraSpace.inset(
+                  start: SahraSpace.s5,
+                  end: SahraSpace.s5,
+                  top: SahraSpace.s4,
+                  bottom: SahraSpace.s4,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,7 +162,16 @@ class _Content extends StatelessWidget {
                       ),
                       const SizedBox(height: SahraSpace.s5),
                     ],
+                    // The reference's order: menu, then the map, then the info
+                    // rows. Reviews are not in the reference at all; they go
+                    // last, because C-2.6 lists them after the practical
+                    // details and because a diner scrolling for the phone
+                    // number should not have to pass four reviews first.
+                    MenuSection(idOrSlug: venue.slug),
+                    const SizedBox(height: SahraSpace.s5),
                     _InfoRows(venue: venue),
+                    const SizedBox(height: SahraSpace.s5),
+                    ReviewsSection(idOrSlug: venue.slug),
                   ],
                 ),
               ),

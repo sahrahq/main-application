@@ -24,6 +24,8 @@ class SahraInput extends StatefulWidget {
     this.keyboardType,
     this.obscureText = false,
     this.onChanged,
+    this.maxLines = 1,
+    this.maxLength,
     super.key,
   });
 
@@ -40,6 +42,22 @@ class SahraInput extends StatefulWidget {
   final TextInputType? keyboardType;
   final bool obscureText;
   final ValueChanged<String>? onChanged;
+
+  /// 1 for a single-line field; more for a paragraph.
+  ///
+  /// Added for the review composer, which is the first multi-line field in the
+  /// product. Kept as a plain `int` rather than a variant because the height is
+  /// the only thing that differs — a "textarea" variant would duplicate the
+  /// whole border, focus and error treatment to change one property.
+  final int maxLines;
+
+  /// A hard ceiling on characters, enforced as the diner types.
+  ///
+  /// The COUNTER IS OFF (`counterText: ''`). Flutter draws one by default and
+  /// it is a running "12/2000" under a field whose limit nobody is near —
+  /// pressure on a review nobody asked to write at length. The limit exists to
+  /// match a CHECK constraint, not to set an expectation.
+  final int? maxLength;
 
   @override
   State<SahraInput> createState() => _SahraInputState();
@@ -78,6 +96,8 @@ class _SahraInputState extends State<SahraInput> {
       keyboardType: widget.keyboardType,
       obscureText: widget.obscureText,
       onChanged: widget.onChanged,
+      maxLines: widget.obscureText ? 1 : widget.maxLines,
+      maxLength: widget.maxLength,
       style: theme.textTheme.bodyMedium?.copyWith(color: s.textBody),
       decoration: InputDecoration(
         isDense: true,
@@ -85,6 +105,7 @@ class _SahraInputState extends State<SahraInput> {
         // out 45dp — under Android's 48 — which androidTapTargetGuideline
         // caught. Easy to miss by eye because the field LOOKS big enough.
         constraints: const BoxConstraints(minHeight: SahraRules.minTouchTarget),
+        counterText: '',
         hintText: widget.hint,
         hintStyle: theme.textTheme.bodyMedium?.copyWith(color: s.textFaint),
         filled: !isLine,

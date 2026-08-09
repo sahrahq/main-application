@@ -24,6 +24,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaService } from '../src/shared/prisma/prisma.service';
 import { MeiliSearchIndex, DEFAULT_INDEX_UID } from '../src/modules/search/meili-search.index';
 import { loadLiveRows, toSearchDoc } from '../src/modules/search/search-doc';
+import { syncMenusAndReviews } from './seed-menus-reviews';
 
 const prisma = new PrismaClient();
 
@@ -370,10 +371,12 @@ async function main(): Promise<void> {
 
   const ownerId = await ensureOwner();
   const ids: string[] = [];
+  const bySlug: { slug: string; id: string }[] = [];
 
   for (const v of VENUES) {
     const id = await upsertVenue(ownerId, v);
     ids.push(id);
+    bySlug.push({ slug: v.slug, id });
 
     if (reset) {
       await prisma.$executeRaw`
@@ -384,6 +387,16 @@ async function main(): Promise<void> {
     console.log(`  ${v.nameEn.padEnd(14)} ${v.tables.length} tables, ${v.shifts.length} shift(s)  ${id}`);
   }
 
+  // AFTER the venue upsert, because the review trigger recomputes rating_avg
+  // and rating_count from real rows — and `upsertVenue` writes the hand-picked
+  // numbers from VENUES. Run the other way round and the seeded 4.8/312 would
+  // win, which is the demo data that hides a bug in the count.
+  const md = await syncMenusAndReviews(prisma, bySlug);
+  console.log(`  ${md.menus} menu(s), ${md.reviews} review(s) — ratings recomputed by trigger`);
+
+  // AFTER the reviews too: the search document carries rating and rating_count,
+  // so indexing first would publish the pre-trigger numbers to Meilisearch and
+  // leave the list disagreeing with the venue page it links to.
   await reindex(ids);
 
   console.log(`\n${VENUES.length} venues ready.${reset ? ' Reservations cleared.' : ''}`);

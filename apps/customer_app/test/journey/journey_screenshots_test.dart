@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
+import 'package:sahra_customer_app/features/restaurants/presentation/venue_screen.dart';
 import 'package:sahra_customer_app/core/auth/session.dart';
 import 'package:sahra_customer_app/localization/generated/app_localizations.dart';
 import 'package:sahra_customer_app/main.dart';
@@ -48,6 +49,28 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.reset);
 
+        // ── CLEAR THE FOLDER FIRST ──────────────────────────────────
+        //
+        // These files are NUMBERED by position, and the position of every step
+        // after an insertion changes. Adding two nodes in Group D renamed
+        // eighteen of them — and the old names stayed on disk, so the folder
+        // held 83 pictures of a 25-step walk, three versions of some steps,
+        // some of them weeks old.
+        //
+        // The product owner opens this folder to see what the app does. A
+        // folder where a third of the pictures are of a build that no longer
+        // exists is worse than no folder: every one of them looks current.
+        // ONLY WHEN WRITING. Deleting them on a COMPARE run makes every
+        // `matchesGoldenFile` miss a file that was there a second ago — which
+        // is what the first version of this did, and it turned a stable
+        // walk-through into one that failed every time it was not updating.
+        final Directory dir = Directory('test/journey/walkthrough/$tag');
+        if (autoUpdateGoldenFiles && dir.existsSync()) {
+          for (final FileSystemEntity f in dir.listSync()) {
+            if (f is File && f.path.endsWith('.png')) f.deleteSync();
+          }
+        }
+
         var shot = 0;
         Future<void> capture(String name) async {
           shot++;
@@ -68,6 +91,14 @@ void main() {
               FakeTransport((method, path, query) {
                 if (path.contains('/restaurants/search')) return _searchPage;
                 if (path.endsWith('/availability')) return _availability;
+                // GROUP D, and BEFORE the profile branch — `/menus` and
+                // `/reviews` both start with `/v1/restaurants/`, so the profile
+                // catch-all was answering them with a restaurant. Neither
+                // section rendered, the walk-through still produced a
+                // plausible-looking venue page, and the `unstubbed` throw at
+                // the bottom never fired because nothing was unstubbed.
+                if (path.endsWith('/menus')) return _menus;
+                if (path.endsWith('/reviews')) return _reviews;
                 if (path.contains('/v1/restaurants/')) return _profile;
                 if (path == '/v1/auth/request-otp') {
                   // A HANDLE AND NOTHING ELSE — identical for a number
@@ -146,6 +177,30 @@ void main() {
         await tester.tap(find.text(venue).first);
         await tester.pumpAndSettle();
         await capture('venue');
+
+        // GROUP D. Two more nodes, and they are the two the diner actually
+        // uses to decide: what the kitchen serves, and what the last four
+        // people thought. Reached by SCROLLING and TAPPING — the menu sheet is
+        // opened by the same control a diner would press.
+        await tester.scrollUntilVisible(find.text(l10n.venueMenuFull), 300);
+        await tester.pumpAndSettle();
+        await capture('venue-menu');
+
+        await tester.tap(find.text(l10n.venueMenuFull));
+        await tester.pumpAndSettle();
+        await capture('menu-sheet');
+
+        // Back out the way a diner does.
+        Navigator.of(tester.element(find.byType(VenueScreen))).pop();
+        await tester.pumpAndSettle();
+
+        await tester.scrollUntilVisible(find.text(l10n.venueReviewsTitle), 300);
+        await tester.pumpAndSettle();
+        await capture('venue-reviews');
+
+        // And back up to the booking bar, which is where the journey resumes.
+        await tester.scrollUntilVisible(find.text(l10n.venueBook).last, -300);
+        await tester.pumpAndSettle();
 
         await tester.tap(find.text(l10n.venueBook).last);
         await tester.pumpAndSettle();
@@ -276,6 +331,76 @@ final Map<String, Object?> _searchPage = <String, Object?>{
   'availability_filtered': true,
 };
 
+/// GROUP D fixtures for the walk-through.
+///
+/// Small on purpose: this is a JOURNEY, not a menu screenshot. One category and
+/// two dishes is enough to prove the section reaches the screen, and a single
+/// review with a reply proves the reviews block does. The four-cell pictures
+/// of the full thing live in the screen registry.
+final List<Object> _menus = <Object>[
+  <String, Object?>{
+    'id': 'menu-1',
+    'name_en': 'Kitchen',
+    'name_ar': 'المطبخ',
+    'kind': 'food',
+    'pdf_url': null,
+    'categories': <Object>[
+      <String, Object?>{
+        'id': 'cat-1',
+        'name_en': 'Mezze',
+        'name_ar': 'مقبّلات',
+        'items': <Object>[
+          <String, Object?>{
+            'id': 'i1',
+            'name_en': 'Charred halloumi & date honey',
+            'name_ar': 'حلومي مشوي بعسل البلح',
+            'description_en': null,
+            'description_ar': null,
+            'price': '320.00',
+            'currency': 'EGP',
+            'dietary_tags': <String>['vegetarian'],
+            'image': null,
+          },
+          <String, Object?>{
+            'id': 'i2',
+            'name_en': 'Mixed grill for two',
+            'name_ar': 'مشوي مشكل لفردين',
+            'description_en': null,
+            'description_ar': null,
+            'price': '980.00',
+            'currency': 'EGP',
+            'dietary_tags': const <String>[],
+            'image': null,
+          },
+        ],
+      },
+    ],
+  },
+];
+
+final Map<String, Object?> _reviews = <String, Object?>{
+  'summary': <String, Object?>{
+    'rating': 4.8,
+    'rating_count': 1,
+    'breakdown': <String, Object?>{'1': 0, '2': 0, '3': 0, '4': 0, '5': 1},
+  },
+  'results': <Object>[
+    <String, Object?>{
+      'id': 'rev-1',
+      'rating': 5,
+      'food_rating': 5,
+      'service_rating': 5,
+      'ambience_rating': null,
+      'body': 'We sat on the terrace until the oud player finished.',
+      'author': 'Nour H.',
+      'created_at': '${kPastDate}T20:30:00.000Z',
+      'owner_reply': 'Thank you Nour — the oud is every night after ten.',
+      'owner_replied_at': '${kPastDate}T22:00:00.000Z',
+    },
+  ],
+  'next_cursor': null,
+};
+
 final Map<String, Object?> _profile = <String, Object?>{
   'id': '4f743baa-3054-4fda-90ce-1a602faf1e77',
   'slug': 'layali-lounge-zamalek',
@@ -358,6 +483,11 @@ final Map<String, Object?> _myReservation = <String, Object?>{
   'time': '21:00',
   'party_size': 2,
   'needs_acknowledgement': false,
+  // Group D. The SERVER decides this; a fixture that
+  // omitted it would be testing a response shape the API
+  // never sends.
+  'can_review': false,
+  'review_id': null,
   'cancelled_by': null,
   'cancelled_at': null,
   'cancel_reason': null,

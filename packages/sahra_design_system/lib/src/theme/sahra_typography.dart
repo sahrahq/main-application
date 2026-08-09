@@ -187,9 +187,24 @@ class SahraTypography {
   /// different number to a Cairo diner scanning quickly, so figures keep the
   /// Latin face and Latin digits even inside Arabic copy. Callers must also
   /// format with Latin digits — this only fixes the glyphs.
+  /// Latin figures with tabular spacing, so a column of prices lines up.
+  ///
+  /// THE ARABIC FACE IS IN THE FALLBACK, and it has to be. This forces the
+  /// Latin family, and a numeric string is not always only figures — a menu
+  /// price is `320.00 ج.م`, and «ج.م» has no glyph in Poppins. Without the
+  /// fallback it rendered as two empty boxes next to a perfectly good number,
+  /// on every price on every Arabic menu.
+  ///
+  /// Found by looking at the Arabic golden, and it is the same finding as the
+  /// ★ in `SahraRatingStars`: a missing glyph still has a width and still
+  /// "renders", so no assertion in the suite can see it.
   static TextStyle numeric(TextStyle base) => base.copyWith(
         fontFamily: SahraTokens.fontLatin.family,
-        fontFamilyFallback: SahraTokens.fontLatin.fallback,
+        fontFamilyFallback: <String>[
+          ...SahraTokens.fontLatin.fallback,
+          SahraTokens.fontArabic.family,
+          ...SahraTokens.fontArabic.fallback,
+        ],
         fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
       );
 }

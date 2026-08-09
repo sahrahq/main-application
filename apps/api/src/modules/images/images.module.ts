@@ -48,6 +48,17 @@ const storageProvider = {
     { provide: IMAGE_PROCESSOR, useClass: SharpImageProcessor },
   ],
   controllers: [AdminImagesController],
-  exports: [ImagesService],
+  /**
+   * `IMAGE_STORAGE` is exported for the menu PDF (R-2.3), which is the first
+   * thing in the bucket that is not an image.
+   *
+   * A slight stretch of the name, taken deliberately rather than by inventing a
+   * second storage abstraction for one nullable column. The port is
+   * `{ put, publicUrl, deletePrefix }` — object storage with an image-shaped
+   * name, and `MenusService` uses only `publicUrl`. If a third kind of object
+   * ever needs it, that is the moment to rename the port rather than to add
+   * another.
+   */
+  exports: [ImagesService, IMAGE_STORAGE],
 })
 export class ImagesModule {}

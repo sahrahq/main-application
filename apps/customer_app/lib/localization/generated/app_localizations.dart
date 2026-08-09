@@ -122,6 +122,24 @@ abstract class AppLocalizations {
   /// **'We could not find that waitlist request.'**
   String get errWaitlistEntryNotFound;
 
+  /// No description provided for @errReviewAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve already reviewed this visit.'**
+  String get errReviewAlreadyExists;
+
+  /// No description provided for @errReviewNotEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews are for visits that happened.'**
+  String get errReviewNotEligible;
+
+  /// No description provided for @errReviewTooEarly.
+  ///
+  /// In en, this message translates to:
+  /// **'You can review this once your table time is over.'**
+  String get errReviewTooEarly;
+
   /// No description provided for @errBookingsOutsideNewHours.
   ///
   /// In en, this message translates to:
@@ -1729,6 +1747,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Call the restaurant'**
   String get reservationCallVenue;
+
+  /// No description provided for @venueMenuTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'From the menu'**
+  String get venueMenuTitle;
+
+  /// No description provided for @venueMenuFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full menu'**
+  String get venueMenuFull;
+
+  /// No description provided for @menuSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu'**
+  String get menuSheetTitle;
+
+  /// No description provided for @menuEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No menu here yet'**
+  String get menuEmptyTitle;
+
+  /// No description provided for @menuEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This restaurant hasn\'t shared its menu with us. Call them and they\'ll tell you what\'s good tonight.'**
+  String get menuEmptyMessage;
+
+  /// No description provided for @menuPdfOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the menu'**
+  String get menuPdfOpen;
+
+  /// No description provided for @menuPdfNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This venue\'s menu is a document. It opens outside the app.'**
+  String get menuPdfNote;
+
+  /// Every branch interpolates the figure, per plural_count_test. Arabic uses the dual for =2 because «طبقين» carries the quantity itself.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dish} other{{count} dishes}}'**
+  String menuItemCount(int count);
+
+  /// `price` arrives from the API as a DECIMAL STRING and is printed unparsed — see MenuItem.price. `currency` is already localised by currencyLabel().
+  ///
+  /// In en, this message translates to:
+  /// **'{price} {currency}'**
+  String menuPrice(String price, String currency);
+
+  /// No description provided for @currencyEgp.
+  ///
+  /// In en, this message translates to:
+  /// **'EGP'**
+  String get currencyEgp;
+
+  /// No description provided for @dietVegetarian.
+  ///
+  /// In en, this message translates to:
+  /// **'Vegetarian'**
+  String get dietVegetarian;
+
+  /// No description provided for @dietVegan.
+  ///
+  /// In en, this message translates to:
+  /// **'Vegan'**
+  String get dietVegan;
+
+  /// No description provided for @dietGlutenFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Gluten free'**
+  String get dietGlutenFree;
+
+  /// No description provided for @dietNutFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Nut free'**
+  String get dietNutFree;
+
+  /// No description provided for @dietDairyFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Dairy free'**
+  String get dietDairyFree;
+
+  /// No description provided for @dietShellfish.
+  ///
+  /// In en, this message translates to:
+  /// **'Shellfish'**
+  String get dietShellfish;
+
+  /// No description provided for @dietSpicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Spicy'**
+  String get dietSpicy;
+
+  /// No description provided for @dietContainsAlcohol.
+  ///
+  /// In en, this message translates to:
+  /// **'Contains alcohol'**
+  String get dietContainsAlcohol;
+
+  /// No description provided for @dietContainsPork.
+  ///
+  /// In en, this message translates to:
+  /// **'Contains pork'**
+  String get dietContainsPork;
+
+  /// No description provided for @venueReviewsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews'**
+  String get venueReviewsTitle;
+
+  /// No description provided for @venueReviewsAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All reviews'**
+  String get venueReviewsAll;
+
+  /// No description provided for @reviewsSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews'**
+  String get reviewsSheetTitle;
+
+  /// No description provided for @reviewsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No reviews yet'**
+  String get reviewsEmptyTitle;
+
+  /// No description provided for @reviewsEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Only diners who booked and turned up can review, so the first one takes a while.'**
+  String get reviewsEmptyMessage;
+
+  /// =0 is a phrase rather than '0 reviews', because a venue with none has not scored zero.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No reviews} =1{1 review} other{{count} reviews}}'**
+  String reviewsCount(int count);
+
+  /// No description provided for @reviewsVerifiedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Every review here is from a diner who booked a table and came.'**
+  String get reviewsVerifiedNote;
+
+  /// No description provided for @reviewOwnerReply.
+  ///
+  /// In en, this message translates to:
+  /// **'From the restaurant'**
+  String get reviewOwnerReply;
+
+  /// No description provided for @reviewFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Food'**
+  String get reviewFood;
+
+  /// No description provided for @reviewService.
+  ///
+  /// In en, this message translates to:
+  /// **'Service'**
+  String get reviewService;
+
+  /// No description provided for @reviewAmbience.
+  ///
+  /// In en, this message translates to:
+  /// **'Ambience'**
+  String get reviewAmbience;
+
+  /// No description provided for @reviewsShowMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get reviewsShowMore;
+
+  /// SEMANTIC ONLY — the visible control is a row of stars. Arrives pre-formatted so no locale renders Arabic-Indic figures.
+  ///
+  /// In en, this message translates to:
+  /// **'{rating} out of 5'**
+  String reviewStarsLabel(String rating);
+
+  /// SEMANTIC ONLY, for one bar of the histogram. A screen reader hearing a bare bar learns nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'{stars} stars: {count}'**
+  String reviewBreakdownLabel(int stars, int count);
+
+  /// No description provided for @writeReviewCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a review'**
+  String get writeReviewCta;
+
+  /// No description provided for @writeReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How was it?'**
+  String get writeReviewTitle;
+
+  /// Which visit is being reviewed. The date is already formatted in the venue's own calendar wording.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}, {date}'**
+  String writeReviewVenue(String name, String date);
+
+  /// No description provided for @writeReviewOverall.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall'**
+  String get writeReviewOverall;
+
+  /// No description provided for @writeReviewDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'More detail, if you like'**
+  String get writeReviewDetail;
+
+  /// No description provided for @writeReviewBodyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything you\'d tell a friend?'**
+  String get writeReviewBodyLabel;
+
+  /// No description provided for @writeReviewBodyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What you ate, where you sat, whether you\'d go back.'**
+  String get writeReviewBodyHint;
+
+  /// No description provided for @writeReviewSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Post review'**
+  String get writeReviewSubmit;
+
+  /// No description provided for @writeReviewSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Posting…'**
+  String get writeReviewSubmitting;
+
+  /// No description provided for @writeReviewPosted.
+  ///
+  /// In en, this message translates to:
+  /// **'Posted. Thank you.'**
+  String get writeReviewPosted;
+
+  /// SEMANTIC ONLY, on each tappable star of the input. 'Star' alone would announce five identical buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} of 5 stars'**
+  String writeReviewStar(int n);
+
+  /// No description provided for @writeReviewNeedsRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a rating first.'**
+  String get writeReviewNeedsRating;
+
+  /// No description provided for @reviewAlreadyWritten.
+  ///
+  /// In en, this message translates to:
+  /// **'You reviewed this visit'**
+  String get reviewAlreadyWritten;
+
+  /// No description provided for @reviewPublicNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Your first name and the initial of your surname will be shown.'**
+  String get reviewPublicNote;
+
+  /// SEMANTIC ONLY. 'Photo' repeated four times tells a screen-reader user nothing about how many there are.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo {index} of {total}'**
+  String venueGalleryLabel(int index, int total);
 }
 
 class _AppLocalizationsDelegate

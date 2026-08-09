@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { isValidTimeZone, utcToZonedHhmm, zoneOffsetMs } from '../../shared/time/timezone';
+import { isReviewable } from '../reviews/review-eligibility';
 
 /**
  * One projection, used by both reads.
@@ -21,9 +22,15 @@ const SELECT = Prisma.sql`
          r.name_ar      AS r_name_ar,
          r.neighborhood AS r_neighborhood,
          r.city         AS r_city,
-         r.timezone     AS r_timezone
+         r.timezone     AS r_timezone,
+         rv.id          AS review_id
     FROM reservations res
-    JOIN restaurants  r ON r.id = res.restaurant_id`;
+    JOIN restaurants  r  ON r.id = res.restaurant_id
+    -- LEFT JOIN, one row at most: reviews.reservation_id is UNIQUE, so this
+    -- cannot multiply the reservation. Joined rather than fetched per row
+    -- because the bookings list would otherwise make one query per booking to
+    -- answer "have I reviewed this".
+    LEFT JOIN reviews rv ON rv.reservation_id = res.id`;
 
 /** doc 06 §3 — `?status=upcoming|past`. */
 export const RESERVATION_VIEWS = ['upcoming', 'past'] as const;
@@ -60,6 +67,10 @@ const NEVER_SHOWN = ['held', 'expired'] as const;
  */
 const CANCELLED_BY_VENUE = 'cancelled_by_restaurant';
 
+// The review rule, imported rather than restated. See `review-eligibility.ts`
+// for why an invariant with no schema behind it must have exactly one copy.
+
+
 export interface MyReservationRow {
   id: string;
   code: string;
@@ -83,6 +94,22 @@ export interface MyReservationRow {
    * they have is gone.
    */
   needs_acknowledgement: boolean;
+  /**
+   * Whether `POST /reviews` would accept this reservation right now.
+   *
+   * DERIVED ON THE SERVER, and that is the point. The rule — seated or
+   * completed, and the table time is over — lives in `ReviewsService` because
+   * the database cannot hold it. Sending the client a status and letting it
+   * reach the same conclusion would make TWO definitions of an invariant that
+   * already has no schema behind it, and the client's copy would be the one
+   * nobody tests against a real `no_show`.
+   *
+   * False when already reviewed, so a screen never has to combine two fields
+   * to decide whether to draw one control.
+   */
+  can_review: boolean;
+  /** The review this visit already has, if any. Null is the common case. */
+  review_id: string | null;
   restaurant: {
     id: string;
     slug: string;
@@ -107,6 +134,7 @@ interface Row {
   cancelled_at: Date | null;
   cancel_reason: string | null;
   cancellation_seen_at: Date | null;
+  review_id: string | null;
   r_id: string;
   r_slug: string;
   r_name_en: string;
@@ -256,6 +284,13 @@ function toRow(r: Row): MyReservationRow {
     // fail silently, in the one place where failing silently is the harm.
     needs_acknowledgement:
       r.status === 'cancelled_by_restaurant' && r.cancellation_seen_at === null,
+    // ONE DEFINITION of the review rule, and this is not it — it defers to the
+    // service that enforces it, so the answer here cannot drift from the
+    // answer `POST /reviews` gives. `reviews-eligibility.spec.ts` asserts the
+    // two agree on every status.
+    can_review:
+      r.review_id === null && isReviewable(r.status, r.ends_at),
+    review_id: r.review_id,
     restaurant: {
       id: r.r_id,
       slug: r.r_slug,

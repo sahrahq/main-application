@@ -444,6 +444,42 @@ class CreateRestaurantDto {
       };
 }
 
+class CreateReviewDto {
+  const CreateReviewDto({
+    this.ambienceRating,
+    this.body,
+    this.foodRating,
+    required this.rating,
+    required this.reservationId,
+    this.serviceRating,
+  });
+
+  factory CreateReviewDto.fromJson(Map<String, dynamic> json) => CreateReviewDto(
+        ambienceRating: json['ambienceRating'] == null ? null : (json['ambienceRating'] as num).toInt(),
+        body: json['body'] == null ? null : json['body'] as String,
+        foodRating: json['foodRating'] == null ? null : (json['foodRating'] as num).toInt(),
+        rating: (json['rating'] as num).toInt(),
+        reservationId: json['reservationId'] as String,
+        serviceRating: json['serviceRating'] == null ? null : (json['serviceRating'] as num).toInt(),
+      );
+
+  final int? ambienceRating;
+  final String? body;
+  final int? foodRating;
+  final int rating;
+  final String reservationId;
+  final int? serviceRating;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (ambienceRating != null) 'ambienceRating': ambienceRating!,
+        if (body != null) 'body': body!,
+        if (foodRating != null) 'foodRating': foodRating!,
+        'rating': rating,
+        'reservationId': reservationId,
+        if (serviceRating != null) 'serviceRating': serviceRating!,
+      };
+}
+
 class CreateShiftDto {
   const CreateShiftDto({
     this.active,
@@ -747,6 +783,123 @@ class LogoutDto {
       };
 }
 
+class MenuCategoryResponse {
+  const MenuCategoryResponse({
+    required this.id,
+    required this.items,
+    required this.nameAr,
+    required this.nameEn,
+  });
+
+  factory MenuCategoryResponse.fromJson(Map<String, dynamic> json) => MenuCategoryResponse(
+        id: json['id'] as String,
+        items: (json['items'] as List<dynamic>).map((e) => MenuItemResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+      );
+
+  final String id;
+  final List<MenuItemResponse> items;
+  final String nameAr;
+  final String nameEn;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'items': items.map((e) => e.toJson()).toList(),
+        'name_ar': nameAr,
+        'name_en': nameEn,
+      };
+}
+
+class MenuItemResponse {
+  const MenuItemResponse({
+    required this.currency,
+    this.descriptionAr,
+    this.descriptionEn,
+    required this.dietaryTags,
+    required this.id,
+    this.image,
+    required this.nameAr,
+    required this.nameEn,
+    required this.price,
+  });
+
+  factory MenuItemResponse.fromJson(Map<String, dynamic> json) => MenuItemResponse(
+        currency: json['currency'] as String,
+        descriptionAr: json['description_ar'] == null ? null : json['description_ar'] as String,
+        descriptionEn: json['description_en'] == null ? null : json['description_en'] as String,
+        dietaryTags: (json['dietary_tags'] as List<dynamic>).map((e) => e as String).toList(),
+        id: json['id'] as String,
+        image: json['image'] == null ? null : ImageResponse.fromJson(json['image'] as Map<String, dynamic>),
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        price: json['price'] as String,
+      );
+
+  final String currency;
+  final String? descriptionAr;
+  final String? descriptionEn;
+  /// From a fixed vocabulary a CHECK constraint enforces. We mark the exception, never the default — there is no `halal` tag, because in Cairo it is the default and marking it would imply the unmarked dishes are not.
+  final List<String> dietaryTags;
+  final String id;
+  final ImageResponse? image;
+  final String nameAr;
+  final String nameEn;
+  /// Decimal string; never a float.
+  final String price;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'currency': currency,
+        if (descriptionAr != null) 'description_ar': descriptionAr!,
+        if (descriptionEn != null) 'description_en': descriptionEn!,
+        'dietary_tags': dietaryTags.map((e) => e).toList(),
+        'id': id,
+        if (image != null) 'image': image!.toJson(),
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        'price': price,
+      };
+}
+
+class MenuResponse {
+  const MenuResponse({
+    required this.categories,
+    required this.id,
+    required this.kind,
+    required this.nameAr,
+    required this.nameEn,
+    this.pdfUrl,
+  });
+
+  factory MenuResponse.fromJson(Map<String, dynamic> json) => MenuResponse(
+        categories: (json['categories'] as List<dynamic>).map((e) => MenuCategoryResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        id: json['id'] as String,
+        kind: json['kind'] as String,
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        pdfUrl: json['pdf_url'] == null ? null : json['pdf_url'] as String,
+      );
+
+  /// Available items only, ordered. A category whose items are all off tonight is omitted rather than sent empty.
+  final List<MenuCategoryResponse> categories;
+  final String id;
+  /// food | drinks | ramadan | set
+  final String kind;
+  final String nameAr;
+  final String nameEn;
+  /// R-2.3 fallback for a venue whose menu is one scanned file. Composed from the stored key; the client hands it to the phone rather than rendering it.
+  final String? pdfUrl;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'categories': categories.map((e) => e.toJson()).toList(),
+        'id': id,
+        'kind': kind,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        if (pdfUrl != null) 'pdf_url': pdfUrl!,
+      };
+}
+
 class ModifyReservationDto {
   const ModifyReservationDto({
     this.partySize,
@@ -770,6 +923,7 @@ class ModifyReservationDto {
 
 class MyReservationResponse {
   const MyReservationResponse({
+    required this.canReview,
     this.cancelReason,
     this.cancelledAt,
     this.cancelledBy,
@@ -781,6 +935,7 @@ class MyReservationResponse {
     this.occasion,
     required this.partySize,
     required this.restaurant,
+    this.reviewId,
     required this.source,
     this.specialRequests,
     required this.startsAt,
@@ -789,6 +944,7 @@ class MyReservationResponse {
   });
 
   factory MyReservationResponse.fromJson(Map<String, dynamic> json) => MyReservationResponse(
+        canReview: json['can_review'] as bool,
         cancelReason: json['cancel_reason'] == null ? null : json['cancel_reason'] as String,
         cancelledAt: json['cancelled_at'] == null ? null : json['cancelled_at'] as String,
         cancelledBy: json['cancelled_by'] == null ? null : json['cancelled_by'] as String,
@@ -800,6 +956,7 @@ class MyReservationResponse {
         occasion: json['occasion'] == null ? null : json['occasion'] as String,
         partySize: (json['party_size'] as num).toInt(),
         restaurant: ReservationVenueResponse.fromJson(json['restaurant'] as Map<String, dynamic>),
+        reviewId: json['review_id'] == null ? null : json['review_id'] as String,
         source: json['source'] as String,
         specialRequests: json['special_requests'] == null ? null : json['special_requests'] as String,
         startsAt: json['starts_at'] as String,
@@ -807,6 +964,8 @@ class MyReservationResponse {
         time: json['time'] as String,
       );
 
+  /// Whether POST /reviews would accept this visit right now — seated or completed, the table time is over, and not already reviewed. DERIVED ON THE SERVER from the same function the endpoint enforces, so the control the client draws cannot disagree with the answer it gets.
+  final bool canReview;
   final String? cancelReason;
   final String? cancelledAt;
   /// 'user' | 'restaurant' | null. Derived, so no client parses a status string.
@@ -822,6 +981,8 @@ class MyReservationResponse {
   final String? occasion;
   final int partySize;
   final ReservationVenueResponse restaurant;
+  /// The review this visit already has. Null is the common case.
+  final String? reviewId;
   /// app | walk_in | phone — which door it came through.
   final String source;
   final String? specialRequests;
@@ -833,6 +994,7 @@ class MyReservationResponse {
   final String time;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
+        'can_review': canReview,
         if (cancelReason != null) 'cancel_reason': cancelReason!,
         if (cancelledAt != null) 'cancelled_at': cancelledAt!,
         if (cancelledBy != null) 'cancelled_by': cancelledBy!,
@@ -844,6 +1006,7 @@ class MyReservationResponse {
         if (occasion != null) 'occasion': occasion!,
         'party_size': partySize,
         'restaurant': restaurant.toJson(),
+        if (reviewId != null) 'review_id': reviewId!,
         'source': source,
         if (specialRequests != null) 'special_requests': specialRequests!,
         'starts_at': startsAt,
@@ -1386,6 +1549,111 @@ class RestaurantResponse {
         if (priceBand != null) 'priceBand': priceBand!,
         'slug': slug,
         'status': status,
+      };
+}
+
+class ReviewPageResponse {
+  const ReviewPageResponse({
+    this.nextCursor,
+    required this.results,
+    required this.summary,
+  });
+
+  factory ReviewPageResponse.fromJson(Map<String, dynamic> json) => ReviewPageResponse(
+        nextCursor: json['next_cursor'] == null ? null : json['next_cursor'] as String,
+        results: (json['results'] as List<dynamic>).map((e) => ReviewResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        summary: ReviewSummaryResponse.fromJson(json['summary'] as Map<String, dynamic>),
+      );
+
+  /// Keyset, not offset — a new review must not shift page two.
+  final String? nextCursor;
+  final List<ReviewResponse> results;
+  final ReviewSummaryResponse summary;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (nextCursor != null) 'next_cursor': nextCursor!,
+        'results': results.map((e) => e.toJson()).toList(),
+        'summary': summary.toJson(),
+      };
+}
+
+class ReviewResponse {
+  const ReviewResponse({
+    this.ambienceRating,
+    required this.author,
+    this.body,
+    required this.createdAt,
+    this.foodRating,
+    required this.id,
+    this.ownerRepliedAt,
+    this.ownerReply,
+    required this.rating,
+    this.serviceRating,
+  });
+
+  factory ReviewResponse.fromJson(Map<String, dynamic> json) => ReviewResponse(
+        ambienceRating: json['ambience_rating'] == null ? null : (json['ambience_rating'] as num).toInt(),
+        author: json['author'] as String,
+        body: json['body'] == null ? null : json['body'] as String,
+        createdAt: json['created_at'] as String,
+        foodRating: json['food_rating'] == null ? null : (json['food_rating'] as num).toInt(),
+        id: json['id'] as String,
+        ownerRepliedAt: json['owner_replied_at'] == null ? null : json['owner_replied_at'] as String,
+        ownerReply: json['owner_reply'] == null ? null : json['owner_reply'] as String,
+        rating: (json['rating'] as num).toInt(),
+        serviceRating: json['service_rating'] == null ? null : (json['service_rating'] as num).toInt(),
+      );
+
+  final int? ambienceRating;
+  /// First name and a surname initial ("Nour H."). Never the full name a diner gave at registration.
+  final String author;
+  /// Nullable — stars alone is a complete review.
+  final String? body;
+  final String createdAt;
+  final int? foodRating;
+  final String id;
+  final String? ownerRepliedAt;
+  final String? ownerReply;
+  final int rating;
+  final int? serviceRating;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (ambienceRating != null) 'ambience_rating': ambienceRating!,
+        'author': author,
+        if (body != null) 'body': body!,
+        'created_at': createdAt,
+        if (foodRating != null) 'food_rating': foodRating!,
+        'id': id,
+        if (ownerRepliedAt != null) 'owner_replied_at': ownerRepliedAt!,
+        if (ownerReply != null) 'owner_reply': ownerReply!,
+        'rating': rating,
+        if (serviceRating != null) 'service_rating': serviceRating!,
+      };
+}
+
+class ReviewSummaryResponse {
+  const ReviewSummaryResponse({
+    required this.breakdown,
+    required this.rating,
+    required this.ratingCount,
+  });
+
+  factory ReviewSummaryResponse.fromJson(Map<String, dynamic> json) => ReviewSummaryResponse(
+        breakdown: (json['breakdown'] as Map<String, dynamic>).map((k, v) => MapEntry(k, (v as num).toInt())),
+        rating: (json['rating'] as num).toDouble(),
+        ratingCount: (json['rating_count'] as num).toInt(),
+      );
+
+  /// Star figure → how many gave it. Always all five keys.
+  final Map<String, int> breakdown;
+  /// Computed from the reviews themselves, not from the cached column.
+  final double rating;
+  final int ratingCount;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'breakdown': breakdown,
+        'rating': rating,
+        'rating_count': ratingCount,
       };
 }
 

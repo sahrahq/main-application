@@ -147,6 +147,7 @@ model User {
   favorites       Favorite[]
   waitlists       Waitlist[]
   notifications   Notification[]
+  reviews         Review[]
 
   @@index([status], map: "idx_users_status")
   @@map("users")
@@ -299,6 +300,8 @@ model Restaurant {
   reservations Reservation[]
   favorites    Favorite[]
   waitlists    Waitlist[]
+  menus        Menu[]
+  reviews      Review[]
 
   @@index([status, city, neighborhood], map: "idx_restaurants_status_neighborhood")
   @@map("restaurants")
@@ -424,6 +427,167 @@ enum ImageStatus {
   rejected
 
   @@map("image_status")
+}
+
+// ──────────────────────────────────────────────────── menus (R-2.3, C-2.6) ──
+
+/// doc 04 §"menus / menu_categories / menu_items".
+///
+/// THREE LEVELS, kept. `VenueDetailScreen.jsx` draws a flat list, which tempts
+/// a categories-only design — but a venue holds a food menu AND a drinks menu,
+/// and R-2.6's Ramadan mode wants a menu swapped in as a unit for a month.
+/// Collapse the top level and `kind: 'ramadan'` becomes unexpressible.
+model Menu {
+  id           String   @id @default(uuid()) @db.Uuid
+  restaurantId String   @map("restaurant_id") @db.Uuid
+
+  nameEn String   @map("name_en") @db.VarChar(80)
+  nameAr String   @map("name_ar") @db.VarChar(80)
+  kind   MenuKind @default(food)
+
+  /// A STORAGE KEY, not a fetchable address — same call as `Image.url`, and a
+  /// deviation from doc 04's `pdf_url`. R-2.3's PDF fallback matters in Cairo;
+  /// nothing in Group D uploads one. See the migration.
+  pdfKey String? @map("pdf_key")
+
+  position Int     @default(0) @db.SmallInt
+  active   Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  restaurant Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categories MenuCategory[]
+
+  /// DEFERRABLE in the database, which Prisma cannot express — see the
+  /// migration for why a reorder needs it.
+  @@unique([restaurantId, position], map: "menus_position_unique")
+  @@index([restaurantId, position], map: "idx_menus_rest")
+  @@map("menus")
+}
+
+model MenuCategory {
+  id     String @id @default(uuid()) @db.Uuid
+  menuId String @map("menu_id") @db.Uuid
+
+  nameEn   String @map("name_en") @db.VarChar(80)
+  nameAr   String @map("name_ar") @db.VarChar(80)
+  position Int    @default(0) @db.SmallInt
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  menu  Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  items MenuItem[]
+
+  @@unique([menuId, position], map: "menu_categories_position_unique")
+  @@index([menuId, position], map: "idx_mc_menu")
+  @@map("menu_categories")
+}
+
+model MenuItem {
+  id         String @id @default(uuid()) @db.Uuid
+  categoryId String @map("category_id") @db.Uuid
+
+  nameEn        String  @map("name_en") @db.VarChar(120)
+  nameAr        String  @map("name_ar") @db.VarChar(120)
+  descriptionEn String? @map("description_en")
+  descriptionAr String? @map("description_ar")
+
+  /// NUMERIC(12,2) per CLAUDE.md rule 5, NOT doc 04's (10,2). The first money
+  /// column in the database, and therefore the precedent for every later one:
+  /// `payments.amount`, deposits, settlement, commission. See the migration.
+  price    Decimal @db.Decimal(12, 2)
+  currency String  @default("EGP") @db.Char(3)
+
+  /// The one direction of the polymorphic `images` relation that CAN be a real
+  /// foreign key, and is.
+  imageId String? @map("image_id") @db.Uuid
+
+  /// Constrained to a fixed vocabulary by a CHECK in the migration, because a
+  /// typo here does not fail — it disappears at render time.
+  dietaryTags String[] @map("dietary_tags")
+
+  available Boolean @default(true)
+  position  Int     @default(0) @db.SmallInt
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  category MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, position], map: "menu_items_position_unique")
+  @@index([categoryId, position], map: "idx_mi_cat")
+  @@map("menu_items")
+}
+
+enum MenuKind {
+  food
+  drinks
+  ramadan
+  set
+
+  @@map("menu_kind")
+}
+
+// ──────────────────────────────────────────────────────────── reviews (C-4.4) ──
+
+/// doc 04 §reviews.
+///
+/// `reservationId` NOT NULL and UNIQUE is the whole product: no review without
+/// a visit, one review per visit. C-4.4 calls it "a trust wedge vs. Google Maps
+/// noise", and the wedge is that one column.
+///
+/// WHAT THE SCHEMA CANNOT HOLD: "only a SEATED diner may review". A CHECK
+/// cannot read another table, and every database mechanism for it makes an
+/// unrelated later write fail — once a review exists, an owner correcting the
+/// reservation to `no_show` would get a foreign-key error from a table they
+/// have never heard of. So it lives in `ReviewsService` with a test per
+/// non-eligible status. It is the one invariant in Group D held by code rather
+/// than by the database, and it is said here rather than dressed up as
+/// enforced.
+model Review {
+  id            String @id @default(uuid()) @db.Uuid
+  reservationId String @unique @map("reservation_id") @db.Uuid
+  userId        String @map("user_id") @db.Uuid
+  restaurantId  String @map("restaurant_id") @db.Uuid
+
+  rating         Int  @db.SmallInt
+  foodRating     Int? @map("food_rating") @db.SmallInt
+  serviceRating  Int? @map("service_rating") @db.SmallInt
+  ambienceRating Int? @map("ambience_rating") @db.SmallInt
+
+  /// Nullable, which doc 04 does not say. Stars-only reviews are the majority
+  /// everywhere they are allowed, and forcing prose gets prose worth nothing.
+  body String?
+
+  /// Defaults to `published`. A queue with no moderator is not moderation — it
+  /// is a silent drop, and the diner watches their review vanish. See the
+  /// migration.
+  status ReviewStatus @default(published)
+
+  ownerReply     String?   @map("owner_reply")
+  ownerRepliedAt DateTime? @map("owner_replied_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  reservation Reservation @relation(fields: [reservationId], references: [id])
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant  Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, status, createdAt(sort: Desc)], map: "idx_reviews_rest")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_reviews_user")
+  @@map("reviews")
+}
+
+enum ReviewStatus {
+  published
+  pending_moderation
+  rejected
+  removed
+
+  @@map("review_status")
 }
 
 // ─────────────────────────────────────────────────────────── notifications ──
@@ -570,6 +734,7 @@ model Reservation {
   restaurant Restaurant         @relation(fields: [restaurantId], references: [id])
   user       User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   tables     ReservationTable[]
+  review     Review?
 
   @@index([restaurantId, startsAt], map: "idx_resv_rest_time")
   @@index([userId, startsAt(sort: Desc)], map: "idx_resv_user")

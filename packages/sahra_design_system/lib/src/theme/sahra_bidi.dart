@@ -26,6 +26,8 @@
 /// could otherwise drag the following Arabic word to the wrong side.
 library;
 
+import 'dart:ui' show TextDirection;
+
 /// U+2066 LEFT-TO-RIGHT ISOLATE.
 ///
 /// Written as an ESCAPE, not as the literal character. A literal U+2066 in
@@ -66,3 +68,54 @@ String ltrRun(String text) => '$_lri$text$_pdi';
 
 /// The same, tolerant of null.
 String? ltrRunOrNull(String? text) => text == null ? null : ltrRun(text);
+
+/// The paragraph direction a piece of **user content** should be laid out in.
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// WHY THIS IS NOT `ltrRun`
+/// ─────────────────────────────────────────────────────────────────────────
+///
+/// `ltrRun` is for a run we KNOW is Latin — a phone number, a time range, a
+/// price. Applied to content we did not write, it would be wrong half the
+/// time: wrapping «نور حسن» in a left-to-right isolate lays an Arabic name out
+/// backwards.
+///
+/// Review bodies and author names are written by diners, in whichever language
+/// they chose, and shown to diners reading the app in the other one. Found by
+/// looking at the Arabic reviews golden, where an English review ended
+/// **`.whatever the menu says`** and the author read **`.Nour H`** — the full
+/// stop taking the paragraph's direction and landing on the wrong end of a
+/// sentence somebody else wrote.
+///
+/// An isolate cannot fix that, because the problem is not a run inside a
+/// paragraph — the whole paragraph is in the other direction. The fix is to
+/// give the `Text` its own direction, which is what `textDirection:` is for.
+///
+/// ── HOW THE DIRECTION IS DECIDED ─────────────────────────────────────────
+///
+/// The first STRONG character wins, which is the Unicode bidi algorithm's own
+/// rule P2 for a paragraph of unknown direction. Digits and punctuation are
+/// not strong and are skipped, so `"4/5 — عظيم"` is Arabic and `"«Great»"` is
+/// Latin.
+///
+/// Returns null when there is no strong character at all (a rating with no
+/// words, an emoji). Null means "inherit", which is the right answer: a string
+/// with no direction of its own belongs to the page it is on.
+TextDirection? contentDirection(String text) {
+  for (final int rune in text.runes) {
+    // Arabic, Arabic Supplement/Extended, Hebrew, Syriac, Thaana, and the
+    // Arabic Presentation Forms some keyboards still emit.
+    final bool rtl = (rune >= 0x0590 && rune <= 0x08FF) ||
+        (rune >= 0xFB1D && rune <= 0xFDFF) ||
+        (rune >= 0xFE70 && rune <= 0xFEFF);
+    if (rtl) return TextDirection.rtl;
+
+    // Latin, Greek, Cyrillic and the rest of the strong-LTR basic planes.
+    final bool ltr = (rune >= 0x0041 && rune <= 0x005A) ||
+        (rune >= 0x0061 && rune <= 0x007A) ||
+        (rune >= 0x00C0 && rune <= 0x058F) ||
+        (rune >= 0x0900 && rune <= 0x1FFF);
+    if (ltr) return TextDirection.ltr;
+  }
+  return null;
+}

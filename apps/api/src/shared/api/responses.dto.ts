@@ -199,6 +199,128 @@ export class WaitlistEntryResponse {
   @ApiProperty({ type: WaitlistVenueResponse }) restaurant!: WaitlistVenueResponse;
 }
 
+// ─────────────────────────────────────────────── menus (R-2.3 / C-2.6) ──
+
+export class MenuItemResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() name_en!: string;
+  @ApiProperty() name_ar!: string;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) description_en?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) description_ar?: string | null;
+
+  /**
+   * A DECIMAL STRING, not a number. `NUMERIC(12,2)` through
+   * `JSON.stringify(Number(...))` loses the scale — 320.00 arrives as `320` —
+   * and CLAUDE.md rule 5's "never floats" does not stop being true at the wire.
+   */
+  @ApiProperty({ type: 'string', example: '320.00', description: 'Decimal string; never a float.' })
+  price!: string;
+
+  @ApiProperty({ example: 'EGP' }) currency!: string;
+
+  @ApiProperty({
+    type: [String],
+    description:
+      'From a fixed vocabulary a CHECK constraint enforces. We mark the ' +
+      'exception, never the default — there is no `halal` tag, because in ' +
+      'Cairo it is the default and marking it would imply the unmarked ' +
+      'dishes are not.',
+    example: ['vegetarian', 'spicy'],
+  })
+  dietary_tags!: string[];
+
+  @ApiPropertyOptional({ type: ImageResponse, nullable: true }) image?: ImageResponse | null;
+}
+
+export class MenuCategoryResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() name_en!: string;
+  @ApiProperty() name_ar!: string;
+  @ApiProperty({ type: [MenuItemResponse] }) items!: MenuItemResponse[];
+}
+
+export class MenuResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() name_en!: string;
+  @ApiProperty() name_ar!: string;
+  @ApiProperty({ description: 'food | drinks | ramadan | set' }) kind!: string;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: 'string',
+    description:
+      'R-2.3 fallback for a venue whose menu is one scanned file. Composed ' +
+      'from the stored key; the client hands it to the phone rather than ' +
+      'rendering it.',
+  })
+  pdf_url?: string | null;
+
+  @ApiProperty({
+    type: [MenuCategoryResponse],
+    description:
+      'Available items only, ordered. A category whose items are all off ' +
+      'tonight is omitted rather than sent empty.',
+  })
+  categories!: MenuCategoryResponse[];
+}
+
+// ───────────────────────────────────────────────────────── reviews (C-4.4) ──
+
+export class ReviewResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty({ type: 'integer', minimum: 1, maximum: 5 }) rating!: number;
+  @ApiPropertyOptional({ type: 'integer', nullable: true }) food_rating?: number | null;
+  @ApiPropertyOptional({ type: 'integer', nullable: true }) service_rating?: number | null;
+  @ApiPropertyOptional({ type: 'integer', nullable: true }) ambience_rating?: number | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: 'string',
+    description: 'Nullable — stars alone is a complete review.',
+  })
+  body?: string | null;
+
+  @ApiProperty({
+    description:
+      'First name and a surname initial ("Nour H."). Never the full name a ' +
+      'diner gave at registration.',
+    example: 'Nour H.',
+  })
+  author!: string;
+
+  @ApiProperty() created_at!: string;
+
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) owner_reply?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: 'string' }) owner_replied_at?: string | null;
+}
+
+export class ReviewSummaryResponse {
+  @ApiProperty({ description: 'Computed from the reviews themselves, not from the cached column.' })
+  rating!: number;
+
+  @ApiProperty({ type: 'integer' }) rating_count!: number;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: { type: 'integer' },
+    description: 'Star figure → how many gave it. Always all five keys.',
+    example: { '5': 210, '4': 78, '3': 16, '2': 5, '1': 3 },
+  })
+  breakdown!: Record<string, number>;
+}
+
+export class ReviewPageResponse {
+  @ApiProperty({ type: ReviewSummaryResponse }) summary!: ReviewSummaryResponse;
+  @ApiProperty({ type: [ReviewResponse] }) results!: ReviewResponse[];
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: 'string',
+    description: 'Keyset, not offset — a new review must not shift page two.',
+  })
+  next_cursor?: string | null;
+}
+
 export class SearchResultResponse {
   @ApiProperty() id!: string;
   @ApiProperty() slug!: string;
@@ -381,6 +503,22 @@ export class MyReservationResponse {
       'regardless of date until POST /reservations/{id}/acknowledge-cancellation.',
   })
   needs_acknowledgement!: boolean;
+
+  @ApiProperty({
+    description:
+      'Whether POST /reviews would accept this visit right now — seated or ' +
+      'completed, the table time is over, and not already reviewed. DERIVED ' +
+      'ON THE SERVER from the same function the endpoint enforces, so the ' +
+      'control the client draws cannot disagree with the answer it gets.',
+  })
+  can_review!: boolean;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: 'string',
+    description: 'The review this visit already has. Null is the common case.',
+  })
+  review_id?: string | null;
 
   @ApiProperty({ type: ReservationVenueResponse }) restaurant!: ReservationVenueResponse;
 }

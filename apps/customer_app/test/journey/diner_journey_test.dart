@@ -50,6 +50,11 @@ void main() {
     return FakeTransport((method, path, query) {
       if (path.contains('/restaurants/search')) return _searchPage;
       if (path.endsWith('/availability')) return _availability;
+      // GROUP D, and BEFORE the profile branch: `/menus` and `/reviews` are
+      // both suffixes of a restaurant path, and the profile match would answer
+      // them with a restaurant.
+      if (path.endsWith('/menus')) return _menus;
+      if (path.endsWith('/reviews')) return _reviews;
       if (path == '/v1/restaurants/$venueId' || path.endsWith('/layali-lounge-zamalek')) {
         return _profile;
       }
@@ -328,6 +333,76 @@ final Map<String, Object?> _searchPage = <String, Object?>{
   'availability_filtered': true,
 };
 
+/// GROUP D fixtures for the walk-through.
+///
+/// Small on purpose: this is a JOURNEY, not a menu screenshot. One category and
+/// two dishes is enough to prove the section reaches the screen, and a single
+/// review with a reply proves the reviews block does. The four-cell pictures
+/// of the full thing live in the screen registry.
+final List<Object> _menus = <Object>[
+  <String, Object?>{
+    'id': 'menu-1',
+    'name_en': 'Kitchen',
+    'name_ar': 'المطبخ',
+    'kind': 'food',
+    'pdf_url': null,
+    'categories': <Object>[
+      <String, Object?>{
+        'id': 'cat-1',
+        'name_en': 'Mezze',
+        'name_ar': 'مقبّلات',
+        'items': <Object>[
+          <String, Object?>{
+            'id': 'i1',
+            'name_en': 'Charred halloumi & date honey',
+            'name_ar': 'حلومي مشوي بعسل البلح',
+            'description_en': null,
+            'description_ar': null,
+            'price': '320.00',
+            'currency': 'EGP',
+            'dietary_tags': <String>['vegetarian'],
+            'image': null,
+          },
+          <String, Object?>{
+            'id': 'i2',
+            'name_en': 'Mixed grill for two',
+            'name_ar': 'مشوي مشكل لفردين',
+            'description_en': null,
+            'description_ar': null,
+            'price': '980.00',
+            'currency': 'EGP',
+            'dietary_tags': const <String>[],
+            'image': null,
+          },
+        ],
+      },
+    ],
+  },
+];
+
+final Map<String, Object?> _reviews = <String, Object?>{
+  'summary': <String, Object?>{
+    'rating': 4.8,
+    'rating_count': 1,
+    'breakdown': <String, Object?>{'1': 0, '2': 0, '3': 0, '4': 0, '5': 1},
+  },
+  'results': <Object>[
+    <String, Object?>{
+      'id': 'rev-1',
+      'rating': 5,
+      'food_rating': 5,
+      'service_rating': 5,
+      'ambience_rating': null,
+      'body': 'We sat on the terrace until the oud player finished.',
+      'author': 'Nour H.',
+      'created_at': '${kPastDate}T20:30:00.000Z',
+      'owner_reply': 'Thank you Nour — the oud is every night after ten.',
+      'owner_replied_at': '${kPastDate}T22:00:00.000Z',
+    },
+  ],
+  'next_cursor': null,
+};
+
 final Map<String, Object?> _profile = <String, Object?>{
   'id': '4f743baa-3054-4fda-90ce-1a602faf1e77',
   'slug': 'layali-lounge-zamalek',
@@ -410,6 +485,11 @@ final Map<String, Object?> _myReservation = <String, Object?>{
   'time': '21:00',
   'party_size': 2,
   'needs_acknowledgement': false,
+  // Group D. The SERVER decides this; a fixture that
+  // omitted it would be testing a response shape the API
+  // never sends.
+  'can_review': false,
+  'review_id': null,
   'cancelled_by': null,
   'cancelled_at': null,
   'cancel_reason': null,

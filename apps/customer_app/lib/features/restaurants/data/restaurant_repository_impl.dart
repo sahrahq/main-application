@@ -1,7 +1,9 @@
 import 'package:sahra_api_client/sahra_api_client.dart';
 
 import '../../../core/error/guarded.dart';
+import '../domain/menu.dart';
 import '../domain/restaurant_repository.dart';
+import '../domain/review.dart';
 import '../domain/venue.dart';
 
 /// Wire → domain, and the ONE place `name_en` / `name_ar` is resolved.
@@ -99,6 +101,82 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
           .toList(),
     );
   }
+
+  @override
+  Future<List<Menu>> menus(String idOrSlug) async {
+    final menus = await guarded(() => _api.listMenus(idOrSlug: idOrSlug));
+
+    return menus
+        .map((m) => Menu(
+              id: m.id,
+              name: _isArabic ? m.nameAr : m.nameEn,
+              kind: m.kind,
+              pdfUrl: m.pdfUrl,
+              categories: m.categories
+                  .map((c) => MenuCategory(
+                        id: c.id,
+                        name: _isArabic ? c.nameAr : c.nameEn,
+                        items: c.items
+                            .map((i) => MenuItem(
+                                  id: i.id,
+                                  name: _isArabic ? i.nameAr : i.nameEn,
+                                  description:
+                                      _isArabic ? i.descriptionAr : i.descriptionEn,
+                                  // NOT parsed. The API sends '320.00' and the
+                                  // screen prints '320.00'; turning it into a
+                                  // double on the way past is the one step that
+                                  // could round it.
+                                  price: i.price,
+                                  currency: i.currency,
+                                  dietaryTags: i.dietaryTags,
+                                  image: i.image == null ? null : _image(i.image!),
+                                ),)
+                            .toList(),
+                      ),)
+                  .toList(),
+            ),)
+        .toList();
+  }
+
+  @override
+  Future<ReviewPage> reviews(String idOrSlug, {String? cursor, int? limit}) async {
+    final page = await guarded(
+      () => _api.listReviews(
+        idOrSlug: idOrSlug,
+        cursor: cursor,
+        limit: limit?.toString(),
+      ),
+    );
+
+    return ReviewPage(
+      summary: ReviewSummary(
+        rating: page.summary.rating,
+        ratingCount: page.summary.ratingCount,
+        // The API keys the histogram by a STRING, because a JSON object key is
+        // a string. Parsed once here rather than at every bar.
+        breakdown: <int, int>{
+          for (final e in page.summary.breakdown.entries)
+            if (int.tryParse(e.key) != null) int.parse(e.key): e.value,
+        },
+      ),
+      results: page.results.map(_review).toList(),
+      nextCursor: page.nextCursor,
+    );
+  }
+
+  Review _review(ReviewResponse r) => Review(
+        id: r.id,
+        rating: r.rating,
+        author: r.author,
+        createdAt: DateTime.parse(r.createdAt),
+        body: r.body,
+        foodRating: r.foodRating,
+        serviceRating: r.serviceRating,
+        ambienceRating: r.ambienceRating,
+        ownerReply: r.ownerReply,
+        ownerRepliedAt:
+            r.ownerRepliedAt == null ? null : DateTime.parse(r.ownerRepliedAt!),
+      );
 
   /// One mapping for every image the API returns, so a size key or a
   /// dimension can never mean two things in two places.

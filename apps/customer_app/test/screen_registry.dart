@@ -17,6 +17,7 @@ import 'package:sahra_customer_app/features/reservations/presentation/confirmed_
 import 'package:sahra_customer_app/features/restaurants/presentation/search_notifier.dart';
 import 'package:sahra_customer_app/features/restaurants/presentation/search_screen.dart';
 import 'package:sahra_customer_app/features/restaurants/presentation/venue_screen.dart';
+import 'package:sahra_customer_app/localization/generated/app_localizations.dart';
 import 'package:sahra_customer_app/shared/providers/app_providers.dart';
 import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 
@@ -81,7 +82,7 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
   // ── Venue detail ────────────────────────────────────────────────────────
   'Venue/profile': ScreenCase(
     build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
-    overrides: (_) => _transport((_, __, ___) => _profile),
+    overrides: (_) => _transport(_venueRoutes(profile: _profile)),
   ),
   'Venue/not-found': ScreenCase(
     build: (_) => const VenueScreen(idOrSlug: 'nope'),
@@ -226,7 +227,7 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
   'Venue/with-photos': ScreenCase(
     build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
     overrides: (_) => <Override>[
-      ..._transport((_, __, ___) => _profileWithPhotos),
+      ..._transport(_venueRoutes(profile: _profileWithPhotos)),
       _fixtureImages,
     ],
   ),
@@ -237,6 +238,82 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
       searchCriteriaProvider.overrideWith(() => _TypedQuery('layali')),
       _fixtureImages,
     ],
+  ),
+
+  // ── Group D: menus and reviews ──────────────────────────────────────────
+  //
+  // FIVE CASES, not one. The venue page with everything on it is the happy
+  // picture; the other four are the states that ship broken because nobody
+  // looks at them — a venue with no menu, a menu that is only a PDF, a venue
+  // nobody has reviewed yet, and the composer.
+  'Venue/full': ScreenCase(
+    build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+    overrides: (_) => <Override>[
+      ..._transport(_venueRoutes(
+        profile: <String, Object?>{
+          ..._profileWithPhotos,
+          'rating': 4.25,
+          'rating_count': 4,
+        },
+        menus: _menusFixture,
+        reviews: _reviewsFixture,
+      ),),
+      _fixtureImages,
+    ],
+  ),
+  'Venue/menu-pdf-only': ScreenCase(
+    build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+    overrides: (_) => _transport(_venueRoutes(
+      profile: _profileUnrated,
+      menus: _menusPdfOnly,
+      reviews: _reviewsEmpty,
+    ),),
+  ),
+  'Venue/no-reviews': ScreenCase(
+    build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+    overrides: (_) => _transport(_venueRoutes(
+      profile: _profileUnrated,
+      menus: _menusFixture,
+      reviews: _reviewsEmpty,
+    ),),
+  ),
+  'Menu/sheet': ScreenCase(
+    build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+    overrides: (_) => _transport(_venueRoutes(
+      profile: _profileUnrated,
+      menus: _menusFixture,
+      reviews: _reviewsEmpty,
+    ),),
+    // Opened by TAPPING, not by constructing the sheet. A sheet built directly
+    // is a sheet whose only route in is the test — the failure the journey test
+    // exists to catch, in miniature.
+    //
+    // `interactive: false` because the sheet genuinely has no tap target: it is
+    // a list of dishes, dismissed by dragging it or tapping the barrier, and
+    // the barrier is not ours. The flag asserts that a screen claiming to be
+    // interactive exposes at least one `SemanticsAction.tap`, so setting it
+    // true here would be claiming a control that does not exist. (The PDF
+    // handoff IS a button, and `Venue/menu-pdf-only` covers it.)
+    interactive: false,
+    after: (tester) async {
+      await _tapLabel(tester, (l) => l.venueMenuFull);
+    },
+  ),
+  'Reviews/sheet': ScreenCase(
+    build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+    overrides: (_) => _transport(_venueRoutes(
+      // 4.25 from 4, matching `_reviewsFixture` exactly — the hero and the
+      // histogram are the same fact and must not disagree in a picture.
+      profile: <String, Object?>{..._profile, 'rating': 4.25, 'rating_count': 4},
+      menus: _menusFixture,
+      reviews: _reviewsFixture,
+    ),),
+    // Same as the menu sheet: a read-only list. "Show more" appears only when
+    // there is a next page, and this fixture is one page.
+    interactive: false,
+    after: (tester) async {
+      await _tapLabel(tester, (l) => l.venueReviewsAll, scroll: true);
+    },
   ),
 
   // ── First run ───────────────────────────────────────────────────────────
@@ -432,6 +509,185 @@ Map<String, Object?> _imageJson({bool cover = true, int position = 0}) =>
     };
 
 /// The same venue, photographed.
+/// A venue handler that answers the THREE calls the venue screen makes.
+///
+/// The single-response `(_, __, ___) => _profile` shape was fine while the
+/// screen made one request. Group D added menus and reviews, and a handler that
+/// returns a profile for every path answers those two with a profile the
+/// mappers cannot read — so both sections were absent from the golden and the
+/// picture still looked plausible. Which is the fixture failure this repo keeps
+/// finding, one layer up: the artefact rendered, it just stopped showing what
+/// it was there to show.
+Object? Function(String, String, Map<String, String>?) _venueRoutes({
+  required Map<String, Object?> profile,
+  List<Object>? menus,
+  Map<String, Object?>? reviews,
+}) =>
+    (method, path, query) {
+      if (path.endsWith('/menus')) return menus ?? <Object>[];
+      if (path.endsWith('/reviews')) return reviews ?? _reviewsEmpty;
+      return profile;
+    };
+
+final List<Object> _menusFixture = <Object>[
+  <String, Object?>{
+    'id': 'menu-1',
+    'name_en': 'Kitchen',
+    'name_ar': 'المطبخ',
+    'kind': 'food',
+    'pdf_url': null,
+    'categories': <Object>[
+      <String, Object?>{
+        'id': 'cat-1',
+        'name_en': 'Mezze',
+        'name_ar': 'مقبّلات',
+        'items': <Object>[
+          _menuItem(
+            'item-1',
+            'Charred halloumi & date honey',
+            'حلومي مشوي بعسل البلح',
+            '320.00',
+            <String>['vegetarian'],
+          ),
+          _menuItem(
+            'item-2',
+            'Muhammara, walnut',
+            'محمرة بالجوز',
+            '180.00',
+            <String>['vegan'],
+          ),
+        ],
+      },
+      <String, Object?>{
+        'id': 'cat-2',
+        'name_en': 'Charcoal',
+        'name_ar': 'فحم',
+        'items': <Object>[
+          _menuItem(
+            'item-3',
+            'Mixed grill for two',
+            'مشوي مشكل لفردين',
+            '980.00',
+            const <String>[],
+          ),
+        ],
+      },
+    ],
+  },
+];
+
+/// A venue whose whole menu is one scanned file — R-2.3's fallback, which has
+/// no other way of being seen.
+final List<Object> _menusPdfOnly = <Object>[
+  <String, Object?>{
+    'id': 'menu-pdf',
+    'name_en': 'The menu',
+    'name_ar': 'المنيو',
+    'kind': 'food',
+    'pdf_url': 'https://example.test/menus/carte.pdf',
+    'categories': <Object>[],
+  },
+];
+
+Map<String, Object?> _menuItem(
+  String id,
+  String en,
+  String ar,
+  String price,
+  List<String> tags,
+) =>
+    <String, Object?>{
+      'id': id,
+      'name_en': en,
+      'name_ar': ar,
+      'description_en': null,
+      'description_ar': null,
+      'price': price,
+      'currency': 'EGP',
+      'dietary_tags': tags,
+      'image': null,
+    };
+
+final Map<String, Object?> _reviewsEmpty = <String, Object?>{
+  'summary': <String, Object?>{
+    'rating': 0,
+    'rating_count': 0,
+    'breakdown': <String, Object?>{'1': 0, '2': 0, '3': 0, '4': 0, '5': 0},
+  },
+  'results': <Object>[],
+  'next_cursor': null,
+};
+
+final Map<String, Object?> _reviewsFixture = <String, Object?>{
+  'summary': <String, Object?>{
+    'rating': 4.25,
+    'rating_count': 4,
+    'breakdown': <String, Object?>{'1': 0, '2': 0, '3': 1, '4': 1, '5': 2},
+  },
+  'results': <Object>[
+    <String, Object?>{
+      'id': 'rev-1',
+      'rating': 5,
+      'food_rating': 5,
+      'service_rating': 5,
+      'ambience_rating': 5,
+      'body': 'We sat on the terrace until the oud player finished. The mixed '
+          'grill is enough for three, whatever the menu says.',
+      'author': 'Nour H.',
+      // FIXED, and from the module every other date in this tree comes from.
+      // A hardcoded ISO literal here is exactly what fixture_dates_test.dart
+      // scans for, and for the reason it was written: a date that drifts past
+      // now stops picturing what it was chosen to picture.
+      'created_at': '${kPastDate}T20:30:00.000Z',
+      'owner_reply': 'Thank you Nour — the oud is every night after ten.',
+      'owner_replied_at': '${kPastDate}T22:00:00.000Z',
+    },
+    <String, Object?>{
+      'id': 'rev-2',
+      'rating': 4,
+      'food_rating': 5,
+      'service_rating': 3,
+      'ambience_rating': null,
+      'body': 'Food was excellent. Service slowed once it filled up.',
+      'author': 'Omar A.',
+      'created_at': '${kPastDate}T19:00:00.000Z',
+      'owner_reply': null,
+      'owner_replied_at': null,
+    },
+    <String, Object?>{
+      // STARS ONLY — the nullable body, which is the majority case everywhere
+      // it is allowed and would otherwise never appear in a picture.
+      'id': 'rev-3',
+      'rating': 5,
+      'food_rating': null,
+      'service_rating': null,
+      'ambience_rating': null,
+      'body': null,
+      'author': 'Laila F.',
+      'created_at': '${kPastDate}T18:00:00.000Z',
+      'owner_reply': null,
+      'owner_replied_at': null,
+    },
+  ],
+  'next_cursor': null,
+};
+
+/// A venue nobody has reviewed yet — and whose HERO says so too.
+///
+/// `_profile` carries the seeded 4.8 from 312 reviews. Pairing it with an empty
+/// review page pictured a venue claiming 312 reviews above a panel saying it
+/// has none, which cannot happen in the product: the trigger in
+/// `20260809010000_menus_and_reviews` recomputes `rating_avg` and
+/// `rating_count` from the rows, so the two are the same fact.
+///
+/// A fixture that shows an impossible state is a fixture that stops being
+/// evidence. Same class as the corrupt PNG and the stale dates.
+final Map<String, Object?> _profileUnrated = <String, Object?>{
+  ..._profile,
+  'rating': 0,
+  'rating_count': 0,
+};
+
 final Map<String, Object?> _profileWithPhotos = <String, Object?>{
   ..._profile,
   'images': <Object>[_imageJson(), _imageJson(cover: false, position: 1)],
@@ -566,6 +822,36 @@ class _LockedOut extends SignIn {
       );
 }
 
+/// Tap a control by its LOCALISED label.
+///
+/// `find.text('Full menu')` found nothing in the two Arabic cells, where the
+/// same control reads «المنيو كامل» — and a golden that fails to open the sheet
+/// it is named after pictures the screen behind it, which looks like a
+/// perfectly good screenshot.
+///
+/// The existing workaround in this file taps `find.byType(SahraChip).at(1)`,
+/// which is position-dependent and breaks when a chip is inserted. Reading the
+/// live `AppLocalizations` off the tree costs three lines and survives both.
+Future<void> _tapLabel(
+  WidgetTester tester,
+  String Function(AppLocalizations) pick, {
+  bool scroll = false,
+}) async {
+  final BuildContext context = tester.element(find.byType(VenueScreen));
+  final Finder target = find.text(pick(AppLocalizations.of(context))).first;
+  if (scroll) {
+    await tester.scrollUntilVisible(target, 300);
+    // SETTLE BEFORE TAPPING. A list that is still moving claims the next tap
+    // to stop itself, so the control never fires — and the golden then shows
+    // the page behind the sheet it is named after, which looks like a
+    // perfectly good screenshot. That is exactly what `Reviews/sheet`
+    // pictured on its first run.
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(target);
+  await tester.pumpAndSettle();
+}
+
 List<Override> _transport(
   Object? Function(String, String, Map<String, String>?) handler,
 ) =>
@@ -672,6 +958,9 @@ Map<String, Object?> _reservation({
   String date = kFutureDate,
   String? occasion,
   String? specialRequests,
+  /// Group D — whether the SERVER says this visit can be reviewed. Named here
+  /// so a fixture cannot accidentally assert the review CTA into existence.
+  bool canReview = false,
 }) =>
     <String, Object?>{
       'id': _reservationId,
@@ -687,6 +976,11 @@ Map<String, Object?> _reservation({
       'time': '21:00',
       'party_size': 2,
       'needs_acknowledgement': needsAcknowledgement,
+      // Group D. The SERVER decides this; a fixture that
+      // omitted it would be testing a response shape the API
+      // never sends.
+      'can_review': canReview,
+      'review_id': null,
       'cancelled_by': cancelledBy,
       'cancelled_at': cancelledBy == null ? null : '${date}T09:00:00.000Z',
       'cancel_reason': cancelReason,

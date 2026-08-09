@@ -1,7 +1,8 @@
-# Group D schema — PROPOSAL, not yet built
+# Group D schema — proposed, agreed, built
 
 **Date:** 2026-08-09
-**Status:** awaiting the product owner. **No migration has been written.**
+**Status:** APPROVED with corrections, and BUILT — `20260809010000_menus_and_reviews`.
+What changed between the proposal and the build is recorded in §5 at the bottom.
 **Covers:** R-2.3 (menus), C-2.6 (venue detail: menus + reviews), C-4.4 (reviews)
 
 Four tables: `menus`, `menu_categories`, `menu_items`, `reviews`. Doc 04
@@ -353,3 +354,98 @@ known gap rather than an oversight.
 3. §1.4 — the dietary vocabulary list.
 4. §2.4 — reviews default to `published`.
 5. §2.6 — trigger instead of async recompute.
+
+
+---
+
+## 5. What the product owner changed, and what it cost
+
+Approved as proposed, with two additions and one instruction.
+
+### 5.1 The dietary vocabulary gained two entries
+
+`shellfish` and `contains_pork`, by the same rule the list was already built
+on — **mark the exception, never the default**:
+
+> `contains_pork` — the exception worth marking, not the default. Some venues
+> in tourist areas and some Coptic-owned kitchens serve it, and a diner who
+> needs to avoid it should not have to ask a waiter.
+>
+> `shellfish` — a common allergy and Egyptian menus are full of it. Nut-free
+> and dairy-free are in the list; shellfish is at least as load-bearing.
+
+Final list, in the CHECK constraint and in `menu_copy.dart`, with
+`dietary_vocabulary_test.dart` reading the migration on disk and failing if the
+two ever drift:
+
+    vegetarian · vegan · gluten_free · nut_free · dairy_free
+    shellfish · spicy · contains_alcohol · contains_pork
+
+### 5.2 The code-held invariant, in the owner's words
+
+> "only a seated diner may review" enforced in code, not the database, and
+> flagged rather than dressed up as enforced.
+
+That sentence is now in `review-eligibility.ts`, which is the single definition
+both `POST /reviews` and the bookings list's `can_review` flag call. Attacked
+from three directions:
+
+- `menus-reviews.e2e-spec.ts` attempts a review from **every** one of the seven
+  non-eligible statuses, over HTTP.
+- `review-eligibility.spec.ts` covers the time half, which an e2e test cannot
+  reach without waiting for a meal to end.
+- A cross-check asks the reservation what it predicts, then attempts the review,
+  and fails if the two disagree — which is what would catch the rule being
+  reimplemented on either side.
+
+### 5.3 The gallery, from our own findings
+
+> `VenueProfile.images` is fetched and only the first entry is drawn […]
+> correct at every layer, absent on screen.
+
+Built. `GalleryStrip` draws everything after the hero.
+
+### 5.4 `review_reports` — SCHEDULED, not open
+
+The owner's reason for upgrading it from "known gap" to "scheduled":
+
+> published-by-default with no way to report is the combination that hurts
+
+**Cost: half a batch, and it is not migration-heavy.** One table, one diner
+endpoint, one unique index:
+
+```sql
+review_reports(
+  id, review_id FK, reporter_user_id FK,
+  reason ENUM('spam','abusive','not_my_visit','wrong_venue','other'),
+  note TEXT, status ENUM('open','upheld','rejected'),
+  resolved_by FK NULL, resolved_at TIMESTAMPTZ NULL,
+  UNIQUE(review_id, reporter_user_id)
+)
+```
+
+The UNIQUE is the whole design: one person cannot brigade a review alone.
+
+What makes it half a batch rather than one is that the **queue** is not in it.
+Reporting is diner-facing and cheap; reading the queue is A-3, admin-surface
+work, and it belongs with the rest of the admin batch. Building the report
+button without the queue is deliberate and is the same trade as the waitlist's
+join-without-notify: the report is recorded, and until a moderator exists it is
+recorded for the moderator who will.
+
+**Recommend building it immediately after the location half-batch**, i.e.
+D → location → review_reports → G. It is the only thing on the list that is a
+consequence of a decision already made.
+
+### 5.5 Two things found while building that were not in the proposal
+
+**Five tables had no row-level security.** `notifications`, `devices`, `images`,
+`favorites`, `waitlists` — every table created after the lockdown migration.
+`ALTER DEFAULT PRIVILEGES` carried layer 1 forward automatically; there is no
+equivalent for RLS, so layer 2 silently stopped applying. Backfilled in this
+migration and now enforced by `rls-coverage.e2e-spec.ts`, which asks `pg_class`
+rather than reading the migration files.
+
+**The OpenAPI exporter failed silently.** `logger: false` meant a
+dependency-resolution error exited 1 with nothing on either stream. Now
+`['error', 'warn']`.

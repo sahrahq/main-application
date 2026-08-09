@@ -225,6 +225,39 @@ export class ImagesService {
     );
   }
 
+  /**
+   * Images by id, for the callers that already hold a foreign key to one.
+   *
+   * `menu_items.image_id` is the only real FK into this table — the other three
+   * owner types are polymorphic and read the other way, by owner. One lookup
+   * for every dish on a menu page rather than one per dish.
+   *
+   * NOT filtered by `ownerType`. The caller holds a foreign key the database
+   * enforced; re-deriving what kind of thing it points at here would be a
+   * second opinion about a fact that is already settled.
+   */
+  async byIds(ids: string[]): Promise<Map<string, ImageView>> {
+    if (ids.length === 0) return new Map();
+
+    const rows = await this.prisma.image.findMany({
+      where: { id: { in: ids }, status: ImageStatus.ready },
+    });
+
+    return new Map(
+      rows.map((r) => [
+        r.id,
+        {
+          id: r.id,
+          urls: this.urlsFor(r.url),
+          width: r.width,
+          height: r.height,
+          position: r.position,
+          is_cover: r.isCover,
+        },
+      ]),
+    );
+  }
+
   /** Remove an image and every rendition of it. */
   async remove(id: string): Promise<void> {
     const image = await this.prisma.image.findUnique({ where: { id } });

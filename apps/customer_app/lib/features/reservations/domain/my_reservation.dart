@@ -39,6 +39,8 @@ class MyReservation {
     required this.time,
     required this.partySize,
     required this.needsAcknowledgement,
+    this.canReview = false,
+    this.reviewId,
     required this.venue,
     this.cancelledBy,
     this.cancelledAt,
@@ -83,6 +85,21 @@ class MyReservation {
   /// and it keeps the reservation in `upcoming` regardless of date until
   /// `POST /reservations/{id}/acknowledge-cancellation`.
   final bool needsAcknowledgement;
+
+  /// Whether `POST /reviews` would accept this visit right now.
+  ///
+  /// COMPUTED BY THE SERVER, and the client must not second-guess it. The rule
+  /// — seated or completed, table time over, not already reviewed — is the one
+  /// invariant in Group D with no schema behind it, so it has exactly one
+  /// definition and this is a report of it, not a copy.
+  ///
+  /// A client that re-derived it from [status] and [endsAt] would be a second
+  /// copy, and the second copy is the one nobody tests against a real
+  /// `no_show`.
+  final bool canReview;
+
+  /// The review this visit already has, if any.
+  final String? reviewId;
 
   final ReservationVenue venue;
 

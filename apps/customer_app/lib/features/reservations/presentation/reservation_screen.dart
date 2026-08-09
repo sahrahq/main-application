@@ -10,6 +10,7 @@ import '../../../shared/widgets/tappable_contact.dart';
 import 'my_reservations_notifier.dart';
 import 'reservation_actions.dart';
 import 'reservation_copy.dart';
+import 'write_review_sheet.dart';
 
 /// One booking in full — the ticket a diner shows at the door.
 ///
@@ -335,6 +336,48 @@ class _Actions extends ConsumerWidget {
     final s = Theme.of(context).sahra;
     final text = Theme.of(context).textTheme;
     final r = reservation;
+
+    // A VISIT THAT HAPPENED HAS ONE ACTION, and it is not cancel.
+    //
+    // `canReview` is the SERVER's answer — seated or completed, table time
+    // over, not already reviewed — so this branch cannot disagree with what
+    // `POST /reviews` would do. See `review-eligibility.ts` for why that rule
+    // has exactly one definition.
+    //
+    // Checked BEFORE the "already over" early return below, which is what used
+    // to end the story for a completed booking.
+    if (r.canReview) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          SahraButton(
+            label: l10n.writeReviewCta,
+            onPressed: () async {
+              final posted = await showWriteReviewSheet(context, r);
+              if (posted && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.writeReviewPosted)),
+                );
+              }
+            },
+          ),
+          const SizedBox(height: SahraSpace.s5),
+        ],
+      );
+    }
+
+    // ALREADY REVIEWED: say so rather than showing nothing. A diner who
+    // remembers writing one and finds no trace of it assumes it was lost.
+    if (r.reviewId != null) {
+      return Padding(
+        padding: SahraSpace.inset(bottom: SahraSpace.s5),
+        child: Text(
+          l10n.reviewAlreadyWritten,
+          textAlign: TextAlign.center,
+          style: text.bodySmall?.copyWith(color: s.textFaint),
+        ),
+      );
+    }
 
     // Nothing to change about a booking that is already over or already
     // cancelled. The buttons are gone rather than disabled here — "cancel" on a

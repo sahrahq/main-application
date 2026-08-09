@@ -208,7 +208,11 @@ Indexes: `idx_reviews_rest(restaurant_id, status, created_at DESC)`, `idx_review
 ### menus / menu_categories / menu_items
 `menus(id, restaurant_id FK CASCADE, name_en/ar, kind ENUM('food','drinks','ramadan','set'), pdf_url TEXT NULL, position SMALLINT, active BOOL)`
 `menu_categories(id, menu_id FK CASCADE, name_en/ar, position SMALLINT)`
-`menu_items(id, category_id FK CASCADE, name_en/ar, description_en/ar, price NUMERIC(10,2), currency, image_id FK→images NULL, dietary_tags TEXT[], available BOOL, position SMALLINT)`
+`menu_items(id, category_id FK CASCADE, name_en/ar, description_en/ar, price NUMERIC(12,2), currency, image_id FK→images NULL, dietary_tags TEXT[], available BOOL, position SMALLINT)`
+
+> **PRECEDENT — every money column is `NUMERIC(12,2)`.** This line said `(10,2)`, which contradicted CLAUDE.md rule 5. `menu_items.price` was the FIRST money column built, so the width it took is the one `payments.amount`, deposits, settlement and commission are all copied from. Corrected 2026-08-09; the argument is in `docs/decisions/2026-08-09-group-d-schema-proposal.md` §1.2 and does not need making again.
+
+> `dietary_tags` is constrained to a fixed vocabulary by a CHECK — an unconstrained typo does not fail, it disappears at render time. The list is in the migration.
 Indexes: position-ordered fetch per parent: `idx_mi_cat(category_id, position)`.
 
 ### images (polymorphic media)

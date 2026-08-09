@@ -117,6 +117,46 @@ void main() {
       '${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
 
+  test('GROUP D over a real socket — the menu, and the price as a STRING', () async {
+    // THE ONE THING NO FAKE CAN PROVE.
+    //
+    // `menu_items.price` is `NUMERIC(12,2)`. Between the column and this
+    // assertion sit Prisma's Decimal, a `::text` cast, `JSON.stringify`, a
+    // socket, and the generated Dart model — and any one of them turning it
+    // into a number loses the scale. A fixture cannot check that, because a
+    // fixture IS the string.
+    final menus = await restaurants.menus('layali-lounge-zamalek');
+    expect(menus, isNotEmpty, reason: 'run `pnpm seed` first');
+
+    final item = menus.first.categories.first.items.first;
+    expect(
+      item.price,
+      matches(RegExp(r'^\d+\.\d{2}$')),
+      reason: 'The price arrived as "${item.price}". Two decimal places, or '
+          'the scale was lost somewhere between NUMERIC(12,2) and here.',
+    );
+    expect(item.currency, 'EGP');
+
+    // And the reviews, whose summary is computed by the TRIGGER rather than
+    // by the client.
+    final reviews = await restaurants.reviews('layali-lounge-zamalek');
+    expect(reviews.results, isNotEmpty);
+    expect(reviews.summary.ratingCount, reviews.summary.breakdown.values.reduce((a, b) => a + b),
+        reason: 'the histogram and the count disagree',);
+
+    // The verified-diner rule, visible from the outside: every author is a
+    // first name and an initial, never the full name on the account.
+    for (final r in reviews.results) {
+      expect(r.author.split(' ').length, lessThanOrEqualTo(2));
+    }
+
+    // A suspended or unknown venue 404s here exactly as its profile does.
+    await expectLater(
+      restaurants.menus('no-such-venue-at-all'),
+      throwsA(isA<Failure>()),
+    );
+  });
+
   test('search → detail → slots → hold → confirm, against the real engine', () async {
     // 1. SEARCH. Meilisearch decides WHICH, Postgres decides WHAT.
     final page = await restaurants.search(query: 'layali');

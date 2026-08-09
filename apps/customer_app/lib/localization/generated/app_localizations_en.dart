@@ -25,6 +25,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'We could not find that waitlist request.';
 
   @override
+  String get errReviewAlreadyExists => 'You\'ve already reviewed this visit.';
+
+  @override
+  String get errReviewNotEligible => 'Reviews are for visits that happened.';
+
+  @override
+  String get errReviewTooEarly =>
+      'You can review this once your table time is over.';
+
+  @override
   String get errBookingsOutsideNewHours =>
       'Some confirmed bookings fall outside these hours.';
 
@@ -947,4 +957,183 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reservationCallVenue => 'Call the restaurant';
+
+  @override
+  String get venueMenuTitle => 'From the menu';
+
+  @override
+  String get venueMenuFull => 'Full menu';
+
+  @override
+  String get menuSheetTitle => 'Menu';
+
+  @override
+  String get menuEmptyTitle => 'No menu here yet';
+
+  @override
+  String get menuEmptyMessage =>
+      'This restaurant hasn\'t shared its menu with us. Call them and they\'ll tell you what\'s good tonight.';
+
+  @override
+  String get menuPdfOpen => 'Open the menu';
+
+  @override
+  String get menuPdfNote =>
+      'This venue\'s menu is a document. It opens outside the app.';
+
+  @override
+  String menuItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dishes',
+      one: '1 dish',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String menuPrice(String price, String currency) {
+    return '$price $currency';
+  }
+
+  @override
+  String get currencyEgp => 'EGP';
+
+  @override
+  String get dietVegetarian => 'Vegetarian';
+
+  @override
+  String get dietVegan => 'Vegan';
+
+  @override
+  String get dietGlutenFree => 'Gluten free';
+
+  @override
+  String get dietNutFree => 'Nut free';
+
+  @override
+  String get dietDairyFree => 'Dairy free';
+
+  @override
+  String get dietShellfish => 'Shellfish';
+
+  @override
+  String get dietSpicy => 'Spicy';
+
+  @override
+  String get dietContainsAlcohol => 'Contains alcohol';
+
+  @override
+  String get dietContainsPork => 'Contains pork';
+
+  @override
+  String get venueReviewsTitle => 'Reviews';
+
+  @override
+  String get venueReviewsAll => 'All reviews';
+
+  @override
+  String get reviewsSheetTitle => 'Reviews';
+
+  @override
+  String get reviewsEmptyTitle => 'No reviews yet';
+
+  @override
+  String get reviewsEmptyMessage =>
+      'Only diners who booked and turned up can review, so the first one takes a while.';
+
+  @override
+  String reviewsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reviews',
+      one: '1 review',
+      zero: 'No reviews',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reviewsVerifiedNote =>
+      'Every review here is from a diner who booked a table and came.';
+
+  @override
+  String get reviewOwnerReply => 'From the restaurant';
+
+  @override
+  String get reviewFood => 'Food';
+
+  @override
+  String get reviewService => 'Service';
+
+  @override
+  String get reviewAmbience => 'Ambience';
+
+  @override
+  String get reviewsShowMore => 'Show more';
+
+  @override
+  String reviewStarsLabel(String rating) {
+    return '$rating out of 5';
+  }
+
+  @override
+  String reviewBreakdownLabel(int stars, int count) {
+    return '$stars stars: $count';
+  }
+
+  @override
+  String get writeReviewCta => 'Write a review';
+
+  @override
+  String get writeReviewTitle => 'How was it?';
+
+  @override
+  String writeReviewVenue(String name, String date) {
+    return '$name, $date';
+  }
+
+  @override
+  String get writeReviewOverall => 'Overall';
+
+  @override
+  String get writeReviewDetail => 'More detail, if you like';
+
+  @override
+  String get writeReviewBodyLabel => 'Anything you\'d tell a friend?';
+
+  @override
+  String get writeReviewBodyHint =>
+      'What you ate, where you sat, whether you\'d go back.';
+
+  @override
+  String get writeReviewSubmit => 'Post review';
+
+  @override
+  String get writeReviewSubmitting => 'Posting…';
+
+  @override
+  String get writeReviewPosted => 'Posted. Thank you.';
+
+  @override
+  String writeReviewStar(int n) {
+    return '$n of 5 stars';
+  }
+
+  @override
+  String get writeReviewNeedsRating => 'Pick a rating first.';
+
+  @override
+  String get reviewAlreadyWritten => 'You reviewed this visit';
+
+  @override
+  String get reviewPublicNote =>
+      'Your first name and the initial of your surname will be shown.';
+
+  @override
+  String venueGalleryLabel(int index, int total) {
+    return 'Photo $index of $total';
+  }
 }

@@ -139,6 +139,19 @@ describe('Idempotency-Key coverage across mutations', () => {
    *
    * None of the four can produce a duplicate row, which is what a key would
    * have been protecting against.
+   *
+   * ── AND THE ONE ADDED IN GROUP D ───────────────────────────────────────
+   *
+   * `POST /v1/reviews` is guarded by `reviews.reservation_id` being UNIQUE.
+   * A replay cannot create a second review: the database refuses it and the
+   * caller gets the 409 that doc 06 §Reviews already specifies. A key would be
+   * a SECOND mechanism for a guarantee that is already structural, and two
+   * mechanisms for one guarantee can disagree.
+   *
+   * Worth saying because the shape looks like the one that does need a key —
+   * it is a POST that creates a row. The difference is that the row has a
+   * natural unique key supplied by the caller, which a new restaurant or a new
+   * image does not.
    */
   it('the mutations WITHOUT a key are the known list, and no more', () => {
     expect(withoutKey.sort()).toEqual([
@@ -172,6 +185,7 @@ describe('Idempotency-Key coverage across mutations', () => {
       'POST /v1/owner/restaurants/{restaurantId}/tables',
       'POST /v1/reservations/{id}/acknowledge-cancellation',
       'POST /v1/reservations/{id}/cancel',
+      'POST /v1/reviews',
       'POST /v1/saved',
       'POST /v1/waitlists',
     ]);

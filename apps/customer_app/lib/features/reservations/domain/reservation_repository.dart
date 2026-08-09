@@ -1,3 +1,4 @@
+import '../../restaurants/domain/review.dart';
 import 'booking.dart';
 import 'my_reservation.dart';
 
@@ -115,5 +116,27 @@ abstract class ReservationRepository {
     required String id,
     required String date,
     int? partySize,
+  });
+
+  /// Review a visit (C-4.4, doc 06 §"Reviews").
+  ///
+  /// ON THIS REPOSITORY, not on the restaurant one, because the subject is a
+  /// RESERVATION. The API keys the review on `reservation_id` and refuses
+  /// anything else, so a signature that took a restaurant id would be a
+  /// signature that could not be satisfied.
+  ///
+  /// No idempotency key. `reservation_id` is UNIQUE server-side: a replay gets
+  /// a typed 409 (`review_already_exists`) rather than a second review.
+  ///
+  /// [body] is optional — stars alone is a complete review, and an empty or
+  /// whitespace-only body is sent as null rather than as a blank the CHECK
+  /// constraint would refuse.
+  Future<Review> createReview({
+    required String reservationId,
+    required int rating,
+    int? foodRating,
+    int? serviceRating,
+    int? ambienceRating,
+    String? body,
   });
 }

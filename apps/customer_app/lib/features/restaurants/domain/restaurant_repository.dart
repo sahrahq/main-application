@@ -1,3 +1,5 @@
+import 'menu.dart';
+import 'review.dart';
 import 'venue.dart';
 
 /// What the presentation layer is allowed to know about restaurants.
@@ -40,6 +42,24 @@ abstract class RestaurantRepository {
 
   /// The full profile, by id or slug (doc 06 §3).
   Future<VenueProfile> profile(String idOrSlug);
+
+  /// A venue's menus (doc 06 §3, R-2.3).
+  ///
+  /// A SEPARATE CALL from [profile], matching the API. Folding menus into the
+  /// profile would make every venue open pay for a menu most diners never
+  /// expand, on a Cairo mobile connection — and the profile is what the screen
+  /// needs before it can draw anything at all.
+  ///
+  /// Empty is an ordinary answer: most venues have no menu in the system yet,
+  /// because every row of one is typed in by hand.
+  Future<List<Menu>> menus(String idOrSlug);
+
+  /// A venue's published reviews, newest first (doc 06 §3, C-4.4).
+  ///
+  /// [cursor] is the previous page's `nextCursor`. Null asks for the first
+  /// page and always returns the summary with it, so the histogram is never
+  /// drawn from a page.
+  Future<ReviewPage> reviews(String idOrSlug, {String? cursor, int? limit});
 }
 
 class SearchPage {

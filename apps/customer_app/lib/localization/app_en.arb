@@ -6,6 +6,9 @@
   "errBadRequest": "Something about that request wasn't right. Please try again.",
   "errAlreadyOnWaitlist": "You're already on the list for that night.",
   "errWaitlistEntryNotFound": "We could not find that waitlist request.",
+  "errReviewAlreadyExists": "You've already reviewed this visit.",
+  "errReviewNotEligible": "Reviews are for visits that happened.",
+  "errReviewTooEarly": "You can review this once your table time is over.",
   "errBookingsOutsideNewHours": "Some confirmed bookings fall outside these hours.",
   "errCapacityConflictWithReservations": "Upcoming bookings on this table no longer fit the new capacity.",
   "errConflict": "That doesn't match the current state. Please refresh and try again.",
@@ -500,5 +503,129 @@
   },
   "@signInNameWhy": {
     "description": "The name step is reached only after a correct code, so the number is already proved. This sentence has to justify one more field to somebody who thought they had finished — hence 'nothing else is needed', which is also true."
+  },
+  "venueMenuTitle": "From the menu",
+  "venueMenuFull": "Full menu",
+  "menuSheetTitle": "Menu",
+  "menuEmptyTitle": "No menu here yet",
+  "menuEmptyMessage": "This restaurant hasn't shared its menu with us. Call them and they'll tell you what's good tonight.",
+  "menuPdfOpen": "Open the menu",
+  "menuPdfNote": "This venue's menu is a document. It opens outside the app.",
+  "menuItemCount": "{count, plural, =1{1 dish} other{{count} dishes}}",
+  "menuPrice": "{price} {currency}",
+  "currencyEgp": "EGP",
+  "dietVegetarian": "Vegetarian",
+  "dietVegan": "Vegan",
+  "dietGlutenFree": "Gluten free",
+  "dietNutFree": "Nut free",
+  "dietDairyFree": "Dairy free",
+  "dietShellfish": "Shellfish",
+  "dietSpicy": "Spicy",
+  "dietContainsAlcohol": "Contains alcohol",
+  "dietContainsPork": "Contains pork",
+  "venueReviewsTitle": "Reviews",
+  "venueReviewsAll": "All reviews",
+  "reviewsSheetTitle": "Reviews",
+  "reviewsEmptyTitle": "No reviews yet",
+  "reviewsEmptyMessage": "Only diners who booked and turned up can review, so the first one takes a while.",
+  "reviewsCount": "{count, plural, =0{No reviews} =1{1 review} other{{count} reviews}}",
+  "reviewsVerifiedNote": "Every review here is from a diner who booked a table and came.",
+  "reviewOwnerReply": "From the restaurant",
+  "reviewFood": "Food",
+  "reviewService": "Service",
+  "reviewAmbience": "Ambience",
+  "reviewsShowMore": "Show more",
+  "reviewStarsLabel": "{rating} out of 5",
+  "reviewBreakdownLabel": "{stars} stars: {count}",
+  "writeReviewCta": "Write a review",
+  "writeReviewTitle": "How was it?",
+  "writeReviewVenue": "{name}, {date}",
+  "writeReviewOverall": "Overall",
+  "writeReviewDetail": "More detail, if you like",
+  "writeReviewBodyLabel": "Anything you'd tell a friend?",
+  "writeReviewBodyHint": "What you ate, where you sat, whether you'd go back.",
+  "writeReviewSubmit": "Post review",
+  "writeReviewSubmitting": "Posting…",
+  "writeReviewPosted": "Posted. Thank you.",
+  "writeReviewStar": "{n} of 5 stars",
+  "writeReviewNeedsRating": "Pick a rating first.",
+  "reviewAlreadyWritten": "You reviewed this visit",
+  "reviewPublicNote": "Your first name and the initial of your surname will be shown.",
+  "venueGalleryLabel": "Photo {index} of {total}",
+  "@menuItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "Every branch interpolates the figure, per plural_count_test. Arabic uses the dual for =2 because «طبقين» carries the quantity itself."
+  },
+  "@menuPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      },
+      "currency": {
+        "type": "String"
+      }
+    },
+    "description": "`price` arrives from the API as a DECIMAL STRING and is printed unparsed — see MenuItem.price. `currency` is already localised by currencyLabel()."
+  },
+  "@reviewsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "=0 is a phrase rather than '0 reviews', because a venue with none has not scored zero."
+  },
+  "@reviewStarsLabel": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    },
+    "description": "SEMANTIC ONLY — the visible control is a row of stars. Arrives pre-formatted so no locale renders Arabic-Indic figures."
+  },
+  "@reviewBreakdownLabel": {
+    "placeholders": {
+      "stars": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "SEMANTIC ONLY, for one bar of the histogram. A screen reader hearing a bare bar learns nothing."
+  },
+  "@writeReviewStar": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    },
+    "description": "SEMANTIC ONLY, on each tappable star of the input. 'Star' alone would announce five identical buttons."
+  },
+  "@writeReviewVenue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    },
+    "description": "Which visit is being reviewed. The date is already formatted in the venue's own calendar wording."
+  },
+  "@venueGalleryLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    },
+    "description": "SEMANTIC ONLY. 'Photo' repeated four times tells a screen-reader user nothing about how many there are."
   }
 }

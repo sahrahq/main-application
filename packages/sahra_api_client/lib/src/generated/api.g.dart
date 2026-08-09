@@ -702,6 +702,38 @@ class SahraApi {
     return RestaurantProfileResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `GET /v1/restaurants/{idOrSlug}/menus`
+  ///
+  /// A venue's menus, with categories and available items
+  Future<List<MenuResponse>> listMenus({
+    required String idOrSlug,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/restaurants/$idOrSlug/menus',
+    );
+    return (response as List<dynamic>).map((e) => MenuResponse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// `GET /v1/restaurants/{idOrSlug}/reviews`
+  ///
+  /// A venue's published reviews, newest first
+  Future<ReviewPageResponse> listReviews({
+    required String idOrSlug,
+    String? cursor,
+    String? limit,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/restaurants/$idOrSlug/reviews',
+      query: <String, String>{
+        if (cursor != null) 'cursor': cursor,
+        if (limit != null) 'limit': limit,
+      },
+    );
+    return ReviewPageResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `GET /v1/restaurants/{id}/availability`
   ///
   /// Bookable slots for a date and party size
@@ -719,6 +751,20 @@ class SahraApi {
       },
     );
     return AvailabilityResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `POST /v1/reviews`
+  ///
+  /// Review a visit that happened
+  Future<ReviewResponse> createReview({
+    required CreateReviewDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/reviews',
+      body: body.toJson(),
+    );
+    return ReviewResponse.fromJson(response as Map<String, dynamic>);
   }
 
   /// `GET /v1/saved`

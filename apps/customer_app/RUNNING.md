@@ -200,9 +200,23 @@ they looked like before.
 The URL is the real deep link (doc 07 §3), so you can paste it straight into the
 address bar.
 
-A 280px hero with a mashrabiya-latticed placeholder — **that is the designed
-no-photo state, not a broken image**. Under it: description, amenity badges,
-tonight's hours, address, phone, and a sticky **Book a table** bar.
+A 280px hero. If nobody has photographed the venue it shows a
+mashrabiya-latticed placeholder — **that is the designed no-photo state, not a
+broken image**.
+
+Under it, in order: the photo strip (everything after the hero, scrolling edge
+to edge), the description, amenity badges, **the menu**, tonight's hours,
+address, phone, **the reviews**, and a sticky **Book a table** bar.
+
+Two things to try, because they are the states that ship broken:
+
+- **Kazoku has no menu and no reviews.** The menu section is absent entirely —
+  a heading over "nothing yet" is worse than the absence. The reviews section
+  is NOT absent: it says nobody has reviewed it and explains why only diners who
+  booked and turned up can, which is the one place that rule gets said.
+- **Layali Lounge has two menus**, food and drinks. "Full menu" opens both.
+  Prices read `320.00 ج.م` in Arabic — the figure is Latin, the currency is
+  not, and both stay on the right side of each other.
 
 ### Booking — tap "Book a table"
 
@@ -270,10 +284,10 @@ Stated plainly so you are not hunting for it:
 
 | | Why |
 |---|---|
-| **Menu, prices** | No menu tables (R-2.3). Group D |
-| **Reviews** | No reviews table (C-4.4). Group D |
+| **Reporting a review** | Reviews are published immediately (there is no moderator to queue them behind). Reporting one is the other half of that and is scheduled next — `docs/decisions/2026-08-09-group-d-schema-proposal.md` §5.4 |
+| **Review photos** | C-4.4 wants them. They are the diner-facing upload path the multipart boundary forbids, so they wait on a dependency decision |
+| **Uploading a menu, or a menu PDF** | The tables and the column exist and the app renders both. Getting a menu INTO them is manual, like photos — there is no owner console |
 | **Map** | The reference uses Leaflet; C-2.4 is P1 and no map package is in the doc 08 stack. Group H is an address plus a handoff to the phone's own map app |
-| **Photo GALLERY on the venue page** | The hero photo works. The reference's four-thumbnail strip does not — `VenueProfile.images` is fetched and only its first entry is drawn |
 | **Most venues having a photograph at all** | The image table is real (R-2.2) but every upload is manual and admin-only, so a venue nobody has photographed shows the mashrabiya placeholder — the reference's own no-photo state |
 | **The Collections / Lists / Events chips** | P1/P2. Only `Tonight` ships, and it is wired to the real filter |
 | **Being OFFERED a table from a waitlist** | You can join one (C-3.6). Nothing notifies you when a table frees — only the join half is built |
