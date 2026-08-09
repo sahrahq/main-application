@@ -21,7 +21,7 @@ signal that it was never cosmetic.
 | 5 | Splash animates the fade and the hairline only — no mark settle, no wordmark letter-spacing, no lattice fade | `splash_screen.dart` | Group F | Animating letter-spacing rebuilds the `TextStyle` every frame |
 | 6 | Splash draws the wordmark as TEXT — there is no logo asset in the repo | `splash_screen.dart` | Group F | Add `assets/logo.png`, which the reference expects |
 | 7 | Onboarding's "Already with us? Sign in" wraps to two lines | `onboarding_screen.dart` | Group F | Shorter copy, or a Row that shrinks |
-| 8 | The Arabic venue name on the hero touches the right edge — «ليالي لاونج» loses part of its last glyph | `Venue/*.ar.*` goldens | **Pre-existing**, seen in Group D | The display face's Arabic glyphs overrun their box; needs a `strutStyle` or a wider inset |
+| 8 | Latin headings are at 1.15 leading; `type-display.html` draws 1.08 and `type-headings.html` 1.1 | `sahra_typography.dart` | Found chasing flag 8's predecessor, 2026-08-09 | Small, and moving it reflows every English heading — worth doing in a type pass, not inside a bug fix |
 | 9 | A menu sheet and a reviews sheet have no visible close control — drag, scrim or back button only | `menu_section.dart`, `reviews_section.dart` | Group D | Platform-standard, but it is why both are `interactive: false` in the registry |
 
 ## Not on this list, on purpose
@@ -37,6 +37,18 @@ Discover "See all" label is the most recent example: the reference sets
 three-star review and a five-star one were the same picture. Not carried: a
 control that looks like it is telling you something and is not is a defect, not
 a polish item. Fixed in Group D by showing the figure.
+
+**FLAG 8 WAS WITHDRAWN, and how is worth keeping.** It read "the Arabic venue
+name on the hero loses part of its last glyph", was carried as cosmetic, then
+scheduled as a defect because clipped text is not cosmetic. Enlarging the
+golden seven times showed the «ج» is **complete** — Reem Kufi is a Kufi face
+and its letterforms are flat-bottomed by design. At 1x that is indistinguishable
+from a cut descender.
+The investigation was still worth it: it found that every Arabic heading was
+using the Latin leading (1.15) where `type-arabic.html` draws 1.3. That is
+fixed, and `arabic_heading_leading_test.dart` reads the number out of the
+guideline so the document stays the source. **A defect reported from a
+thumbnail needs a second look before it becomes a change.**
 
 **Anything that overflows.** A `RenderFlex` overflow is silent in a release
 build, so it is a defect that the person it breaks for cannot even report. Two

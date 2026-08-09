@@ -270,13 +270,27 @@ class _Hero extends ConsumerWidget {
                   Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: <Widget>[
-                      SahraRatingStars(
-                        rating: venue.rating,
-                        reviews: venue.ratingCount,
-                        semanticLabel: '${venue.rating} (${venue.ratingCount})',
-                      ),
+                      // The stars draw NOTHING when nobody has rated the venue
+                      // — see `SahraRatingStars`. So the separator that used to
+                      // join them to the meta line has to go with them, or the
+                      // hero reads "· Levantine · $$$ · Zamalek" with a
+                      // dangling dot where a rating is not.
+                      //
+                      // Found in the `Venue/no-reviews` golden, one fix after
+                      // the one that caused it.
+                      if (venue.ratingCount > 0) ...<Widget>[
+                        SahraRatingStars(
+                          rating: venue.rating,
+                          reviews: venue.ratingCount,
+                          semanticLabel: '${venue.rating} (${venue.ratingCount})',
+                        ),
+                        Text(
+                          ' · ',
+                          style: text.bodySmall?.copyWith(color: s.onPhoto),
+                        ),
+                      ],
                       Text(
-                        ' · ${venueMeta(l10n, venue.cuisines, venue.priceBand, venue.neighborhood)}',
+                        venueMeta(l10n, venue.cuisines, venue.priceBand, venue.neighborhood),
                         style: text.bodySmall?.copyWith(color: s.onPhoto),
                       ),
                     ],

@@ -433,9 +433,21 @@ button without the queue is deliberate and is the same trade as the waitlist's
 join-without-notify: the report is recorded, and until a moderator exists it is
 recorded for the moderator who will.
 
-**Recommend building it immediately after the location half-batch**, i.e.
-D → location → review_reports → G. It is the only thing on the list that is a
-consequence of a decision already made.
+**ACCEPTED ON THESE TERMS**, in the product owner's words, and they go in the
+service docblock when it is built so nobody later reads it as half-finished:
+
+> `review_reports` without a queue is accepted on the same terms as the
+> waitlist's join-without-notify: **recording with no reader, deliberately**,
+> with the reader arriving in A-3.
+
+`WaitlistService` already carries the equivalent sentence — *"Nothing here
+offers anybody a table"* — and it is the reason nobody has since mistaken the
+missing half for a bug. The report service gets the same treatment: a docblock
+that says the queue is A-3, that a report is recorded and read by nobody until
+then, and that this is a decision rather than a gap.
+
+**Order confirmed:** the silent-lapse sweep → the location half-batch →
+`review_reports` → G.
 
 ### 5.5 Two things found while building that were not in the proposal
 

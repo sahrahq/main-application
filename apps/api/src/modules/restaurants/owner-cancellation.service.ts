@@ -68,6 +68,10 @@ export class OwnerCancellationService {
              cancelled_at = now(),
              cancel_reason = ${reason},
              version      = res.version + 1
+         -- No updated_at here either, deliberately. It is set by
+         -- trg_touch_updated_at, and this statement is the OTHER one that used
+         -- to forget — the venue cancelling a booking, which left the column
+         -- reading from before the cancellation.
         FROM restaurants r
        WHERE res.id            = ${reservationId}::uuid
          AND r.id              = res.restaurant_id

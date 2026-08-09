@@ -231,6 +231,10 @@ export class MyReservationsService {
     await this.prisma.$executeRaw`
       UPDATE reservations
          SET cancellation_seen_at = now()
+         -- updated_at is NOT set here, and no longer needs to be:
+         -- trg_touch_updated_at sets it on every UPDATE to every table that has
+         -- the column. This statement is one of the two that forgot, which is
+         -- why the trigger exists (20260809020000_no_silent_lapses).
        WHERE id = ${id}::uuid
          AND user_id = ${userId}::uuid
          AND status = 'cancelled_by_restaurant'

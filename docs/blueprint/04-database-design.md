@@ -1,6 +1,26 @@
 # SAHRA Blueprint — 04: Database Design
 
-*PostgreSQL 16 (Supabase). Conventions: `id UUID PK DEFAULT gen_random_uuid()`, `created_at/updated_at TIMESTAMPTZ NOT NULL DEFAULT now()` on every table (omitted below for brevity), soft delete via `deleted_at` only where noted, all money as `NUMERIC(12,2)` + `currency CHAR(3) DEFAULT 'EGP'`, all user-facing text bilingual (`name_en`, `name_ar`).*
+*PostgreSQL 16 (Supabase). Conventions: `id UUID PK DEFAULT gen_random_uuid()`, `created_at/updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`, soft delete via `deleted_at` only where noted, all money as `NUMERIC(12,2)` + `currency CHAR(3) DEFAULT 'EGP'`, all user-facing text bilingual (`name_en`, `name_ar`).*
+
+> **These are conventions, not universals, and two of them have named
+> exceptions.** This paragraph used to say "on every table", which was false for
+> seven of twenty and had nothing checking it — the same shape as the RLS lapse
+> found on 2026-08-09. Every one of them is now asserted against the live
+> catalogue by `apps/api/test/schema-invariants.e2e-spec.ts`, which reads
+> `pg_class` rather than these paragraphs.
+>
+> - **No `updated_at`:** `audit_logs` (append-only — a trigger refuses every
+>   UPDATE), `roles` (seeded lookup), `reservation_tables` (its mutable columns
+>   are set by trigger from the parent reservation), `user_roles` (granted once;
+>   a revoke is a DELETE), `favorites` (created or deleted, never updated),
+>   `refresh_tokens` (`revoked_at` is the one mutation), `notifications`
+>   (`read_at` / `sent_at` are the timestamps that matter).
+> - **Not a UUID PK:** `audit_logs` (bigint sequence), `roles` (smallint
+>   lookup), and the two join tables with composite keys.
+>
+> Where `updated_at` DOES exist it is maintained by `trg_touch_updated_at`, not
+> by the statement doing the writing. Two raw UPDATEs used to forget it,
+> including the venue's cancel.
 
 ---
 

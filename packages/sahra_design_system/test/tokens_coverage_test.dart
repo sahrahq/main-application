@@ -43,9 +43,15 @@ void main() {
 
   group('tokens.json is fully implemented', () {
     test('the counts CLAUDE.md states are the counts in the file', () {
-      // CLAUDE.md: "78 light + 13 night". If this changes, CLAUDE.md is now
+      // CLAUDE.md: "79 light + 13 night". If this changes, CLAUDE.md is now
       // wrong too — fix both, deliberately.
-      expect(root.length, 78, reason: 'root token count changed');
+      //
+      // 78 → 79 on 2026-08-09: `leading-arabic-display` (1.3), which
+      // `type-arabic.html` draws for headings and tokens.json did not have.
+      // Every Arabic heading was using the Latin 1.15. Same shape as the
+      // addition of `leading-arabic` (1.7) for body — the guideline had a
+      // number and the token file was what was missing.
+      expect(root.length, 79, reason: 'root token count changed');
       expect(night.length, 13, reason: 'themeNight token count changed');
     });
 

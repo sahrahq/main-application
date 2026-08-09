@@ -1,6 +1,6 @@
 // GENERATED — DO NOT EDIT BY HAND.
 //
-// Source: docs/design/tokens.json (78 light + 13 night)
+// Source: docs/design/tokens.json (79 light + 13 night)
 // Regenerate: dart run tool/generate_tokens.dart
 //
 // Editing this file instead of the JSON is the one way to make the design
@@ -128,6 +128,8 @@ class SahraTokens {
   static const double leadingLoose = 1.65;
   /// `leading-arabic`: `1.7`
   static const double leadingArabic = 1.7;
+  /// `leading-arabic-display`: `1.3`
+  static const double leadingArabicDisplay = 1.3;
   /// `tracking-overline`: `.14em`
   static const double trackingOverline = 0.14;
   /// `space-1`: `4px`
@@ -242,6 +244,7 @@ class SahraTokens {
     'leading-normal': leadingNormal,
     'leading-loose': leadingLoose,
     'leading-arabic': leadingArabic,
+    'leading-arabic-display': leadingArabicDisplay,
     'tracking-overline': trackingOverline,
     'space-1': space1,
     'space-2': space2,
