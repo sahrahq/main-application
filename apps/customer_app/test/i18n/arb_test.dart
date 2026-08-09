@@ -42,6 +42,10 @@ void main() {
       // character a diner reads positionally. Translating it to «٠١خ خخخ خخخخ»
       // would show a shape that does not match what their keypad produces.
       'signInPhoneHint',
+      // "{rating}+" — a figure and a plus sign. Latin figures in both locales
+      // (DESIGN-RULES.md), and there is no Arabic form of "+" meaning "or
+      // better". A translation here could only be the same three characters.
+      'filterRatingPlus',
     };
 
     final untranslated = <String>[];

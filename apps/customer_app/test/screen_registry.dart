@@ -27,6 +27,10 @@ import 'package:sahra_customer_app/shared/widgets/venue_image_provider.dart';
 import 'support/fixture_image.dart';
 import 'package:sahra_customer_app/features/saved/presentation/saved_screen.dart';
 import 'package:sahra_customer_app/features/restaurants/presentation/discover_screen.dart';
+import 'package:sahra_customer_app/features/onboarding/presentation/splash_screen.dart';
+import 'package:sahra_customer_app/features/onboarding/presentation/onboarding_seen.dart';
+import 'package:sahra_customer_app/features/onboarding/presentation/onboarding_screen.dart';
+import 'dart:async';
 
 /// Every screen STATE that has to be pictured.
 ///
@@ -235,6 +239,39 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
     ],
   ),
 
+  // ── First run ───────────────────────────────────────────────────────────
+  'Onboarding/first': ScreenCase(
+    build: (_) => const OnboardingScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => <Object>[]),
+      onboardingSeenStoreProvider.overrideWithValue(InMemoryOnboardingSeenStore()),
+    ],
+  ),
+  'Onboarding/last': ScreenCase(
+    build: (_) => const OnboardingScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => <Object>[]),
+      onboardingSeenStoreProvider.overrideWithValue(InMemoryOnboardingSeenStore()),
+    ],
+    after: (tester) async {
+      await tester.tap(find.byType(SahraButton).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SahraButton).first);
+      await tester.pumpAndSettle();
+    },
+  ),
+  'Splash/waiting': ScreenCase(
+    build: (_) => const SplashScreen(),
+    // A STORE THAT NEVER ANSWERS, so the screen never navigates. Splash exists
+    // to cover a storage read; with a real store it hands over in 600ms and a
+    // golden of it would race the transition.
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => <Object>[]),
+      onboardingSeenStoreProvider.overrideWithValue(_NeverAnswers()),
+    ],
+    interactive: false,
+  ),
+
   // ── Discover — THE HOME SCREEN ──────────────────────────────────────────
   'Discover/tonight': ScreenCase(
     build: (_) => const DiscoverScreen(),
@@ -277,6 +314,22 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
   'Saved/signed-out': ScreenCase(
     build: (_) => const SavedScreen(),
     overrides: (_) => _transport((_, __, ___) => <Object>[]),
+  ),
+
+  'Search/filter-sheet': ScreenCase(
+    build: (_) => const SearchScreen(),
+    overrides: (_) => <Override>[
+      ..._transport((_, __, ___) => _resultsPage),
+      searchCriteriaProvider.overrideWith(() => _TypedQuery('layali')),
+    ],
+    after: (tester) async {
+      // BY POSITION, not by label. The registry runs every case in Arabic too,
+      // where the button reads «فلاتر» — a prefix match on "Filters" found
+      // nothing in half the cells. Tonight is the first chip on this row and
+      // Filters is the second.
+      await tester.tap(find.byType(SahraChip).at(1));
+      await tester.pumpAndSettle();
+    },
   ),
 
   // ── The two sheets ──────────────────────────────────────────────────────
@@ -424,6 +477,15 @@ final List<Object> _savedList = <Object>[
   _savedRow('11111111-1111-4111-8111-111111111112', 'El Fishawy', 'الفيشاوي'),
   _savedRow('11111111-1111-4111-8111-111111111113', 'Zooba', 'زوبا'),
 ];
+
+/// Never resolves, so `OnboardingSeen` stays null and Splash stays put.
+class _NeverAnswers implements OnboardingSeenStore {
+  @override
+  Future<bool> read() => Completer<bool>().future;
+
+  @override
+  Future<void> markSeen() async {}
+}
 
 const String _venueId = '11111111-1111-4111-8111-111111111111';
 const String _reservationId = '22222222-2222-4222-8222-222222222222';

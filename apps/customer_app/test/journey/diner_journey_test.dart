@@ -9,6 +9,8 @@ import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 
 import '../support/fakes.dart';
 import '../support/fixture_dates.dart';
+import 'package:sahra_customer_app/features/onboarding/presentation/onboarding_seen.dart';
+import 'package:sahra_customer_app/shared/providers/locale_override.dart';
 
 /// THE WHOLE JOURNEY, COLD LAUNCH TO A BOOKING FOUND AGAIN.
 ///
@@ -92,6 +94,11 @@ void main() {
         overrides: <Override>[
           transportProvider.overrideWithValue(backend(signedIn: () => signedIn)),
           sessionStoreProvider.overrideWithValue(store),
+          // FIRST RUN, DETERMINISTICALLY. The secure store has no platform
+          // channel on the test host, and a walk that depended on what it
+          // happened to answer would drift between machines.
+          onboardingSeenStoreProvider.overrideWithValue(InMemoryOnboardingSeenStore()),
+          localePreferenceStoreProvider.overrideWithValue(InMemoryLocalePreferenceStore()),
         ],
       );
       addTearDown(container.dispose);
@@ -108,6 +115,23 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(container: container, child: const SahraApp()),
       );
+      await tester.pumpAndSettle();
+
+      // ── 0. FIRST RUN: splash, then the three slides. ─────────────────────
+      //
+      // This is what a diner who has just installed the app actually sees, and
+      // it did not exist before Group F. `pumpAndSettle` covers the splash's
+      // 600ms minimum and the storage read behind it.
+      expect(
+        find.text('Find the vibe for tonight'),
+        findsOneWidget,
+        reason: 'first launch did not reach onboarding',
+      );
+      await tester.tap(find.widgetWithText(SahraButton, 'Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(SahraButton, 'Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(SahraButton, 'Get started'));
       await tester.pumpAndSettle();
 
       // ── 1. It opens, on Discover, without asking anyone to sign in. ────────

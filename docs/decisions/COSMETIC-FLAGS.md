@@ -18,6 +18,9 @@ signal that it was never cosmetic.
 | 2 | Saved card meta truncates to "شامي · …" in a two-column cell | `Saved/list` golden | Group C | Shorter meta, or a third line |
 | 3 | Saved cards have loose bottom padding at 1× text | `Saved/list` golden | Group C | Tune the computed cell height |
 | 4 | Discover has no pull-to-refresh lantern; uses the platform `RefreshIndicator` | `discover_screen.dart` | Group F | A custom indicator widget |
+| 5 | Splash animates the fade and the hairline only — no mark settle, no wordmark letter-spacing, no lattice fade | `splash_screen.dart` | Group F | Animating letter-spacing rebuilds the `TextStyle` every frame |
+| 6 | Splash draws the wordmark as TEXT — there is no logo asset in the repo | `splash_screen.dart` | Group F | Add `assets/logo.png`, which the reference expects |
+| 7 | Onboarding's "Already with us? Sign in" wraps to two lines | `onboarding_screen.dart` | Group F | Shorter copy, or a Row that shrinks |
 
 ## Not on this list, on purpose
 

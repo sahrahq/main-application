@@ -283,6 +283,30 @@
   "discoverGreetingAnonymous": "Good evening",
   "discoverCity": "Cairo",
   "discoverTonight": "Available tonight",
+  "onboardKicker1": "Cairo, tonight",
+  "onboardTitle1": "Find the vibe for tonight",
+  "onboardBody1": "Rooftops, late-night kitchens, live oud — the city's best tables, in one place.",
+  "onboardKicker2": "No phone calls",
+  "onboardTitle2": "Book a table in seconds",
+  "onboardBody2": "Real-time availability. Pick a time, we'll tell them you're coming.",
+  "onboardKicker3": "For every occasion",
+  "onboardTitle3": "From iftar to date night",
+  "onboardBody3": "Curated for Ramadan, birthdays, or just a Tuesday that deserves better.",
+  "onboardNext": "Next",
+  "onboardSlideOf": "Slide {index} of {total}",
+  "onboardStart": "Get started",
+  "onboardHaveAccount": "Already with us?",
+  "onboardSignIn": "Sign in",
+  "filterTitle": "Filters",
+  "filterCuisine": "Cuisine",
+  "filterPrice": "Price",
+  "filterRating": "Rating",
+  "filterAmenities": "Good for",
+  "filterApply": "Show results",
+  "filterClear": "Clear all",
+  "filterRatingPlus": "{rating}+",
+  "filterOpen": "Filters",
+  "filterOpenWithCount": "Filters ({count})",
   "discoverSeeAll": "See all",
   "discoverNothingTonightTitle": "Nothing free tonight",
   "discoverNothingTonightMessage": "Every table we can see is taken. Try another night.",
@@ -340,6 +364,18 @@
   "signInEmailSupport": "Email SAHRA support",
   "contactCannotOpen": "Couldn't open an app for this — copy it instead.",
   "reservationCallVenue": "Call the restaurant",
+  "@filterRatingPlus": {
+    "placeholders": { "rating": { "type": "String" } },
+    "description": "A FLOOR, not a band. Latin figures in both locales (DESIGN-RULES.md), and the value arrives pre-formatted so no locale renders Arabic-Indic numerals here."
+  },
+  "@filterOpenWithCount": {
+    "placeholders": { "count": { "type": "int" } },
+    "description": "The count on the filter button. A diner has to be able to see they have filters on WITHOUT opening the sheet — a forgotten filter is the commonest way somebody concludes an app is broken."
+  },
+  "@onboardSlideOf": {
+    "placeholders": { "index": { "type": "int" }, "total": { "type": "int" } },
+    "description": "The accessible name on a pagination dot. A bare number tells a screen-reader user nothing about where they are or how much is left."
+  },
   "@discoverGreeting": {
     "placeholders": { "name": { "type": "String" } },
     "description": "The FIRST name only. \"Good evening, Nour Hassan Mohamed\" is a form letter."

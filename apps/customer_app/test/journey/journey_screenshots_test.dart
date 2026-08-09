@@ -12,6 +12,8 @@ import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 
 import '../support/fakes.dart';
 import '../support/fixture_dates.dart';
+import 'package:sahra_customer_app/features/onboarding/presentation/onboarding_seen.dart';
+import 'package:sahra_customer_app/shared/providers/locale_override.dart';
 
 /// THE WALK-THROUGH, AS PICTURES.
 ///
@@ -98,6 +100,11 @@ void main() {
               }),
             ),
             sessionStoreProvider.overrideWithValue(store),
+            // FIRST RUN, DETERMINISTICALLY. The secure store has no platform
+            // channel on the test host, and a walk that depended on what it
+            // happened to answer would drift between machines.
+            onboardingSeenStoreProvider.overrideWithValue(InMemoryOnboardingSeenStore()),
+            localePreferenceStoreProvider.overrideWithValue(InMemoryLocalePreferenceStore()),
           ],
         );
         addTearDown(container.dispose);
@@ -110,6 +117,17 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        // FIRST RUN, photographed. Splash has already handed over by the time
+        // the tree settles; onboarding is what a new diner actually sees.
+        await capture('onboarding');
+        await tester.tap(find.widgetWithText(SahraButton, l10n.onboardNext));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(SahraButton, l10n.onboardNext));
+        await tester.pumpAndSettle();
+        await capture('onboarding-last');
+        await tester.tap(find.widgetWithText(SahraButton, l10n.onboardStart));
+        await tester.pumpAndSettle();
+
         await capture('cold-open');
 
         // Search is one tap from the home screen — and the walk photographs

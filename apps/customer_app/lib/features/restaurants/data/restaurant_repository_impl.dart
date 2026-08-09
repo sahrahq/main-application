@@ -29,11 +29,25 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
     String? availableOn,
     int? partySize,
     String? cursor,
+    String? cuisine,
+    int? priceBand,
+    double? ratingMin,
+    List<String> amenities = const <String>[],
   }) async {
     final response = await guarded(
       () => _api.find(
         q: query,
         neighborhood: neighborhood,
+        cuisine: cuisine,
+        // Every query parameter is a String because that is what a query
+        // parameter is. Converting here rather than taking Strings in the
+        // domain keeps the type where it means something — a price band is an
+        // int, and a screen that could pass "cheap" would.
+        priceBand: priceBand?.toString(),
+        ratingMin: ratingMin?.toString(),
+        // Comma-separated, matching the API's own parsing. Empty means "no
+        // amenity filter", which is not the same as "no amenities".
+        amenities: amenities.isEmpty ? null : amenities.join(','),
         // The API rejects one without the other
         // (`invalid_availability_filter`), so they travel together or not at
         // all.

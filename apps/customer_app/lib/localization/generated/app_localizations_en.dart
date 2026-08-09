@@ -758,6 +758,87 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoverTonight => 'Available tonight';
 
   @override
+  String get onboardKicker1 => 'Cairo, tonight';
+
+  @override
+  String get onboardTitle1 => 'Find the vibe for tonight';
+
+  @override
+  String get onboardBody1 =>
+      'Rooftops, late-night kitchens, live oud — the city\'s best tables, in one place.';
+
+  @override
+  String get onboardKicker2 => 'No phone calls';
+
+  @override
+  String get onboardTitle2 => 'Book a table in seconds';
+
+  @override
+  String get onboardBody2 =>
+      'Real-time availability. Pick a time, we\'ll tell them you\'re coming.';
+
+  @override
+  String get onboardKicker3 => 'For every occasion';
+
+  @override
+  String get onboardTitle3 => 'From iftar to date night';
+
+  @override
+  String get onboardBody3 =>
+      'Curated for Ramadan, birthdays, or just a Tuesday that deserves better.';
+
+  @override
+  String get onboardNext => 'Next';
+
+  @override
+  String onboardSlideOf(int index, int total) {
+    return 'Slide $index of $total';
+  }
+
+  @override
+  String get onboardStart => 'Get started';
+
+  @override
+  String get onboardHaveAccount => 'Already with us?';
+
+  @override
+  String get onboardSignIn => 'Sign in';
+
+  @override
+  String get filterTitle => 'Filters';
+
+  @override
+  String get filterCuisine => 'Cuisine';
+
+  @override
+  String get filterPrice => 'Price';
+
+  @override
+  String get filterRating => 'Rating';
+
+  @override
+  String get filterAmenities => 'Good for';
+
+  @override
+  String get filterApply => 'Show results';
+
+  @override
+  String get filterClear => 'Clear all';
+
+  @override
+  String filterRatingPlus(String rating) {
+    return '$rating+';
+  }
+
+  @override
+  String get filterOpen => 'Filters';
+
+  @override
+  String filterOpenWithCount(int count) {
+    return 'Filters ($count)';
+  }
+
+  @override
   String get discoverSeeAll => 'See all';
 
   @override

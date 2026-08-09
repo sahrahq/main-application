@@ -740,6 +740,86 @@ class AppLocalizationsAr extends AppLocalizations {
   String get discoverTonight => 'متاح الليلة';
 
   @override
+  String get onboardKicker1 => 'القاهرة، الليلة';
+
+  @override
+  String get onboardTitle1 => 'اعثر على أجواء ليلتك';
+
+  @override
+  String get onboardBody1 =>
+      'روف توب، مطابخ تفتح لوقت متأخر، وعود حي — أفضل موائد المدينة في مكان واحد.';
+
+  @override
+  String get onboardKicker2 => 'من غير مكالمات';
+
+  @override
+  String get onboardTitle2 => 'احجز طاولتك في ثوانٍ';
+
+  @override
+  String get onboardBody2 => 'توافر لحظي. اختر الوقت، وإحنا نبلّغهم إنك جاي.';
+
+  @override
+  String get onboardKicker3 => 'لكل مناسبة';
+
+  @override
+  String get onboardTitle3 => 'من الإفطار لعشاء رومانسي';
+
+  @override
+  String get onboardBody3 =>
+      'مختارة لرمضان، أعياد الميلاد، أو حتى يوم تلات يستاهل أحسن.';
+
+  @override
+  String get onboardNext => 'التالي';
+
+  @override
+  String onboardSlideOf(int index, int total) {
+    return 'شريحة $index من $total';
+  }
+
+  @override
+  String get onboardStart => 'ابدأ';
+
+  @override
+  String get onboardHaveAccount => 'عندك حساب؟';
+
+  @override
+  String get onboardSignIn => 'سجّل دخول';
+
+  @override
+  String get filterTitle => 'فلاتر';
+
+  @override
+  String get filterCuisine => 'المطبخ';
+
+  @override
+  String get filterPrice => 'السعر';
+
+  @override
+  String get filterRating => 'التقييم';
+
+  @override
+  String get filterAmenities => 'مناسب لـ';
+
+  @override
+  String get filterApply => 'اعرض النتايج';
+
+  @override
+  String get filterClear => 'امسح الكل';
+
+  @override
+  String filterRatingPlus(String rating) {
+    return '$rating+';
+  }
+
+  @override
+  String get filterOpen => 'فلاتر';
+
+  @override
+  String filterOpenWithCount(int count) {
+    return 'فلاتر ($count)';
+  }
+
+  @override
   String get discoverSeeAll => 'الكل';
 
   @override

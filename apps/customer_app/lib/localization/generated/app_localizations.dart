@@ -1406,6 +1406,150 @@ abstract class AppLocalizations {
   /// **'Available tonight'**
   String get discoverTonight;
 
+  /// No description provided for @onboardKicker1.
+  ///
+  /// In en, this message translates to:
+  /// **'Cairo, tonight'**
+  String get onboardKicker1;
+
+  /// No description provided for @onboardTitle1.
+  ///
+  /// In en, this message translates to:
+  /// **'Find the vibe for tonight'**
+  String get onboardTitle1;
+
+  /// No description provided for @onboardBody1.
+  ///
+  /// In en, this message translates to:
+  /// **'Rooftops, late-night kitchens, live oud — the city\'s best tables, in one place.'**
+  String get onboardBody1;
+
+  /// No description provided for @onboardKicker2.
+  ///
+  /// In en, this message translates to:
+  /// **'No phone calls'**
+  String get onboardKicker2;
+
+  /// No description provided for @onboardTitle2.
+  ///
+  /// In en, this message translates to:
+  /// **'Book a table in seconds'**
+  String get onboardTitle2;
+
+  /// No description provided for @onboardBody2.
+  ///
+  /// In en, this message translates to:
+  /// **'Real-time availability. Pick a time, we\'ll tell them you\'re coming.'**
+  String get onboardBody2;
+
+  /// No description provided for @onboardKicker3.
+  ///
+  /// In en, this message translates to:
+  /// **'For every occasion'**
+  String get onboardKicker3;
+
+  /// No description provided for @onboardTitle3.
+  ///
+  /// In en, this message translates to:
+  /// **'From iftar to date night'**
+  String get onboardTitle3;
+
+  /// No description provided for @onboardBody3.
+  ///
+  /// In en, this message translates to:
+  /// **'Curated for Ramadan, birthdays, or just a Tuesday that deserves better.'**
+  String get onboardBody3;
+
+  /// No description provided for @onboardNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboardNext;
+
+  /// The accessible name on a pagination dot. A bare number tells a screen-reader user nothing about where they are or how much is left.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide {index} of {total}'**
+  String onboardSlideOf(int index, int total);
+
+  /// No description provided for @onboardStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get onboardStart;
+
+  /// No description provided for @onboardHaveAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Already with us?'**
+  String get onboardHaveAccount;
+
+  /// No description provided for @onboardSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get onboardSignIn;
+
+  /// No description provided for @filterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get filterTitle;
+
+  /// No description provided for @filterCuisine.
+  ///
+  /// In en, this message translates to:
+  /// **'Cuisine'**
+  String get filterCuisine;
+
+  /// No description provided for @filterPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get filterPrice;
+
+  /// No description provided for @filterRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get filterRating;
+
+  /// No description provided for @filterAmenities.
+  ///
+  /// In en, this message translates to:
+  /// **'Good for'**
+  String get filterAmenities;
+
+  /// No description provided for @filterApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Show results'**
+  String get filterApply;
+
+  /// No description provided for @filterClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get filterClear;
+
+  /// A FLOOR, not a band. Latin figures in both locales (DESIGN-RULES.md), and the value arrives pre-formatted so no locale renders Arabic-Indic numerals here.
+  ///
+  /// In en, this message translates to:
+  /// **'{rating}+'**
+  String filterRatingPlus(String rating);
+
+  /// No description provided for @filterOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get filterOpen;
+
+  /// The count on the filter button. A diner has to be able to see they have filters on WITHOUT opening the sheet — a forgotten filter is the commonest way somebody concludes an app is broken.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters ({count})'**
+  String filterOpenWithCount(int count);
+
   /// No description provided for @discoverSeeAll.
   ///
   /// In en, this message translates to:

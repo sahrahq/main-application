@@ -16,12 +16,26 @@ abstract class RestaurantRepository {
   /// Throws — it does not return a Result. The notifier's `AsyncValue` already
   /// carries the error, and a second error channel means two ways to handle
   /// the same failure.
+  /// [cuisine], [priceBand], [ratingMin] and [amenities] are C-2.2's filters.
+  /// Every one of them has been served by the API since search shipped; the
+  /// client simply never asked. Threading them through here is what the filter
+  /// sheet needed — no backend change at all.
+  ///
+  /// NO `distance`, and that is a capability gap rather than an oversight. The
+  /// API takes lat/lng and a radius, and nothing in this app collects a
+  /// location: there is no permission prompt and no geocoding. A filter that
+  /// silently ranked by a location we do not have would be worse than its
+  /// absence.
   Future<SearchPage> search({
     String? query,
     String? neighborhood,
     String? availableOn,
     int? partySize,
     String? cursor,
+    String? cuisine,
+    int? priceBand,
+    double? ratingMin,
+    List<String> amenities = const <String>[],
   });
 
   /// The full profile, by id or slug (doc 06 §3).

@@ -75,7 +75,13 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    final router = buildRouter();
+    // STARTS ON DISCOVER, EXPLICITLY. The app's own initial location is
+    // `/splash`, which exists to cover the first-run decision — this suite is
+    // about the tab bar, and routing it through a splash would test the splash.
+    final router = GoRouter(
+      initialLocation: DiscoverRoute.path,
+      routes: buildRouter().configuration.routes,
+    );
     addTearDown(router.dispose);
 
     await tester.pumpWidget(

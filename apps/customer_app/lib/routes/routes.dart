@@ -18,6 +18,8 @@ import '../features/reservations/presentation/confirmed_screen.dart';
 import '../features/reservations/presentation/my_bookings_screen.dart';
 import '../features/saved/presentation/saved_screen.dart';
 import '../features/reservations/presentation/reservation_screen.dart';
+import '../features/onboarding/presentation/onboarding_screen.dart';
+import '../features/onboarding/presentation/splash_screen.dart';
 import '../features/restaurants/presentation/discover_screen.dart';
 import '../features/restaurants/presentation/search_screen.dart';
 import '../features/restaurants/presentation/venue_screen.dart';
@@ -101,6 +103,32 @@ class AccountRoute {
 /// search field: the first thing a diner ever saw was an empty box asking them
 /// what they wanted. Search keeps its own route and its own tab entry point;
 /// what changed is which screen the app opens on.
+/// First run only — `Onboarding.jsx`.
+///
+/// OUTSIDE THE SHELL, deliberately: a bottom bar under an introduction to the
+/// app invites somebody to skip it by tapping a tab, which is a fourth exit
+/// nobody designed. The two the reference draws — "Get started" and "Sign in"
+/// — are the two there are.
+/// The first frame — `SplashScreen.jsx`.
+///
+/// It is the initial location because it has a DECISION to cover, not a
+/// duration to burn: whether this diner has seen onboarding is a read from
+/// storage, and without a screen over that gap the app flashes Discover at a
+/// first-run user or onboarding at a returning one.
+class SplashRoute {
+  const SplashRoute();
+
+  static const String path = '/splash';
+  void go(BuildContext context) => context.go(path);
+}
+
+class OnboardingRoute {
+  const OnboardingRoute();
+
+  static const String path = '/welcome';
+  void go(BuildContext context) => context.go(path);
+}
+
 class DiscoverRoute {
   const DiscoverRoute();
 
@@ -153,8 +181,16 @@ class ConfirmedRoute {
 /// mid-booking should not be one tap from silently abandoning it, and the
 /// confirmation is a full-screen moment in the reference.
 GoRouter buildRouter() => GoRouter(
-      initialLocation: DiscoverRoute.path,
+      initialLocation: SplashRoute.path,
       routes: <RouteBase>[
+        GoRoute(
+          path: SplashRoute.path,
+          builder: (_, __) => const SplashScreen(),
+        ),
+        GoRoute(
+          path: OnboardingRoute.path,
+          builder: (_, __) => const OnboardingScreen(),
+        ),
         ShellRoute(
           builder: (context, state, child) => AppShell(
             location: state.uri.path,

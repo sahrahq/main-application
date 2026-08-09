@@ -9,6 +9,7 @@ import '../domain/restaurant_repository.dart';
 import 'search_notifier.dart';
 import 'venue_meta.dart';
 import '../../../shared/widgets/venue_image_provider.dart';
+import 'filter_sheet.dart';
 
 /// `docs/design/ui_kits/app/SearchScreen.jsx`.
 ///
@@ -74,13 +75,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     semanticLabel: l10n.searchHint,
                   ),
                   const SizedBox(height: SahraSpace.s3),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: SahraChip(
-                      label: l10n.searchFilterTonight,
-                      active: criteria.tonightOnly,
-                      onPressed: ref.read(searchCriteriaProvider.notifier).toggleTonight,
-                    ),
+                  // Tonight stays its own chip — it is the one filter that is
+                  // a mode rather than a narrowing, and burying it in the
+                  // sheet would hide the availability post-filter that makes
+                  // this search worth anything.
+                  Row(
+                    children: <Widget>[
+                      SahraChip(
+                        label: l10n.searchFilterTonight,
+                        active: criteria.tonightOnly,
+                        onPressed: ref.read(searchCriteriaProvider.notifier).toggleTonight,
+                      ),
+                      const SizedBox(width: SahraSpace.s2),
+                      SahraChip(
+                        // THE COUNT IS ON THE BUTTON. A diner has to be able
+                        // to see they have filters on without opening the
+                        // sheet; a forgotten filter is the commonest way
+                        // somebody decides an app is broken.
+                        label: criteria.activeFilterCount == 0
+                            ? l10n.filterOpen
+                            : l10n.filterOpenWithCount(criteria.activeFilterCount),
+                        active: criteria.activeFilterCount > 0,
+                        onPressed: () => showFilterSheet(context, ref),
+                      ),
+                    ],
                   ),
                 ],
               ),
