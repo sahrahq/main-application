@@ -899,7 +899,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get accountNotBuilt =>
-      'الأماكن المحفوظة وطرق الدفع وإعدادات الإشعارات لسه ما اتعملوش.';
+      'دعوة الأصحاب وطرق الدفع والمساعدة وإعدادات الإشعارات التفصيلية لسه ما اتعملوش.';
 
   @override
   String searchLocationSemantic(String city) {
@@ -1214,4 +1214,102 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reviewReportAlready => 'إنت بلّغت عن ده قبل كده.';
+
+  @override
+  String get accountNotifications => 'الإشعارات';
+
+  @override
+  String get notificationsTitle => 'الإشعارات';
+
+  @override
+  String get notificationsEmptyTitle => 'مفيش حاجة لسه';
+
+  @override
+  String get notificationsEmptyMessage =>
+      'لما مطعم يغيّر حاجة، أو ترابيزة تفضى، هتلاقيها هنا.';
+
+  @override
+  String get notificationsSignedOutTitle => 'سجّل دخولك عشان تشوف إشعاراتك';
+
+  @override
+  String get notificationsFailed => 'مش قادرين نحمّل الإشعارات.';
+
+  @override
+  String notificationsUnreadBadge(int count) {
+    return '$count جديد';
+  }
+
+  @override
+  String get notificationsToday => 'النهارده';
+
+  @override
+  String get notificationsEarlier => 'قبل كده';
+
+  @override
+  String get notificationsNoPushNote =>
+      'لسه مش بنقدر ننبّه موبايلك، فارجع لهنا من وقت للتاني.';
+
+  @override
+  String notifCancelledTitle(String venue) {
+    return '$venue ألغى حجزك';
+  }
+
+  @override
+  String notifCancelledBody(String date, String time) {
+    return '$date الساعة $time';
+  }
+
+  @override
+  String notifConfirmedTitle(String venue) {
+    return 'تم حجز ترابيزة في $venue';
+  }
+
+  @override
+  String notifConfirmedBody(
+      String date, String time, String party, String code) {
+    return '$date الساعة $time · $party أفراد · $code';
+  }
+
+  @override
+  String notifReminder24hTitle(String venue) {
+    return 'بكرة في $venue';
+  }
+
+  @override
+  String notifReminder24hBody(String time) {
+    return 'الساعة $time. مش هتقدر تيجي؟ الغِ الحجز عشان الترابيزة تروح لحد تاني.';
+  }
+
+  @override
+  String notifReminder2hTitle(String venue) {
+    return 'بعد ساعتين في $venue';
+  }
+
+  @override
+  String notifReminder2hBody(String time, String party, String code) {
+    return 'الساعة $time · $party أفراد · $code';
+  }
+
+  @override
+  String notifWaitlistOfferTitle(String venue) {
+    return 'فضيت ترابيزة في $venue';
+  }
+
+  @override
+  String notifWaitlistOfferBody(String date, String time) {
+    return '$date الساعة $time. احجز دلوقتي — اللي يسبق يكسب.';
+  }
+
+  @override
+  String notifWaitlistExpiredTitle(String venue) {
+    return 'الترابيزة اتحجزت في $venue';
+  }
+
+  @override
+  String notifWaitlistExpiredBody(String date) {
+    return 'لسه اسمك في القائمة ليوم $date.';
+  }
+
+  @override
+  String get notifFallbackVenue => 'المطعم';
 }

@@ -695,6 +695,18 @@ model Notification {
   /// For the operator, not the diner.
   deliveryError String?   @map("delivery_error")
 
+  /// At most one notification per key, ever — enforced by a partial UNIQUE
+  /// index, not by a check-then-insert. For sweeper-emitted notifications
+  /// (reminders, offer expiry), which are at-least-once by construction.
+  /// NULL for event-driven ones, which may legitimately repeat.
+  ///
+  /// NOT declared `@@unique` here, deliberately: `idx_notifications_dedupe` is
+  /// PARTIAL (`WHERE dedupe_key IS NOT NULL`) and Prisma cannot express that —
+  /// see the "three things Prisma cannot express" note at the top of this file.
+  /// Declaring it would generate a total unique index on the next `migrate
+  /// diff` and every NULL-keyed notification after the first would be refused.
+  dedupeKey String? @map("dedupe_key")
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt(sort: Desc)], map: "idx_notifications_user")

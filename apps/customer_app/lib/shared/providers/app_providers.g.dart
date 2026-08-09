@@ -139,6 +139,29 @@ final savedRepositoryProvider = Provider<SavedRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SavedRepositoryRef = ProviderRef<SavedRepository>;
+String _$notificationsRepositoryHash() =>
+    r'7d6937f27b41d2e60811531c6032af1ff2b8914d';
+
+/// C-4.7. No locale reader, unlike its neighbours: a notification's copy is
+/// assembled in the WIDGET from `type` + `data`, so the data layer has no name
+/// pair to resolve and nothing to localise.
+///
+/// Copied from [notificationsRepository].
+@ProviderFor(notificationsRepository)
+final notificationsRepositoryProvider =
+    Provider<NotificationsRepository>.internal(
+  notificationsRepository,
+  name: r'notificationsRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$notificationsRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef NotificationsRepositoryRef = ProviderRef<NotificationsRepository>;
 String _$todayHash() => r'8e8ccdab51e5893dad840fc8792f3e279bb1b541';
 
 /// Today, as the app should treat it.

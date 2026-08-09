@@ -29,6 +29,8 @@ import '../../features/auth/domain/auth_repository.dart';
 import '../../features/restaurants/domain/restaurant_repository.dart';
 import '../../features/saved/data/saved_repository_impl.dart';
 import '../../features/saved/domain/saved_repository.dart';
+import '../../features/notifications/data/notifications_repository_impl.dart';
+import '../../features/notifications/domain/notifications_repository.dart';
 import 'session_providers.dart';
 
 part 'app_providers.g.dart';
@@ -96,6 +98,13 @@ AuthRepository authRepository(Ref ref) => AuthRepositoryImpl(
 @Riverpod(keepAlive: true)
 SavedRepository savedRepository(Ref ref) =>
     SavedRepositoryImpl(ref.watch(apiProvider), () => ref.read(localeCodeProvider));
+
+/// C-4.7. No locale reader, unlike its neighbours: a notification's copy is
+/// assembled in the WIDGET from `type` + `data`, so the data layer has no name
+/// pair to resolve and nothing to localise.
+@Riverpod(keepAlive: true)
+NotificationsRepository notificationsRepository(Ref ref) =>
+    NotificationsRepositoryImpl(ref.watch(apiProvider));
 
 /// Today, as the app should treat it.
 ///

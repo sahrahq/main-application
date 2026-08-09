@@ -9,6 +9,7 @@ import type { AuthedUser } from '../../shared/auth/jwt.strategy';
 import { MyReservationsService, RESERVATION_VIEWS } from './my-reservations.service';
 import { ReservationsService } from './reservations.service';
 import { AvailabilityService } from '../availability/availability.service';
+import { WaitlistOfferService } from '../favorites/waitlist-offer.service';
 import { CancelOwnReservationDto, ModifyReservationDto } from './dto/modify-reservation.dto';
 import { AvailabilityResponse, MyReservationResponse } from '../../shared/api/responses.dto';
 
@@ -37,6 +38,8 @@ export class MyReservationsController {
     private readonly engine: ReservationsService,
     /** The same grid the booking screen reads, minus this reservation. */
     private readonly availability: AvailabilityService,
+    /** C-3.6 — the queue that wants to hear about a cancellation. */
+    private readonly waitlistOffers: WaitlistOfferService,
   ) {}
 
   @Get()
@@ -255,11 +258,20 @@ export class MyReservationsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CancelOwnReservationDto,
   ): Promise<MyReservationResponse> {
-    await this.engine.cancelOwn({
+    const freed = await this.engine.cancelOwn({
       reservationId: id,
       userId: user.id,
       reason: dto.reason ?? null,
     });
+
+    // C-3.6 — the second of the three paths that free a table. A diner
+    // cancelling at 18:00 for a 20:00 table is the single most useful thing
+    // that can happen to somebody on that venue's waitlist, and until Group G
+    // nothing looked.
+    //
+    // After the cancellation has committed, and unable to undo it:
+    // `onSlotFreed` does not throw.
+    await this.waitlistOffers.onSlotFreed(freed);
 
     return this.reservations.one(user.id, id) as Promise<MyReservationResponse>;
   }

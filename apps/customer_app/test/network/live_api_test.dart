@@ -10,6 +10,7 @@ import 'package:sahra_customer_app/core/error/guarded.dart';
 import 'package:sahra_customer_app/core/network/dio_transport.dart';
 import 'package:sahra_customer_app/core/utils/idempotency_key.dart';
 import 'package:sahra_customer_app/features/reservations/data/reservation_repository_impl.dart';
+import 'package:sahra_customer_app/features/reservations/domain/booking.dart';
 import 'package:sahra_customer_app/features/reservations/domain/my_reservation.dart';
 import 'package:sahra_customer_app/features/restaurants/data/restaurant_repository_impl.dart';
 import 'package:sahra_customer_app/features/restaurants/domain/search_sort.dart';
@@ -114,9 +115,73 @@ void main() {
     reservations = ReservationRepositoryImpl(api);
   });
 
+  /// EVERY RESERVATION THIS RUN CREATES, so the teardown can give it back.
+  ///
+  /// ── THE SUITE WAS POISONING ITSELF, AND IT TOOK THREE RUNS TO SHOW ──────
+  ///
+  /// These tests book against the SEEDED venue on a SHARED dev database, and
+  /// until now nothing cancelled what they booked. Layali has six tables; each
+  /// run confirmed two or three bookings for tomorrow and left them there. On
+  /// the third run the venue was full and two tests failed with "no
+  /// availability" — a failure that says nothing about the code and everything
+  /// about the last run.
+  ///
+  /// Worse than flaky: it is MONOTONIC. It passes today, passes tomorrow, and
+  /// then fails permanently, so the natural reading is "something broke" rather
+  /// than "the fixture filled up".
+  ///
+  /// Found while running the full suite twice in one session for Group G. It
+  /// is not a Group G defect — the leak has been there since the live suite was
+  /// written — but "8 live tests green" was a weaker claim than it looked,
+  /// because it depended on how recently they had last been run.
+  final List<String> booked = <String>[];
+
+  tearDownAll(() async {
+    // Through the REAL cancel endpoint, with this run's own token — the same
+    // call the app makes. Not a database write: a suite that reaches around
+    // its own API to tidy up is a suite that can pass while that API is broken.
+    for (final id in booked) {
+      try {
+        await reservations.cancel(id: id, reason: 'live suite teardown');
+      } catch (_) {
+        // Already cancelled by the test itself, or expired. Either way the
+        // table is back, which is the only thing this loop is for.
+      }
+    }
+  });
+
   String isoDate(DateTime d) => '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
+
+
+  /// The first date in the next week with a bookable slot, and its board.
+  ///
+  /// ── WHY NOT JUST "TOMORROW" ─────────────────────────────────────────────
+  ///
+  /// It was tomorrow, and tomorrow is a fixture that other people can fill.
+  /// This suite runs against a SHARED dev database, so a full venue is an
+  /// ordinary state — another developer's e2e run, a demo, or (until the
+  /// teardown above existed) this suite's own history.
+  ///
+  /// Walking forward keeps the assertion honest rather than loosening it: the
+  /// claim is "this venue can be booked through the real engine", and a week of
+  /// no availability anywhere still fails, loudly, with the dates it tried.
+  Future<(String, SlotBoard)> firstBookable(String restaurantId) async {
+    final List<String> tried = <String>[];
+    for (int i = 1; i <= 7; i++) {
+      final date = isoDate(DateTime.now().add(Duration(days: i)));
+      tried.add(date);
+      final board = await reservations.slots(
+        restaurantId: restaurantId,
+        date: date,
+        partySize: 2,
+      );
+      if (board.slots.isNotEmpty) return (date, board);
+    }
+    fail('no availability at $restaurantId on any of ${tried.join(", ")} — '
+        'the venue is full for a week, or `pnpm seed` has not been run');
+  }
 
   test('DISTANCE over a real socket — Meilisearch geo, and a real haversine', () async {
     // NOTHING FAKE COVERS THIS CHAIN. `_geoRadius` and `_geoPoint:asc` are
@@ -226,13 +291,7 @@ void main() {
     expect(profile.hours, isNotEmpty, reason: 'a venue with no shifts cannot be booked');
 
     // 3. SLOTS. The only source of a bookable instant.
-    final date = isoDate(DateTime.now().add(const Duration(days: 1)));
-    final board = await reservations.slots(
-      restaurantId: profile.id,
-      date: date,
-      partySize: 2,
-    );
-    expect(board.slots, isNotEmpty, reason: 'no availability on $date');
+    final (date, board) = await firstBookable(profile.id);
 
     // The two time fields are DIFFERENT things, and against a real Cairo venue
     // the difference is visible: UTC+3, so a 19:00 wall clock is 16:00Z.
@@ -246,6 +305,7 @@ void main() {
       startsAt: slot.startsAt,
       partySize: 2,
     );
+    booked.add(held.id);
     expect(held.status, 'held');
     expect(held.holdExpiresAt, isNotNull);
     expect(held.code, startsWith('SAH-'));
@@ -285,19 +345,14 @@ void main() {
     expect(page.results, isNotEmpty, reason: 'run `pnpm seed` first');
     final profile = await restaurants.profile(page.results.first.slug);
 
-    final date = isoDate(DateTime.now().add(const Duration(days: 1)));
-    final board = await reservations.slots(
-      restaurantId: profile.id,
-      date: date,
-      partySize: 2,
-    );
-    expect(board.slots, isNotEmpty, reason: 'no availability on $date');
+    final (date, board) = await firstBookable(profile.id);
 
     final held = await reservations.hold(
       restaurantId: profile.id,
       startsAt: board.slots.first.startsAt,
       partySize: 2,
     );
+    booked.add(held.id);
     final booking = await reservations.confirm(holdId: held.id);
     final mine = await reservations.myReservations(view: 'upcoming');
     final id = mine.firstWhere((r) => r.code == booking.code).id;
@@ -406,11 +461,10 @@ void main() {
     final anon = SahraApi(DioTransport(baseUrl: base, localeCode: () => 'en'));
     final page = await restaurants.search(query: 'layali');
     final venue = page.results.first;
-    final board = await reservations.slots(
-      restaurantId: venue.id,
-      date: isoDate(DateTime.now().add(const Duration(days: 1))),
-      partySize: 2,
-    );
+    // A REAL, BOOKABLE slot — the refusal has to be about the missing account
+    // and nothing else. Asking for one on a full day would refuse for the wrong
+    // reason and the assertion would still pass.
+    final (_, board) = await firstBookable(venue.id);
 
     await expectLater(
       guarded(
@@ -452,6 +506,9 @@ void main() {
 
     final first = await guarded(() => api.createHold(body: body, idempotencyKey: key));
     final replay = await guarded(() => api.createHold(body: body, idempotencyKey: key));
+    // One id, because the replay must not have made a second — registered so
+    // the teardown returns the table either way.
+    booked.add(first.id);
 
     expect(replay.id, first.id, reason: 'a replay created a SECOND reservation');
   }, timeout: const Timeout(Duration(seconds: 60)),);

@@ -31,6 +31,7 @@ export 'src/components/sahra_star_input.dart';
 export 'src/components/sahra_tab_bar.dart';
 export 'src/gallery/contrast_audit_page.dart';
 export 'src/theme/sahra_bidi.dart';
+export 'src/theme/sahra_contrast.dart';
 export 'src/theme/sahra_layout.dart';
 export 'src/theme/sahra_scales.dart';
 export 'src/theme/sahra_semantics.dart';

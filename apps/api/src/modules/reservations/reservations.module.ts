@@ -9,7 +9,10 @@ import { HoldExpiryQueue } from "./expiry/hold-expiry.queue";
 import { HoldExpiryProcessor } from "./expiry/hold-expiry.processor";
 import { HoldExpiryScheduler } from "./expiry/hold-expiry.scheduler";
 import { HOLD_EXPIRY_QUEUE } from "./expiry/hold-expiry.constants";
+import { ReservationReminderService } from "./reminders/reservation-reminder.service";
+import { ReservationReminderScheduler } from "./reminders/reservation-reminder.scheduler";
 import { AvailabilityModule } from "../availability/availability.module";
+import { FavoritesModule } from "../favorites/favorites.module";
 
 /**
  * The BullMQ queue is registered only when REDIS_URL is set. Without it the
@@ -31,16 +34,26 @@ const queueImports = process.env.REDIS_URL
 
 const queueProviders = process.env.REDIS_URL ? [HoldExpiryProcessor] : [];
 
+/**
+ * `FavoritesModule` for `WaitlistOfferService` (C-3.6). Three code paths in
+ * here free a table — a diner cancelling, the expiry sweeper, and the delayed
+ * expiry job — and doc 05 §3's flowchart ends every one of them with "check
+ * waitlist". Imported rather than duplicated: a second copy of "who is next in
+ * the queue" would eventually disagree with the first, and only one of them
+ * would be the one that sent the notification.
+ */
 @Module({
-  imports: [...queueImports, AvailabilityModule],
-  providers: [MyReservationsService, 
+  imports: [...queueImports, AvailabilityModule, FavoritesModule],
+  providers: [MyReservationsService,
     ReservationsService,
     HoldExpiryService,
     HoldExpiryQueue,
     HoldExpiryScheduler,
+    ReservationReminderService,
+    ReservationReminderScheduler,
     ...queueProviders,
   ],
   controllers: [ReservationsController, MyReservationsController],
-  exports: [ReservationsService, HoldExpiryService],
+  exports: [ReservationsService, HoldExpiryService, ReservationReminderService],
 })
 export class ReservationsModule {}

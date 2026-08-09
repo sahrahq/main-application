@@ -920,7 +920,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountNotBuilt =>
-      'Saved places, payment methods and notification settings are not built yet.';
+      'Invite friends, payment methods, help & support and per-type notification settings are not built yet.';
 
   @override
   String searchLocationSemantic(String city) {
@@ -1239,4 +1239,102 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reviewReportAlready => 'You\'ve already reported this one.';
+
+  @override
+  String get accountNotifications => 'Notifications';
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationsEmptyTitle => 'Nothing yet';
+
+  @override
+  String get notificationsEmptyMessage =>
+      'When a restaurant changes something, or a table opens up, you\'ll find it here.';
+
+  @override
+  String get notificationsSignedOutTitle => 'Sign in to see your notifications';
+
+  @override
+  String get notificationsFailed => 'We couldn\'t load your notifications.';
+
+  @override
+  String notificationsUnreadBadge(int count) {
+    return '$count new';
+  }
+
+  @override
+  String get notificationsToday => 'Today';
+
+  @override
+  String get notificationsEarlier => 'Earlier';
+
+  @override
+  String get notificationsNoPushNote =>
+      'We can\'t alert your phone yet, so check back here.';
+
+  @override
+  String notifCancelledTitle(String venue) {
+    return '$venue cancelled your table';
+  }
+
+  @override
+  String notifCancelledBody(String date, String time) {
+    return '$date at $time';
+  }
+
+  @override
+  String notifConfirmedTitle(String venue) {
+    return 'Table booked at $venue';
+  }
+
+  @override
+  String notifConfirmedBody(
+      String date, String time, String party, String code) {
+    return '$date at $time · $party people · $code';
+  }
+
+  @override
+  String notifReminder24hTitle(String venue) {
+    return 'Tomorrow at $venue';
+  }
+
+  @override
+  String notifReminder24hBody(String time) {
+    return 'At $time. Can\'t make it? Cancel so the table goes to someone else.';
+  }
+
+  @override
+  String notifReminder2hTitle(String venue) {
+    return 'In 2 hours at $venue';
+  }
+
+  @override
+  String notifReminder2hBody(String time, String party, String code) {
+    return 'At $time · $party people · $code';
+  }
+
+  @override
+  String notifWaitlistOfferTitle(String venue) {
+    return 'A table opened up at $venue';
+  }
+
+  @override
+  String notifWaitlistOfferBody(String date, String time) {
+    return '$date at $time. Book now — it\'s first come, first served.';
+  }
+
+  @override
+  String notifWaitlistExpiredTitle(String venue) {
+    return 'That table went at $venue';
+  }
+
+  @override
+  String notifWaitlistExpiredBody(String date) {
+    return 'You\'re still on the list for $date.';
+  }
+
+  @override
+  String get notifFallbackVenue => 'the restaurant';
 }

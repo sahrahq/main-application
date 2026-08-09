@@ -133,6 +133,14 @@ void main() {
                   return <String, Object?>{'status': 'profile_needed'};
                 }
                 if (path == '/v1/auth/complete-registration') return _tokenPair;
+                // C-4.7. BEFORE the `/read` branch would matter — the centre
+                // marks read on open, so this handler answers two calls, and a
+                // single-response stub would hand the POST a notification LIST
+                // that the generated client cannot parse.
+                if (path == '/v1/notifications/read') {
+                  return <String, Object?>{'marked': 3, 'unread_count': 0};
+                }
+                if (path == '/v1/notifications') return _notifications;
                 if (path == '/v1/reservations/holds') {
                   if (!signedIn) throw envelope(401, 'unauthenticated');
                   return _reservation('held');
@@ -339,6 +347,27 @@ void main() {
         await tester.pumpAndSettle();
         await capture('saved-places');
 
+        // ── Group G: the notification centre, and the badge that leads to it ─
+        //
+        // BY TAPPING, like everything else in this walk. The centre is reached
+        // from one row on one screen; if that row ever stops working the
+        // screen is unreachable, and no per-screen test can notice because
+        // every one of them begins by constructing it.
+        //
+        // The Account capture above already shows the row with "3 new" on it —
+        // which is the only signal a diner gets that anything happened, since
+        // push does not exist.
+        // The ACCOUNT TAB, not `pageBack()`. `pageBack` hunts for a Cupertino
+        // or Material back button and this app draws its own — a `SahraIcon`
+        // in a `SahraAppBar` — so it found nothing and failed in Arabic first,
+        // which is where the walk runs second. Tapping the tab is what a diner
+        // does anyway, and this walk navigates only by tapping what is there.
+        await tester.tap(find.text(l10n.tabAccount));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(l10n.accountNotifications));
+        await tester.pumpAndSettle();
+        await capture('notifications');
+
         // ignore: avoid_print
         print('WALK-THROUGH [$tag]: $shot screenshots in '
             '${Directory('test/journey/walkthrough/$tag').absolute.path}');
@@ -348,6 +377,73 @@ void main() {
     );
   }
 }
+
+
+/// C-4.7 — what the centre shows in the walk-through.
+///
+/// Three unread and two read, so the picture contains BOTH states: an unread
+/// row and a read one look different, and a walk-through that only ever showed
+/// one would not be evidence that the difference renders.
+///
+/// Every kind is not represented here — `Notifications/list` in the screen
+/// registry does that, in four cells. This is the picture of ARRIVING.
+final Map<String, Object?> _notifications = <String, Object?>{
+  'items': <Object>[
+    _notification('reservation_cancelled_by_venue', <String, String>{
+      'reservation_id': _reservationId,
+      'venue': 'Layali Lounge',
+      'venue_ar': 'ليالي لاونج',
+      'date': kFutureDate,
+      'time': '21:00',
+      'reason': 'A burst pipe in the kitchen',
+    }),
+    _notification('waitlist_offer', <String, String>{
+      'waitlist_id': '33333333-3333-4333-8333-333333333333',
+      'venue': 'El Fishawy',
+      'venue_ar': 'الفيشاوي',
+      'date': kFutureDate,
+      'time': '20:30',
+    }),
+    _notification('reservation_reminder_24h', <String, String>{
+      'reservation_id': _reservationId,
+      'venue': 'Zooba',
+      'venue_ar': 'زوبا',
+      'date': kFutureDate,
+      'time': '19:00',
+    }),
+    _notification('reservation_confirmed', <String, String>{
+      'reservation_id': _reservationId,
+      'venue': 'Layali Lounge',
+      'venue_ar': 'ليالي لاونج',
+      'date': kFutureDate,
+      'time': '21:00',
+      'party': '2',
+      'code': 'SAH-8241',
+    }, read: true,),
+    _notification('waitlist_offer_expired', <String, String>{
+      'waitlist_id': '33333333-3333-4333-8333-333333333334',
+      'venue': 'El Fishawy',
+      'venue_ar': 'الفيشاوي',
+      'date': kFutureDate,
+    }, read: true,),
+  ],
+  'unread_count': 3,
+};
+
+int _notificationSeq = 0;
+
+Map<String, Object?> _notification(
+  String type,
+  Map<String, String> data, {
+  bool read = false,
+}) =>
+    <String, Object?>{
+      'id': 'aaaaaaaa-0000-4000-8000-00000000000${++_notificationSeq}',
+      'type': type,
+      'data': data,
+      'created_at': '${kFutureDate}T18:00:00.000Z',
+      'read_at': read ? '${kFutureDate}T19:00:00.000Z' : null,
+    };
 
 /// Pinned FORWARD, like every other fixture in this suite.
 ///

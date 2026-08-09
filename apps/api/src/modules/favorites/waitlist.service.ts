@@ -29,23 +29,34 @@ export interface WaitlistEntry {
 const LIVE: WaitlistStatus[] = [WaitlistStatus.waiting, WaitlistStatus.offered];
 
 /**
- * C-3.6 — the waitlist a diner joins when a venue is full.
+ * C-3.6 — the waitlist a diner joins when a venue is full. **The JOIN half.**
  *
- * ── WHAT THIS DOES NOT DO YET, SAID PLAINLY ──────────────────────────────
+ * ── WHAT CHANGED IN GROUP G ──────────────────────────────────────────────
  *
- * **Nothing here offers anybody a table.** C-3.6 is join → auto-notify with a
- * 10-minute claim window when a table frees, and only the JOIN half is built.
- * The notify half needs a hook in the cancellation and expiry paths, a sweeper
- * for lapsed offers, and real push — and real push is blocked on Firebase
- * credentials (NOTIFY-1 Stage 2).
+ * This docblock said, for two batches, "**nothing here offers anybody a
+ * table**". That is no longer true, and the sentence is replaced rather than
+ * softened — a stale "not built yet" is worse than none, because the next
+ * reader trusts it and stops looking.
  *
- * That is a deliberate split, not an oversight, and it is the honest order:
- * the queue has to exist before anything can be served from it. But it means a
- * diner who joins today is joining a list nobody is reading, so the UI must
- * not promise otherwise — see the copy on the notify-me control.
+ * `WaitlistOfferService` now offers a freed table to the top matching entry and
+ * records a notification, hooked into all three paths that free inventory. The
+ * offer engine is there, not here: this class owns joining and leaving, and a
+ * queue that also serves itself is two features in one file.
  *
- * The `offered` status, `offer_expires_at` and `priority` all exist and are
- * constrained, because the sweeper that will use them is easier to add to a
+ * ── WHAT IS STILL NOT TRUE, SAID JUST AS PLAINLY ─────────────────────────
+ *
+ * **An offer reaches nobody.** The notification is recorded and the diner sees
+ * it only if they open the app — push is blocked on the Firebase project
+ * (`docs/decisions/2026-08-09-firebase-handover.md`).
+ *
+ * **And an offer withholds nothing.** doc 05 §5's ten-minute claim window is
+ * not enforced: anybody may take that table in the meantime. Argued in
+ * `docs/decisions/2026-08-09-group-g-split.md` §3.1, asserted in
+ * `waitlist-offer.e2e-spec.ts`, and the reason the copy says "first come, first
+ * served" rather than doc 11's "claim in 10 min".
+ *
+ * The `offered` status, `offer_expires_at` and `priority` all existed before
+ * there was anything to use them, because a sweeper is easier to add to a
  * schema that already says what it means than to retrofit.
  */
 @Injectable()

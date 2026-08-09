@@ -133,9 +133,29 @@ void screenA11y(
       await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
       await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
       await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      await expectContrast(tester, '$name [${cell.slug}]');
       handle.dispose();
     });
+  }
+}
+
+/// `textContrastGuideline`, with the explanation attached to the failure.
+///
+/// THE CHECK IS UNSATISFIABLE WHENEVER IT SAMPLES AN ANTI-ALIASED EDGE, which
+/// it does often, and it has cost this codebase two investigations. Neither
+/// started from the measurement, because the failure says nothing about how it
+/// arrived at its number — the first was worked around by moving a layout
+/// block, and that is exactly why there was a second.
+///
+/// So the caveat travels with the failure now. `kEdgeSampledContrastCaveat`
+/// lives beside `bestPossibleEdgeContrast`, which is what proves the claim
+/// (`palette_contrast_test.dart`), so the advice and the arithmetic cannot
+/// drift apart.
+Future<void> expectContrast(WidgetTester tester, String where) async {
+  try {
+    await expectLater(tester, meetsGuideline(textContrastGuideline));
+  } on TestFailure catch (e) {
+    throw TestFailure('${e.message}\n\n$where$kEdgeSampledContrastCaveat');
   }
 }
 

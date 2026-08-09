@@ -193,4 +193,70 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  THE THIRD TOOL: `isolate` (U+2068 FIRST STRONG ISOLATE)
+  //
+  //  Added in Group G, because neither of the other two fits the commonest
+  //  case: SOMEBODY ELSE'S WORDS INSIDE A SENTENCE OF OURS. A notification
+  //  reads "{venue} cancelled your table", and the venue names itself.
+  // ══════════════════════════════════════════════════════════════════════
+  group('isolate, for a run whose direction we do not know', () {
+    test('wraps in U+2068 … U+2069', () {
+      final wrapped = isolate('Layali Lounge');
+      expect(wrapped.codeUnitAt(0), 0x2068, reason: 'missing FIRST STRONG ISOLATE');
+      expect(wrapped.codeUnitAt(wrapped.length - 1), 0x2069,
+          reason: 'missing POP DIRECTIONAL ISOLATE',);
+      expect(wrapped.substring(1, wrapped.length - 1), 'Layali Lounge');
+    });
+
+    test('it is NOT the left-to-right isolate', () {
+      // The whole distinction. `ltrRun` around an Arabic name lays it out
+      // backwards, which is why a second helper exists rather than a reused one.
+      expect(isolate('X').codeUnitAt(0), isNot(ltrRun('X').codeUnitAt(0)));
+    });
+
+    test('isolateOrNull passes null and empty through untouched', () {
+      // An isolate around nothing is two invisible characters that make an
+      // "is it empty?" check answer false — and a widget then draws a blank
+      // line for a value that was never set.
+      expect(isolateOrNull(null), isNull);
+      expect(isolateOrNull(''), '');
+      expect(isolateOrNull('Zooba'), isolate('Zooba'));
+    });
+
+    testWidgets('an Arabic name inside it is NOT reversed', (tester) async {
+      // The failure `ltrRun` would have caused. Both strings render; the
+      // checkable claim is that the isolated form still contains the name in
+      // its written order, and that the paragraph around it is unaffected.
+      const String name = 'ليالي لاونج';
+      await tester.pumpWidget(
+        harness(
+          Cell.arLight,
+          Text(isolate(name), style: const TextStyle(fontSize: 18)),
+        ),
+      );
+      await stabilise(tester);
+      expect(find.text(isolate(name)), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a Latin name does not drag the Arabic around it', (tester) async {
+      // The reason it is an ISOLATE and not an embedding: an embedding lets the
+      // run influence the direction of the text either side of it.
+      const String sentence = 'ألغى حجزك';
+      await tester.pumpWidget(
+        harness(
+          Cell.arLight,
+          Text('${isolate('Zooba')} $sentence', style: const TextStyle(fontSize: 18)),
+        ),
+      );
+      await stabilise(tester);
+      final RenderParagraph p = tester
+          .element(find.textContaining(sentence))
+          .findRenderObject()! as RenderParagraph;
+      expect(p.textDirection, TextDirection.rtl);
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

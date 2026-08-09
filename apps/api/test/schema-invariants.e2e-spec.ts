@@ -406,17 +406,13 @@ describe('every index doc 04 names by name exists', () => {
     ['idx_pay_status_created', 'payments — table not built'],
     ['idx_loyalty_user', 'loyalty_transactions — table not built (C-4.5, P1)'],
     ['idx_subs_status_period', 'restaurant_subscriptions — table not built (R-4.4, blocked on payments)'],
-    [
-      'idx_notif_user_unread',
-      'notifications EXISTS and this index does NOT. doc 04 asks for a PARTIAL ' +
-        'index on (user_id, created_at DESC) WHERE read_at IS NULL; the table ' +
-        'has a full idx_notifications_user instead, under a different name. ' +
-        'Nothing reads `read_at` yet — the notifications READ half is Group G — ' +
-        'so building it now would be an index Postgres maintains on every ' +
-        'insert for a query nobody makes. It goes in with Group G, under this ' +
-        'name. Recorded 2026-08-09; the instructions for Group G are in ' +
-        'prisma/migrations/20260802020000_notifications_stage_1/README.md.',
-    ],
+    // `idx_notif_user_unread` WAS HERE, exempted on 2026-08-09 by the
+    // silent-lapse sweep because nothing read `read_at`. Group G's
+    // `GET /notifications` reads it, so the index was built the same day, under
+    // doc 04's name, and the exemption came out in the same commit — which is
+    // the arrangement the exemption itself specified. The "nothing on the
+    // not-yet list has quietly been built" test below is what made that
+    // mandatory rather than polite.
   ]);
 
   beforeAll(async () => {

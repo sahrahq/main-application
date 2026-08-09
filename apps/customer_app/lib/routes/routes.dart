@@ -18,6 +18,7 @@ import '../features/reservations/presentation/confirmed_screen.dart';
 import '../features/reservations/presentation/my_bookings_screen.dart';
 import '../features/saved/presentation/saved_screen.dart';
 import '../features/reservations/presentation/reservation_screen.dart';
+import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/onboarding/presentation/splash_screen.dart';
 import '../features/restaurants/presentation/discover_screen.dart';
@@ -143,6 +144,19 @@ class SavedRoute {
   void go(BuildContext context) => context.push(path);
 }
 
+/// C-4.7. Reached from the Account screen's bell row, like Saved.
+///
+/// `ProfileScreen.jsx` draws `bell / Notifications` as one of its seven rows,
+/// so the entry point is the designer's and not an invention. It is NOT a tab:
+/// the reference's bottom bar has three items and the notification centre is a
+/// place a diner visits occasionally, not a destination they navigate between.
+class NotificationsRoute {
+  const NotificationsRoute();
+
+  static const String path = '/notifications';
+  void go(BuildContext context) => context.push(path);
+}
+
 class ReservationRoute {
   const ReservationRoute(this.id);
   final String id;
@@ -219,6 +233,10 @@ GoRouter buildRouter() => GoRouter(
             GoRoute(
               path: SavedRoute.path,
               builder: (_, __) => const SavedScreen(),
+            ),
+            GoRoute(
+              path: NotificationsRoute.path,
+              builder: (_, __) => const NotificationsScreen(),
             ),
             GoRoute(
               path: AccountRoute.path,

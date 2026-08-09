@@ -12,6 +12,7 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { bookingWindow, DEFAULT_TURN_MINUTES } from './turn-time';
 import { generateReservationCode } from './reservation-code';
 import { HoldExpiryQueue } from './expiry/hold-expiry.queue';
+import type { FreedSlot } from '../favorites/waitlist-offer.service';
 
 /** Statuses that occupy inventory (doc 05 §2). Mirrored by idx_resv_active. */
 export const LIVE_STATUSES: ReservationStatus[] = [
@@ -584,10 +585,18 @@ export class ReservationsService {
     reservationId: string;
     userId: string;
     reason?: string | null;
-  }): Promise<void> {
+  }): Promise<FreedSlot> {
     // Conditional UPDATE, so two taps race in Postgres rather than in us:
     // exactly one writes and the loser reads the same 409 as a late retry.
-    const cancelled = await this.prisma.$executeRaw`
+    //
+    // RETURNING the freed slot rather than void. C-3.6's offer engine needs to
+    // know what became available, and the alternative — reading the row back
+    // afterwards — would be a second query against a row whose status this
+    // statement just changed, i.e. asking the database to describe something we
+    // are already holding.
+    const cancelled = await this.prisma.$queryRaw<
+      { restaurant_id: string; starts_at: Date; party_size: number }[]
+    >`
       UPDATE reservations
          SET status        = 'cancelled_by_user',
              cancelled_at  = now(),
@@ -596,9 +605,16 @@ export class ReservationsService {
              updated_at    = now()
        WHERE id      = ${input.reservationId}::uuid
          AND user_id = ${input.userId}::uuid
-         AND status::text IN ('pending', 'confirmed')`;
+         AND status::text IN ('pending', 'confirmed')
+      RETURNING restaurant_id, starts_at, party_size`;
 
-    if (cancelled === 1) return;
+    if (cancelled.length === 1) {
+      return {
+        restaurantId: cancelled[0].restaurant_id,
+        startsAt: cancelled[0].starts_at,
+        partySize: cancelled[0].party_size,
+      };
+    }
 
     // Nothing was written. Two situations, and only one of them may be named.
     const existing = await this.prisma.reservation.findFirst({

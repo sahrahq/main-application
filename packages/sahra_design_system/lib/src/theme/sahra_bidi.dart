@@ -40,6 +40,40 @@ const String _lri = '\u2066';
 /// U+2069 POP DIRECTIONAL ISOLATE.
 const String _pdi = '\u2069';
 
+/// U+2068 FIRST STRONG ISOLATE.
+const String _fsi = '\u2068';
+
+/// Wrap [text] so it lays out in ITS OWN direction, inside a paragraph laid out
+/// in ours.
+///
+/// \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+/// THE THIRD CASE, AND THE ONE THAT WAS MISSING
+/// \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+///
+/// [ltrRun] is for a run we KNOW is Latin. [contentDirection] is for a whole
+/// paragraph of content we did not write. Neither covers the commonest case of
+/// all: **somebody else's words interpolated into a sentence of ours.**
+///
+///   `"{venue} \u0623\u0644\u063a\u0649 \u062d\u062c\u0632\u0643"`  \u2014 the venue names itself
+///   `"{date} \u0627\u0644\u0633\u0627\u0639\u0629 {time} \u2014 {reason}"` \u2014 the venue writes the reason
+///
+/// `ltrRun` is wrong because the name may be Arabic, and wrapping \u00ab\u0644\u064a\u0627\u0644\u064a\u00bb in a
+/// left-to-right isolate lays it out backwards. `contentDirection` is wrong
+/// because the paragraph is OURS and is in the reading language \u2014 flipping the
+/// whole line because a venue happens to be called "Zooba" would right-align an
+/// English sentence or left-align an Arabic one.
+///
+/// U+2068 FIRST STRONG ISOLATE is the character Unicode provides for exactly
+/// this: the run decides its own direction from its own first strong character,
+/// and \u2014 because it is an isolate \u2014 its punctuation cannot escape to the far
+/// end of a sentence somebody else wrote. That last part is the failure already
+/// seen once, as **`.Nour H`** in the reviews list.
+String isolate(String text) => '$_fsi$text$_pdi';
+
+/// The same, tolerant of null and of empty.
+String? isolateOrNull(String? text) =>
+    (text == null || text.isEmpty) ? text : isolate(text);
+
 /// Wrap [text] so it always lays out left-to-right, whatever paragraph it
 /// lands in.
 ///

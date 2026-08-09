@@ -748,6 +748,36 @@
         ],
         "type": "object"
       },
+      "MarkNotificationsReadDto": {
+        "properties": {
+          "ids": {
+            "description": "Notification ids to mark read. Omit to mark every unread notification for the caller. Ids belonging to another user are ignored, not refused.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "MarkReadResponse": {
+        "properties": {
+          "marked": {
+            "description": "How many rows this call changed. Zero is an ordinary outcome — everything was already read — and is what makes \"it did nothing\" distinguishable in a test rather than assumed.",
+            "type": "integer"
+          },
+          "unread_count": {
+            "description": "Unread remaining, after this call.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "marked",
+          "unread_count"
+        ],
+        "type": "object"
+      },
       "MenuCategoryResponse": {
         "properties": {
           "id": {
@@ -971,6 +1001,59 @@
           "needs_acknowledgement",
           "can_review",
           "restaurant"
+        ],
+        "type": "object"
+      },
+      "NotificationListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationResponse"
+            },
+            "type": "array"
+          },
+          "unread_count": {
+            "description": "Unread across the WHOLE history, not across `items`. A count of the page would read zero for a diner with more notifications than one page.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "unread_count"
+        ],
+        "type": "object"
+      },
+      "NotificationResponse": {
+        "properties": {
+          "created_at": {
+            "description": "When we owed them this. ISO 8601, UTC.",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Substitutions for the copy, and the deep-link target. Keys vary by type; `reservation_id` and `restaurant_id` are what the client routes on when present. Values are always strings.",
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "read_at": {
+            "description": "When they FIRST saw it — never re-stamped on a later read. Null while unread.",
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "description": "Machine-readable kind. THE CLIENT OWNS THE COPY, keyed by this — the same rule as the doc 06 §1 error codes. The server renders text only for a lock screen, where there is no client to localise anything.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "data",
+          "created_at"
         ],
         "type": "object"
       },
@@ -2942,6 +3025,79 @@
         "summary": "Register this handset for push",
         "tags": [
           "devices"
+        ]
+      }
+    },
+    "/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_listNotifications",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The notification centre — newest first, with an unread count",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/notifications/read": {
+      "post": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkNotificationsReadDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkReadResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark notifications read — ids, or all of them",
+        "tags": [
+          "notifications"
         ]
       }
     },

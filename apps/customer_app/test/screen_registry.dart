@@ -29,6 +29,7 @@ import 'support/fixture_dates.dart';
 import 'package:sahra_customer_app/shared/widgets/venue_image_provider.dart';
 import 'support/fixture_image.dart';
 import 'package:sahra_customer_app/features/saved/presentation/saved_screen.dart';
+import 'package:sahra_customer_app/features/notifications/presentation/notifications_screen.dart';
 import 'package:sahra_customer_app/features/restaurants/presentation/discover_screen.dart';
 import 'package:sahra_customer_app/features/onboarding/presentation/splash_screen.dart';
 import 'package:sahra_customer_app/features/onboarding/presentation/onboarding_seen.dart';
@@ -465,6 +466,47 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
     overrides: (_) => _transport((_, __, ___) => <Object>[]),
   ),
 
+  // ── Notifications (C-4.7) ───────────────────────────────────────────────
+  //
+  // ONE CASE PER KIND, in the same list. The centre's whole job is turning a
+  // `type` + `data` into a sentence, and a golden of one kind proves the row
+  // renders while saying nothing about the other five — the copy switch is
+  // where a missing placeholder or an un-isolated clock time actually shows up.
+  'Notifications/list': ScreenCase(
+    build: (_) => const NotificationsScreen(),
+    overrides: (_) => <Override>[
+      ..._transport(_notificationsHandler(_notificationFeed)),
+      ..._signedIn,
+    ],
+  ),
+  'Notifications/empty': ScreenCase(
+    build: (_) => const NotificationsScreen(),
+    overrides: (_) => <Override>[
+      ..._transport(_notificationsHandler(<String, Object?>{
+        'items': <Object>[],
+        'unread_count': 0,
+      },),),
+      ..._signedIn,
+    ],
+  ),
+  'Notifications/signed-out': ScreenCase(
+    build: (_) => const NotificationsScreen(),
+    overrides: (_) => _transport(_notificationsHandler(<String, Object?>{
+      'items': <Object>[],
+      'unread_count': 0,
+    },),),
+  ),
+  // The Account row carrying the badge. It is the ONLY door to the centre and
+  // the only signal a diner gets that anything happened, so a picture of it
+  // with the count on is worth as much as the screen behind it.
+  'Account/unread': ScreenCase(
+    build: (_) => const AccountScreen(),
+    overrides: (_) => <Override>[
+      ..._transport(_notificationsHandler(_notificationFeed)),
+      ..._signedIn,
+    ],
+  ),
+
   'Search/filter-sheet': ScreenCase(
     build: (_) => const SearchScreen(),
     overrides: (_) => <Override>[
@@ -798,6 +840,119 @@ Map<String, Object?> _savedRow(String id, String en, String ar) => <String, Obje
       'rating_count': 312,
       'cover': _imageJson(),
       'saved_at': '${kFutureDate}T18:00:00.000Z',
+    };
+
+
+/// One notification, as the API serves it.
+Map<String, Object?> _notification(
+  String id,
+  String type,
+  Map<String, String> data, {
+  bool read = false,
+}) =>
+    <String, Object?>{
+      'id': id,
+      'type': type,
+      'data': data,
+      'created_at': '${kFutureDate}T18:00:00.000Z',
+      'read_at': read ? '${kFutureDate}T19:00:00.000Z' : null,
+    };
+
+/// EVERY KIND, INCLUDING ONE THIS BUILD HAS NEVER HEARD OF.
+///
+/// `future_kind_from_a_newer_server` is in the fixture on purpose. The app on a
+/// diner's phone is whatever they last updated to, so a type added next month
+/// arrives at a client built today — and the golden is what proves it is
+/// SKIPPED rather than drawn as a blank row. Without it the "unknown renders
+/// nothing" branch has no picture and no witness.
+final Map<String, Object?> _notificationFeed = <String, Object?>{
+  'items': <Object>[
+    _notification(
+      'aaaaaaaa-0000-4000-8000-000000000001',
+      'reservation_cancelled_by_venue',
+      <String, String>{
+        'reservation_id': '22222222-2222-4222-8222-222222222222',
+        'venue': 'Layali Lounge',
+        'venue_ar': 'ليالي لاونج',
+        'date': kFutureDate,
+        'time': '21:00',
+        'reason': 'A burst pipe in the kitchen',
+      },
+    ),
+    _notification(
+      'aaaaaaaa-0000-4000-8000-000000000002',
+      'waitlist_offer',
+      <String, String>{
+        'waitlist_id': '33333333-3333-4333-8333-333333333333',
+        'venue': 'El Fishawy',
+        'venue_ar': 'الفيشاوي',
+        'date': kFutureDate,
+        'time': '20:30',
+      },
+    ),
+    _notification(
+      'aaaaaaaa-0000-4000-8000-000000000003',
+      'reservation_reminder_24h',
+      <String, String>{
+        'reservation_id': '22222222-2222-4222-8222-222222222223',
+        'venue': 'Zooba',
+        'venue_ar': 'زوبا',
+        'date': kFutureDate,
+        'time': '19:00',
+      },
+      read: true,
+    ),
+    _notification(
+      'aaaaaaaa-0000-4000-8000-000000000004',
+      'reservation_confirmed',
+      <String, String>{
+        'reservation_id': '22222222-2222-4222-8222-222222222224',
+        'venue': 'Layali Lounge',
+        'venue_ar': 'ليالي لاونج',
+        'date': kFutureDate,
+        'time': '21:00',
+        'party': '4',
+        'code': 'SHR-8241',
+      },
+      read: true,
+    ),
+    _notification(
+      'aaaaaaaa-0000-4000-8000-000000000005',
+      'waitlist_offer_expired',
+      <String, String>{
+        'waitlist_id': '33333333-3333-4333-8333-333333333334',
+        'venue': 'El Fishawy',
+        'venue_ar': 'الفيشاوي',
+        'date': kFutureDate,
+      },
+      read: true,
+    ),
+    _notification(
+      'aaaaaaaa-0000-4000-8000-000000000006',
+      'future_kind_from_a_newer_server',
+      <String, String>{'venue': 'Somewhere New'},
+    ),
+  ],
+  // 3, not 6: three of the six carry a `read_at`, and the badge on the Account
+  // row is drawn from THIS number rather than counted from the list.
+  'unread_count': 3,
+};
+
+/// `GET /notifications` answers [feed]; `POST /notifications/read` answers the
+/// mark-read shape.
+///
+/// ONE HANDLER, TWO PATHS, because the screen calls both — it marks read on
+/// open. A single-response handler would answer the POST with a notification
+/// LIST, which the generated client would fail to parse, and the failure would
+/// surface as an error state in a golden named "list".
+Object? Function(String, String, Map<String, String>?) _notificationsHandler(
+  Map<String, Object?> feed,
+) =>
+    (method, path, _) {
+      if (method == 'POST') {
+        return <String, Object?>{'marked': 0, 'unread_count': feed['unread_count']};
+      }
+      return feed;
     };
 
 final List<Object> _savedList = <Object>[

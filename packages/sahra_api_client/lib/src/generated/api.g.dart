@@ -248,6 +248,36 @@ class SahraApi {
     return DeviceResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `GET /v1/notifications`
+  ///
+  /// The notification centre — newest first, with an unread count
+  Future<NotificationListResponse> listNotifications({
+    String? limit,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/notifications',
+      query: <String, String>{
+        if (limit != null) 'limit': limit,
+      },
+    );
+    return NotificationListResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `POST /v1/notifications/read`
+  ///
+  /// Mark notifications read — ids, or all of them
+  Future<MarkReadResponse> markRead({
+    required MarkNotificationsReadDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/notifications/read',
+      body: body.toJson(),
+    );
+    return MarkReadResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `POST /v1/owner/reservations/{id}/cancel`
   ///
   /// Cancel a booking, as the restaurant

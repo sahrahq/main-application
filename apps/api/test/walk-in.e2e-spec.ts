@@ -25,6 +25,7 @@ import { TablesService } from '../src/modules/restaurants/tables.service';
 import { ShiftsService } from '../src/modules/restaurants/shifts.service';
 import { WalkInsService } from '../src/modules/restaurants/walk-ins.service';
 import { createTestDiner, removeTestDiner } from './support/test-diner';
+import { realWaitlistOffers } from './support/waitlist-offers';
 
 const TEST_DB_URL = (() => {
   const base = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
@@ -37,7 +38,7 @@ const p = prisma as unknown as PrismaService;
 
 const reservations = new ReservationsService(p);
 const availability = new AvailabilityService(p);
-const expiry = new HoldExpiryService(p);
+const expiry = new HoldExpiryService(p, realWaitlistOffers(p));
 const book = new OwnerReservationsService(p);
 const tables = new TablesService(p);
 const shifts = new ShiftsService(p);

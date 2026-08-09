@@ -408,7 +408,7 @@
   "accountLanguage": "Language",
   "languageFollowDevice": "Follows your device",
   "accountLanguageValue": "Follows your device",
-  "accountNotBuilt": "Saved places, payment methods and notification settings are not built yet.",
+  "accountNotBuilt": "Invite friends, payment methods, help & support and per-type notification settings are not built yet.",
   "searchLocationSemantic": "Searching in {city}",
   "@searchLocationSemantic": {
     "placeholders": {
@@ -419,7 +419,7 @@
     "description": "Announced for the city label in the search pill. It is NOT a control — city switching is not built (SEARCH-1) — so the announcement states scope rather than offering an action."
   },
   "@accountNotBuilt": {
-    "description": "ProfileScreen.jsx draws seven rows; three of them have no implementation. Naming them is more honest than drawing rows that fail on tap."
+    "description": "Names EXACTLY what is missing from the Account screen. It said \"Saved places, payment methods and notification settings\" and went stale twice: saved places shipped in Group C and the notification CENTRE in Group G, so the app was telling a diner a feature was missing with its row sitting directly above the sentence. Per-type notification PREFERENCES really are unbuilt (C-4.7 second half) and stay named. Rewrite this line whenever a row becomes real."
   },
   "bookGuestsUnit": "{count, plural, =1{guest} other{guests}}",
   "@bookGuestsUnit": {
@@ -680,5 +680,146 @@
   },
   "@reviewReportReasonNotMyVisit": {
     "description": "The one reason that is about US rather than the reviewer. A review attached to the wrong reservation is a bug in the verified-diner guarantee, not a moderation question — so this reason needs to be reachable rather than folded into 'something else'."
+  },
+  "accountNotifications": "Notifications",
+  "notificationsTitle": "Notifications",
+  "notificationsEmptyTitle": "Nothing yet",
+  "notificationsEmptyMessage": "When a restaurant changes something, or a table opens up, you'll find it here.",
+  "notificationsSignedOutTitle": "Sign in to see your notifications",
+  "notificationsFailed": "We couldn't load your notifications.",
+  "notificationsUnreadBadge": "{count} new",
+  "notificationsToday": "Today",
+  "notificationsEarlier": "Earlier",
+  "notificationsNoPushNote": "We can't alert your phone yet, so check back here.",
+  "notifCancelledTitle": "{venue} cancelled your table",
+  "notifCancelledBody": "{date} at {time}",
+  "notifConfirmedTitle": "Table booked at {venue}",
+  "notifConfirmedBody": "{date} at {time} · {party} people · {code}",
+  "notifReminder24hTitle": "Tomorrow at {venue}",
+  "notifReminder24hBody": "At {time}. Can't make it? Cancel so the table goes to someone else.",
+  "notifReminder2hTitle": "In 2 hours at {venue}",
+  "notifReminder2hBody": "At {time} · {party} people · {code}",
+  "notifWaitlistOfferTitle": "A table opened up at {venue}",
+  "notifWaitlistOfferBody": "{date} at {time}. Book now — it's first come, first served.",
+  "notifWaitlistExpiredTitle": "That table went at {venue}",
+  "notifWaitlistExpiredBody": "You're still on the list for {date}.",
+  "@notificationsUnreadBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@notificationsNoPushNote": {
+    "description": "SHOWN AT THE TOP OF THE CENTRE while push does not exist. A diner who is never alerted and is never told they will not be alerted concludes the app is broken when they miss a cancellation. Delete this string the day the FCM adapter is bound — docs/decisions/2026-08-09-firebase-handover.md."
+  },
+  "@notifCancelledTitle": {
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifCancelledBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifConfirmedTitle": {
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifConfirmedBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "party": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifReminder24hTitle": {
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifReminder24hBody": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifReminder2hTitle": {
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifReminder2hBody": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "party": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifWaitlistOfferTitle": {
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifWaitlistOfferBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifWaitlistExpiredTitle": {
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      }
+    }
+  },
+  "@notifWaitlistExpiredBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notifFallbackVenue": "the restaurant",
+  "@notifFallbackVenue": {
+    "description": "Stands in when a notification carries no venue name. A row that says 'the restaurant cancelled your table' is vaguer than we would like; a blank one is a bug the diner cannot report."
   }
 }

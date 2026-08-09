@@ -652,6 +652,81 @@ export class DeviceResponse {
   registered!: boolean;
 }
 
+// ──────────────────────────────────────────────────── notifications (C-4.7) ──
+
+export class NotificationResponse {
+  @ApiProperty() id!: string;
+
+  @ApiProperty({
+    description:
+      'Machine-readable kind. THE CLIENT OWNS THE COPY, keyed by this — the ' +
+      'same rule as the doc 06 §1 error codes. The server renders text only ' +
+      'for a lock screen, where there is no client to localise anything.',
+  })
+  type!: string;
+
+  @ApiProperty({
+    type: 'object',
+    // STRING VALUES, DECLARED. Not `additionalProperties: true`.
+    //
+    // The keys vary by type, so the object is genuinely free-form in its shape
+    // — but every value is a string, because `NotifyInput.data` is
+    // `Record<string, string>` and FCM's data payload is a string map anyway.
+    // Declaring that gets the generated Dart field typed `Map<String, String>`
+    // instead of `Map<String, dynamic>`, which is the difference between a
+    // client that fails at compile time and one that fails in a diner's hand.
+    //
+    // It also keeps this off the free-form allowlist in
+    // `client_drift_test.dart`, which currently has exactly one entry and is
+    // worth keeping that way.
+    additionalProperties: { type: 'string' },
+    description:
+      'Substitutions for the copy, and the deep-link target. Keys vary by ' +
+      'type; `reservation_id` and `restaurant_id` are what the client routes ' +
+      'on when present. Values are always strings.',
+  })
+  data!: Record<string, string>;
+
+  @ApiProperty({ description: 'When we owed them this. ISO 8601, UTC.' })
+  created_at!: string;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: 'string',
+    description:
+      'When they FIRST saw it — never re-stamped on a later read. Null while ' +
+      'unread.',
+  })
+  read_at?: string | null;
+}
+
+export class NotificationListResponse {
+  @ApiProperty({ type: [NotificationResponse] })
+  items!: NotificationResponse[];
+
+  @ApiProperty({
+    type: 'integer',
+    description:
+      'Unread across the WHOLE history, not across `items`. A count of the ' +
+      'page would read zero for a diner with more notifications than one page.',
+  })
+  unread_count!: number;
+}
+
+export class MarkReadResponse {
+  @ApiProperty({
+    type: 'integer',
+    description:
+      'How many rows this call changed. Zero is an ordinary outcome — ' +
+      'everything was already read — and is what makes "it did nothing" ' +
+      'distinguishable in a test rather than assumed.',
+  })
+  marked!: number;
+
+  @ApiProperty({ type: 'integer', description: 'Unread remaining, after this call.' })
+  unread_count!: number;
+}
+
 // ──────────────────────────────────────────────────────────────────── error ──
 
 export class ErrorDetailResponse {

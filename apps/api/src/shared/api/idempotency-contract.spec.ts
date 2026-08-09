@@ -157,6 +157,16 @@ describe('Idempotency-Key coverage across mutations', () => {
    * `idx_review_reports_unique` on (review, reporter) means a replay cannot
    * create a second report, and the endpoint answers 200 rather than an error
    * when it finds one — a second press means the same thing as the first.
+   *
+   * ── AND THE ONE ADDED IN GROUP G ───────────────────────────────────────
+   *
+   * `POST /v1/notifications/read` creates nothing and issues nothing, so it is
+   * outside CLAUDE.md rule 2's scope to begin with. It is also idempotent by
+   * construction: `read_at IS NULL` is in the UPDATE's predicate, so a replay
+   * matches zero rows, changes nothing, and returns the same unread count. The
+   * `marked` figure differs between the first call and the replay — which is
+   * the honest answer to "how many did THIS call change", not a divergence in
+   * state.
    */
   it('the mutations WITHOUT a key are the known list, and no more', () => {
     expect(withoutKey.sort()).toEqual([
@@ -183,6 +193,7 @@ describe('Idempotency-Key coverage across mutations', () => {
       'POST /v1/auth/resend-otp',
       'POST /v1/auth/verify-otp',
       'POST /v1/devices',
+      'POST /v1/notifications/read',
       'POST /v1/owner/reservations/{id}/cancel',
       'POST /v1/owner/restaurants',
       'POST /v1/owner/restaurants/{id}/submit',

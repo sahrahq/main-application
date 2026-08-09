@@ -12,6 +12,9 @@ import { ReservationResponse } from '../../shared/api/responses.dto';
 import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
 import type { AuthedUser } from '../../shared/auth/jwt.strategy';
+import { PrismaService } from '../../shared/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { isValidTimeZone, utcToZonedHhmm } from '../../shared/time/timezone';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -42,7 +45,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 @UseGuards(JwtAuthGuard)
 @Controller('reservations')
 export class ReservationsController {
-  constructor(private readonly reservations: ReservationsService) {}
+  constructor(
+    private readonly reservations: ReservationsService,
+    private readonly notifications: NotificationsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /**
    * Place a 5-minute hold on a table.
@@ -159,6 +166,48 @@ export class ReservationsController {
       specialRequests: dto.specialRequests ?? null,
       occasion: dto.occasion ?? null,
       idempotencyKey,
+    });
+
+    // C-4.7 — THE RECEIPT, IN THE CENTRE.
+    //
+    // The confirmation screen already tells them, so this is not the diner
+    // learning something new. It is the notification centre being able to
+    // answer "what happened on my account?" without a hole where the most
+    // important event is — a centre that lists cancellations and reminders but
+    // not the booking they refer to reads as broken.
+    //
+    // DEDUPED ON THE RESERVATION. Confirm is idempotent (doc 06 §1) and a
+    // replayed key returns the same reservation without re-writing it; without
+    // a dedupe key a retried confirm would still record a second receipt.
+    //
+    // After the commit, and unable to undo it: `notify` does not throw.
+    //
+    // One PK lookup for the venue's names and timezone, outside the
+    // transaction. The names are in the payload because both the lock screen
+    // and the centre need something to call the place, and the centre must not
+    // fetch a venue per row. The timezone is because a booking that says 19:00
+    // on the confirmation and 17:00 in the centre is a support ticket.
+    const venue = await this.prisma.restaurant.findUnique({
+      where: { id: r.restaurantId },
+      select: { nameEn: true, nameAr: true, timezone: true },
+    });
+    const tz = isValidTimeZone(venue?.timezone ?? '') ? venue!.timezone : 'Africa/Cairo';
+
+    await this.notifications.notify({
+      userId: user.id,
+      type: 'reservation_confirmed',
+      data: {
+        reservation_id: r.id,
+        code: r.code,
+        restaurant_id: r.restaurantId,
+        venue: venue?.nameEn ?? '',
+        venue_ar: venue?.nameAr ?? '',
+        starts_at: r.startsAt.toISOString(),
+        date: r.startsAt.toISOString().slice(0, 10),
+        time: utcToZonedHhmm(r.startsAt, tz),
+        party: String(r.partySize),
+      },
+      dedupeKey: `reservation_confirmed:${r.id}`,
     });
 
     return {

@@ -1694,10 +1694,10 @@ abstract class AppLocalizations {
   /// **'Follows your device'**
   String get accountLanguageValue;
 
-  /// ProfileScreen.jsx draws seven rows; three of them have no implementation. Naming them is more honest than drawing rows that fail on tap.
+  /// Names EXACTLY what is missing from the Account screen. It said "Saved places, payment methods and notification settings" and went stale twice: saved places shipped in Group C and the notification CENTRE in Group G, so the app was telling a diner a feature was missing with its row sitting directly above the sentence. Per-type notification PREFERENCES really are unbuilt (C-4.7 second half) and stay named. Rewrite this line whenever a row becomes real.
   ///
   /// In en, this message translates to:
-  /// **'Saved places, payment methods and notification settings are not built yet.'**
+  /// **'Invite friends, payment methods, help & support and per-type notification settings are not built yet.'**
   String get accountNotBuilt;
 
   /// Announced for the city label in the search pill. It is NOT a control — city switching is not built (SEARCH-1) — so the announcement states scope rather than offering an action.
@@ -2221,6 +2221,145 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You\'ve already reported this one.'**
   String get reviewReportAlready;
+
+  /// No description provided for @accountNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get accountNotifications;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notificationsTitle;
+
+  /// No description provided for @notificationsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing yet'**
+  String get notificationsEmptyTitle;
+
+  /// No description provided for @notificationsEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'When a restaurant changes something, or a table opens up, you\'ll find it here.'**
+  String get notificationsEmptyMessage;
+
+  /// No description provided for @notificationsSignedOutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to see your notifications'**
+  String get notificationsSignedOutTitle;
+
+  /// No description provided for @notificationsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t load your notifications.'**
+  String get notificationsFailed;
+
+  /// No description provided for @notificationsUnreadBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} new'**
+  String notificationsUnreadBadge(int count);
+
+  /// No description provided for @notificationsToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get notificationsToday;
+
+  /// No description provided for @notificationsEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier'**
+  String get notificationsEarlier;
+
+  /// SHOWN AT THE TOP OF THE CENTRE while push does not exist. A diner who is never alerted and is never told they will not be alerted concludes the app is broken when they miss a cancellation. Delete this string the day the FCM adapter is bound — docs/decisions/2026-08-09-firebase-handover.md.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t alert your phone yet, so check back here.'**
+  String get notificationsNoPushNote;
+
+  /// No description provided for @notifCancelledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{venue} cancelled your table'**
+  String notifCancelledTitle(String venue);
+
+  /// No description provided for @notifCancelledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} at {time}'**
+  String notifCancelledBody(String date, String time);
+
+  /// No description provided for @notifConfirmedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Table booked at {venue}'**
+  String notifConfirmedTitle(String venue);
+
+  /// No description provided for @notifConfirmedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} at {time} · {party} people · {code}'**
+  String notifConfirmedBody(
+      String date, String time, String party, String code);
+
+  /// No description provided for @notifReminder24hTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow at {venue}'**
+  String notifReminder24hTitle(String venue);
+
+  /// No description provided for @notifReminder24hBody.
+  ///
+  /// In en, this message translates to:
+  /// **'At {time}. Can\'t make it? Cancel so the table goes to someone else.'**
+  String notifReminder24hBody(String time);
+
+  /// No description provided for @notifReminder2hTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'In 2 hours at {venue}'**
+  String notifReminder2hTitle(String venue);
+
+  /// No description provided for @notifReminder2hBody.
+  ///
+  /// In en, this message translates to:
+  /// **'At {time} · {party} people · {code}'**
+  String notifReminder2hBody(String time, String party, String code);
+
+  /// No description provided for @notifWaitlistOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A table opened up at {venue}'**
+  String notifWaitlistOfferTitle(String venue);
+
+  /// No description provided for @notifWaitlistOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} at {time}. Book now — it\'s first come, first served.'**
+  String notifWaitlistOfferBody(String date, String time);
+
+  /// No description provided for @notifWaitlistExpiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'That table went at {venue}'**
+  String notifWaitlistExpiredTitle(String venue);
+
+  /// No description provided for @notifWaitlistExpiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re still on the list for {date}.'**
+  String notifWaitlistExpiredBody(String date);
+
+  /// Stands in when a notification carries no venue name. A row that says 'the restaurant cancelled your table' is vaguer than we would like; a blank one is a bug the diner cannot report.
+  ///
+  /// In en, this message translates to:
+  /// **'the restaurant'**
+  String get notifFallbackVenue;
 }
 
 class _AppLocalizationsDelegate

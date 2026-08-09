@@ -21,6 +21,7 @@ import { ReservationsService } from '../src/modules/reservations/reservations.se
 import { HoldExpiryService } from '../src/modules/reservations/expiry/hold-expiry.service';
 import { AvailabilityService } from '../src/modules/availability/availability.service';
 import { createTestDiner, removeTestDiner } from './support/test-diner';
+import { realWaitlistOffers } from './support/waitlist-offers';
 
 const url = (() => {
   const base = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
@@ -31,7 +32,8 @@ const prisma = new PrismaClient({ datasources: { db: { url } } });
 const p = prisma as unknown as PrismaService;
 
 const reservations = new ReservationsService(p);
-const expiry = new HoldExpiryService(p);
+// The REAL offer service, not a stub — see `support/waitlist-offers.ts`.
+const expiry = new HoldExpiryService(p, realWaitlistOffers(p));
 const availability = new AvailabilityService(p);
 
 let ownerUserId: string;

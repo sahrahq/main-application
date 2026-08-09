@@ -71,9 +71,17 @@ class AppShell extends ConsumerWidget {
   /// going through a tab — a deep link, a back button, the post-booking `go`.
   static String _activeTab(String location) {
     if (location.startsWith(BookingsRoute.path)) return 'bookings';
-    // `/saved` hangs off Account, so the Account tab stays lit while you are
-    // in it — a bottom bar with nothing selected reads as "you are lost".
+    // `/saved` and `/notifications` hang off Account, so the Account tab stays
+    // lit while you are in one — a bottom bar with nothing selected reads as
+    // "you are lost", and one lighting the WRONG tab is worse: it tells you you
+    // are somewhere you are not.
+    //
+    // The notifications entry was missing on the first pass and the walk-through
+    // is what showed it: the centre rendered correctly with **Discover**
+    // highlighted underneath. Nothing else could have caught it — the screen's
+    // own goldens do not contain the shell.
     if (location.startsWith(SavedRoute.path)) return 'account';
+    if (location.startsWith(NotificationsRoute.path)) return 'account';
     if (location.startsWith(AccountRoute.path)) return 'account';
     return 'discover';
   }

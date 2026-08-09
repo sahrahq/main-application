@@ -484,7 +484,15 @@ describe('a cancellation produces a notification record', () => {
 
     expect(rows.length).toBeGreaterThanOrEqual(1);
     const data = rows[0].data as Record<string, string>;
-    expect(data.reservationId).toBe(reservationId);
+    // `reservation_id`, not `reservationId`.
+    //
+    // This was the only notification type in the system, so its payload could
+    // spell things however it liked. Group G gave the client a renderer that
+    // routes on one key across six types, and snake_case won — it is what every
+    // other payload in this API uses. This assertion is what caught the rename
+    // reaching a caller that had not been updated.
+    expect(data.reservation_id).toBe(reservationId);
+    expect(data.reservationId).toBeUndefined();
     expect(data.reason).toBe('Power cut on the whole street');
     expect(data.venue).toBe('Cancelling Venue');
     // Venue wall clock, so a lock screen never shows a UTC hour.

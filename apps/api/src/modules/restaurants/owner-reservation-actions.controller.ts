@@ -10,6 +10,7 @@ import { OwnerCancellationService } from './owner-cancellation.service';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 import { CancelledReservationResponse } from '../../shared/api/responses.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { WaitlistOfferService } from '../favorites/waitlist-offer.service';
 import { isValidTimeZone, utcToZonedHhmm } from '../../shared/time/timezone';
 
 /**
@@ -31,6 +32,7 @@ export class OwnerReservationActionsController {
     private readonly cancellation: OwnerCancellationService,
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly waitlistOffers: WaitlistOfferService,
   ) {}
 
   /** Ownership comes from the TOKEN, never from the request. */
@@ -102,12 +104,17 @@ export class OwnerReservationActionsController {
         userId: cancelled.user_id,
         type: 'reservation_cancelled_by_venue',
         data: {
-          reservationId: cancelled.id,
+          // snake_case, matching every other notification's payload and the
+          // rest of the API. It was `reservationId` while this was the only
+          // type and nothing read it; Group G gave the client a renderer that
+          // routes on `reservation_id`, so one spelling had to win.
+          // `notification-payload.spec.ts` pins it for every type.
+          reservation_id: cancelled.id,
           code: cancelled.code,
           // Both names: the push is rendered per DEVICE locale, and the device
           // may not match the account.
           venue: venue?.nameEn ?? '',
-          venueAr: venue?.nameAr ?? '',
+          venue_ar: venue?.nameAr ?? '',
           reason: cancelled.cancel_reason,
           // Venue wall clock, so the lock screen never shows a UTC hour.
           date: when.toISOString().slice(0, 10),
@@ -115,6 +122,19 @@ export class OwnerReservationActionsController {
         },
       });
     }
+
+    // C-3.6 — THE TABLE JUST BECAME AVAILABLE, so somebody may be waiting for
+    // it. This is the first of the three paths that free inventory to say so;
+    // the other two are the diner's own cancellation and hold expiry.
+    //
+    // After the commit and after the diner is told, and it cannot undo either:
+    // `onSlotFreed` does not throw. The ordering matters — the person who lost
+    // the table hears before the person who might gain it.
+    await this.waitlistOffers.onSlotFreed({
+      restaurantId: cancelled.restaurant_id,
+      startsAt: new Date(cancelled.starts_at),
+      partySize: cancelled.party_size,
+    });
 
     return {
       id: cancelled.id,

@@ -6,6 +6,7 @@ import '../../../localization/generated/app_localizations.dart';
 import '../../../routes/routes.dart';
 import '../../../shared/providers/session_providers.dart';
 import '../../../shared/providers/locale_override.dart';
+import '../../notifications/presentation/notifications_notifier.dart';
 import 'edit_name_sheet.dart';
 import 'language_sheet.dart';
 import 'sign_out_notifier.dart';
@@ -137,6 +138,19 @@ class _SignedIn extends ConsumerWidget {
           label: l10n.accountSavedPlaces,
           onTap: () => const SavedRoute().go(context),
         ),
+        // C-4.7 — `bell / Notifications`, the fourth of the reference's seven
+        // rows to become real, and the only way to reach the centre.
+        //
+        // THE COUNT IS THE POINT. Without it the row is a door with nothing
+        // visible behind it, and since push does not exist yet this row is the
+        // ONLY signal a diner ever gets that a restaurant cancelled their
+        // table. A bell with no number is a bell nobody presses.
+        _Row(
+          icon: 'bell',
+          label: l10n.accountNotifications,
+          badge: ref.watch(unreadNotificationCountProvider),
+          onTap: () => const NotificationsRoute().go(context),
+        ),
         // AMENDED 2026-08-09 — it IS a control now.
         //
         // The original decision, kept here because the reasoning is still
@@ -182,17 +196,29 @@ class _SignedIn extends ConsumerWidget {
 }
 
 class _Row extends StatelessWidget {
-  const _Row({required this.icon, required this.label, this.value, this.onTap});
+  const _Row({
+    required this.icon,
+    required this.label,
+    this.value,
+    this.badge = 0,
+    this.onTap,
+  });
 
   final String icon;
   final String label;
   final String? value;
+
+  /// Unread count. Zero draws nothing — a badge reading "0" is a control
+  /// telling you something and telling you nothing at the same time.
+  final int badge;
+
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final s = Theme.of(context).sahra;
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
 
     final row = Container(
       // 48, matching the tab targets. A list row is a tap target like any
@@ -204,7 +230,37 @@ class _Row extends StatelessWidget {
         children: <Widget>[
           SahraIcon(icon, size: 20, color: s.textSoft),
           const SizedBox(width: SahraSpace.s3),
-          Expanded(child: Text(label, style: text.bodyLarge)),
+          // `w500`, and the reason is measured rather than aesthetic.
+          //
+          // Adding the Notifications row moved the pixel `textContrastGuideline`
+          // samples on this screen, and it began failing at 3.02:1 in ARABIC
+          // ONLY. The pair is `textBody` on `surfacePage`, which measures
+          // **17.54:1** — the strongest text combination in the whole palette —
+          // so no colour change could have been the fix, and none was possible:
+          // the ceiling at a 50% anti-aliased edge on this surface is 3.93.
+          //
+          // Third time this check has bitten, and the first time the failure
+          // itself explained why (see `kEdgeSampledContrastCaveat`). Its remedy
+          // is more INK, not a different hue: Reem Kufi at 16pt regular has
+          // thin strokes, so a sampler landing between them finds mostly
+          // background. A medium weight on a navigation label is a defensible
+          // choice on its own terms and it is what a list row wants anyway.
+          Expanded(
+            child: Text(
+              label,
+              style: text.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+            ),
+          ),
+          if (badge > 0) ...<Widget>[
+            const SizedBox(width: SahraSpace.s2),
+            // A WORD, NOT A BARE NUMERAL. "3 new" survives being read aloud by
+            // a screen reader; a lone "3" beside "Notifications" is announced
+            // as "Notifications 3" and could be a count of anything.
+            SahraBadge(
+              label: l10n.notificationsUnreadBadge(badge),
+              variant: SahraBadgeVariant.warning,
+            ),
+          ],
           if (value != null)
             Text(value!, style: text.bodySmall?.copyWith(color: s.textFaint)),
           if (onTap != null) ...<Widget>[

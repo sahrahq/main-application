@@ -783,6 +783,45 @@ class LogoutDto {
       };
 }
 
+class MarkNotificationsReadDto {
+  const MarkNotificationsReadDto({
+    this.ids,
+  });
+
+  factory MarkNotificationsReadDto.fromJson(Map<String, dynamic> json) => MarkNotificationsReadDto(
+        ids: json['ids'] == null ? null : (json['ids'] as List<dynamic>).map((e) => e as String).toList(),
+      );
+
+  /// Notification ids to mark read. Omit to mark every unread notification for the caller. Ids belonging to another user are ignored, not refused.
+  final List<String>? ids;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (ids != null) 'ids': ids!.map((e) => e).toList(),
+      };
+}
+
+class MarkReadResponse {
+  const MarkReadResponse({
+    required this.marked,
+    required this.unreadCount,
+  });
+
+  factory MarkReadResponse.fromJson(Map<String, dynamic> json) => MarkReadResponse(
+        marked: (json['marked'] as num).toInt(),
+        unreadCount: (json['unread_count'] as num).toInt(),
+      );
+
+  /// How many rows this call changed. Zero is an ordinary outcome — everything was already read — and is what makes "it did nothing" distinguishable in a test rather than assumed.
+  final int marked;
+  /// Unread remaining, after this call.
+  final int unreadCount;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'marked': marked,
+        'unread_count': unreadCount,
+      };
+}
+
 class MenuCategoryResponse {
   const MenuCategoryResponse({
     required this.id,
@@ -1012,6 +1051,63 @@ class MyReservationResponse {
         'starts_at': startsAt,
         'status': status,
         'time': time,
+      };
+}
+
+class NotificationListResponse {
+  const NotificationListResponse({
+    required this.items,
+    required this.unreadCount,
+  });
+
+  factory NotificationListResponse.fromJson(Map<String, dynamic> json) => NotificationListResponse(
+        items: (json['items'] as List<dynamic>).map((e) => NotificationResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        unreadCount: (json['unread_count'] as num).toInt(),
+      );
+
+  final List<NotificationResponse> items;
+  /// Unread across the WHOLE history, not across `items`. A count of the page would read zero for a diner with more notifications than one page.
+  final int unreadCount;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'items': items.map((e) => e.toJson()).toList(),
+        'unread_count': unreadCount,
+      };
+}
+
+class NotificationResponse {
+  const NotificationResponse({
+    required this.createdAt,
+    required this.data,
+    required this.id,
+    this.readAt,
+    required this.type,
+  });
+
+  factory NotificationResponse.fromJson(Map<String, dynamic> json) => NotificationResponse(
+        createdAt: json['created_at'] as String,
+        data: (json['data'] as Map<String, dynamic>).map((k, v) => MapEntry(k, v as String)),
+        id: json['id'] as String,
+        readAt: json['read_at'] == null ? null : json['read_at'] as String,
+        type: json['type'] as String,
+      );
+
+  /// When we owed them this. ISO 8601, UTC.
+  final String createdAt;
+  /// Substitutions for the copy, and the deep-link target. Keys vary by type; `reservation_id` and `restaurant_id` are what the client routes on when present. Values are always strings.
+  final Map<String, String> data;
+  final String id;
+  /// When they FIRST saw it — never re-stamped on a later read. Null while unread.
+  final String? readAt;
+  /// Machine-readable kind. THE CLIENT OWNS THE COPY, keyed by this — the same rule as the doc 06 §1 error codes. The server renders text only for a lock screen, where there is no client to localise anything.
+  final String type;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'created_at': createdAt,
+        'data': data,
+        'id': id,
+        if (readAt != null) 'read_at': readAt!,
+        'type': type,
       };
 }
 

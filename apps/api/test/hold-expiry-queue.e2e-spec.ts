@@ -16,6 +16,7 @@ import { ReservationsService } from '../src/modules/reservations/reservations.se
 import { HoldExpiryService } from '../src/modules/reservations/expiry/hold-expiry.service';
 import { HOLD_EXPIRY_QUEUE, EXPIRE_HOLD_JOB } from '../src/modules/reservations/expiry/hold-expiry.constants';
 import { createTestDiner, removeTestDiner } from './support/test-diner';
+import { realWaitlistOffers } from './support/waitlist-offers';
 
 const REDIS_UP = process.env.REDIS_AVAILABLE === '1';
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
@@ -28,7 +29,7 @@ const url = (() => {
 const prisma = new PrismaClient({ datasources: { db: { url } } });
 const p = prisma as unknown as PrismaService;
 const reservations = new ReservationsService(p);
-const expiry = new HoldExpiryService(p);
+const expiry = new HoldExpiryService(p, realWaitlistOffers(p));
 
 const QUEUE = `${HOLD_EXPIRY_QUEUE}-test`;
 let queue: Queue | null = null;
