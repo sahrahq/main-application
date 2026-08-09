@@ -23,8 +23,11 @@ import 'filter_sheet.dart';
 ///   - **Collections / Lists / Events chips.** C-2.5 is P1 and events are P2.
 ///     A chip that filters nothing is worse than an absent one, so only
 ///     `Tonight` ships — and it is wired to the real availability filter.
-///   - **Photos.** No image table yet (R-2.2); `SahraPhoto` draws the
-///     reference's own mashrabiya placeholder.
+///
+/// Photos WERE on this list and are not any more — Group B built the image
+/// table and the row thumbnail draws `venue.cover` at 64pt. A venue with no
+/// photos still gets the reference's mashrabiya placeholder, which is a
+/// designed state rather than a gap.
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 

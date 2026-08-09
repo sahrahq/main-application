@@ -1,0 +1,24 @@
+# The two tags this app uses, declared.
+#
+# Both worked before this file existed — `package:test` accepts a tag it has
+# never heard of — but every `--tags live` run printed a block of "A tag was
+# used that wasn't specified in dart_test.yaml" warnings, one line per golden
+# test. A log with a permanent warning in it is a log nobody reads, and the
+# next warning is the one that matters.
+#
+# It does NOT change what a mistyped tag does: `--tags golded` exits 79 with
+# "no tests match" either way. What it adds is the description below, which is
+# the only place the two tags' preconditions are written down next to their
+# names.
+tags:
+  golden:
+    description: >
+      Screenshot comparisons. A SUBSET of the default run, not an extra suite —
+      `flutter test` already includes them, so their count must not be added to
+      it. Run alone with `--tags golden`. Font rasterization differs across
+      platforms, so CI compares on Linux only.
+  live:
+    description: >
+      Needs the API running and seeded (RUNNING.md step 3). Excluded from CI on
+      purpose: it is the end-to-end check a human runs, and it spends real OTP
+      budget — two runs inside ten minutes hit the per-IP limit.

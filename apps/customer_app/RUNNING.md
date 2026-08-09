@@ -262,16 +262,25 @@ a promise the engine never made.
 
 Stated plainly so you are not hunting for it:
 
+> **This table went stale once and it is the worst place in the repo for that
+> to happen** — it is the page you read before deciding whether something is
+> broken or simply unbuilt. On 2026-08-09 it still said photos, favourites,
+> waitlist and sign-in were missing; all four had shipped in Groups B and C.
+> Re-read it at the end of every batch.
+
 | | Why |
 |---|---|
-| **Any photograph** | No image table in the schema (R-2.2). Every venue shows the mashrabiya placeholder — the reference's own no-photo state |
-| **Menu, prices** | No menu tables (R-2.3) |
-| **Map** | The reference uses Leaflet; C-2.4 is P1 and no map package is in the doc 08 stack |
+| **Menu, prices** | No menu tables (R-2.3). Group D |
+| **Reviews** | No reviews table (C-4.4). Group D |
+| **Map** | The reference uses Leaflet; C-2.4 is P1 and no map package is in the doc 08 stack. Group H is an address plus a handoff to the phone's own map app |
+| **Photo GALLERY on the venue page** | The hero photo works. The reference's four-thumbnail strip does not — `VenueProfile.images` is fetched and only its first entry is drawn |
+| **Most venues having a photograph at all** | The image table is real (R-2.2) but every upload is manual and admin-only, so a venue nobody has photographed shows the mashrabiya placeholder — the reference's own no-photo state |
 | **The Collections / Lists / Events chips** | P1/P2. Only `Tonight` ships, and it is wired to the real filter |
-| **"Notify me" on a full slot** | Waitlist is C-3.6, P1 — `/waitlists` does not exist |
-| **Save / heart, share** | Favourites are C-2.7; not built |
-| **Sign in** | Booking works as a guest today. There is no auth screen yet |
+| **Being OFFERED a table from a waitlist** | You can join one (C-3.6). Nothing notifies you when a table frees — only the join half is built |
+| **Distance filter and distance sort** | C-2.2/C-2.3. The app collects no location, so the controls are absent rather than ranking against nothing |
+| **Share** | No implementation — so the button is absent rather than dead |
 | **Add to calendar, invite friends** | No implementation — so the buttons are absent rather than dead |
+| **Payment or deposit** | C-4.1, blocked on company registration, not on code |
 | **Load more results** | `next_cursor` is carried but unused: page two has **not** been availability-filtered, so "more" needs a product decision first |
 | **Neighbourhood in Arabic** | `neighborhood` is one `VARCHAR(80)` column, so it reads `Zamalek` even in Arabic. A schema fix, logged in `docs/decisions/2026-08-02-customer-booking-path-scope.md` |
 
@@ -291,10 +300,15 @@ Stated plainly so you are not hunting for it:
 
 ```powershell
 cd apps\customer_app
-flutter test --exclude-tags live      # 180 — no server needed
+flutter test --exclude-tags live      # no server needed
 flutter test --tags live              # needs the API from step 3, seeded
-flutter test --tags golden            # the pictures
+flutter test --tags golden            # the pictures — a SUBSET of the line above,
+                                      #   not a separate suite to add on
 ```
+
+No count here on purpose. This line used to read `# 180`, which was true once
+and then quietly stopped being true — the same failure as a fixture pinned to a
+date. A number in a document has nobody checking it.
 
 The `live` suite is the one that walks search → detail → slots → hold → confirm
 over a real socket. It is excluded from CI on purpose; it is your end-to-end

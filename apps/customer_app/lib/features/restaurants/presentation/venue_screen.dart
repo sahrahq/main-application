@@ -22,8 +22,12 @@ import '../../saved/presentation/saved_notifier.dart';
 ///
 ///   - **Menu section** (`t.menu`, four dishes with EGP prices) — R-2.3, no
 ///     menu tables in the schema.
-///   - **Photo gallery** (four thumbnails) and the hero image — R-2.2, no
-///     image table.
+///   - **Photo gallery** (four thumbnails). NOT a missing data source any
+///     more: Group B built the image table, `VenueProfile.images` is populated
+///     cover-first, and the hero above draws `images.first`. Everything after
+///     the first image is fetched and then not rendered. This is the one item
+///     on this list that is a GAP rather than a dependency, and it is the
+///     cheapest thing here to close.
 ///   - **"Nour & 11 friends have been here"** (`AvatarStack`) — the social
 ///     graph is C-3.8, P2.
 ///   - **"Sunset offer — 20% off"** — promotions are R-4.2, P1/P2.

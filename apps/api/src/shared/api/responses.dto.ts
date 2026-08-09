@@ -255,10 +255,13 @@ export class OpeningHoursResponse {
  * doc 06 §3 `/restaurants/:idOrSlug`. snake_case to match the search result
  * item in the same section — this is the same entity a diner just tapped.
  *
- * NOT present, because the schema has nowhere to put them yet: photos (no
- * image table, R-2.2) and menus (no menu tables, R-2.3). They are omitted
- * rather than returned empty, because an empty array reads as "this venue has
- * no photos" instead of "this platform cannot store photos yet".
+ * NOT present, because the schema has nowhere to put them yet: menus (no menu
+ * tables, R-2.3). Omitted rather than returned empty, because an empty array
+ * reads as "this venue has no menu" instead of "this platform cannot store
+ * menus yet".
+ *
+ * Photos WERE on that list until Group B built the `images` table; `images` is
+ * now a real field on this response.
  */
 export class RestaurantProfileResponse {
   @ApiProperty() id!: string;

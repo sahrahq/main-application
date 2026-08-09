@@ -15,9 +15,13 @@ import 'sahra_mashrabiya.dart';
 /// THE PLACEHOLDER IS THE POINT. `Photo.jsx` renders a warm dark gradient with
 /// a mashrabiya lattice and a centred image cue when there is no `src`. That is
 /// not a fallback bolted on — it is drawn in the reference, which means the
-/// designer already answered "what does a venue with no photo look like". SAHRA
-/// has no image table yet (R-2.2), so today it is the state EVERY venue is in,
-/// and the screens look deliberate rather than broken because of it.
+/// designer already answered "what does a venue with no photo look like".
+///
+/// It was written when SAHRA had no image table and every venue was in that
+/// state. R-2.2 shipped in Group B, so it is now the state of a venue nobody
+/// has photographed yet — which, given that uploads are manual, is still most
+/// of them, and will be for as long as onboarding a venue means someone typing
+/// its photos in by hand.
 ///
 /// The gradient overlay exists so white text can sit on a photo at all. Note
 /// that `textContrastGuideline` cannot evaluate text over an image and skips

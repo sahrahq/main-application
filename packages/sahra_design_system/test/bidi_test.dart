@@ -69,12 +69,57 @@ void main() {
   });
 
   group('what it is NOT for', () {
-    test('a lone number needs no isolate — it has no internal neutrals', () {
+    test('a lone number needs no isolate — it has no neutrals at all', () {
       // Wrapping every figure would litter the copy with invisible characters
       // and make ARB values impossible to diff. `4.8` is already correct.
       expect(ltrRun('4.8'), isNot('4.8'));
       // ...which is exactly why the rule is "sequences of segments", stated in
       // the library doc, and why this test exists to record the boundary.
+    });
+  });
+
+  group('but a lone number WITH A SIGN does need one', () {
+    // The boundary above was drawn too generously the first time and `4.0+`
+    // shipped inside it, rendering `+4.0` in Arabic. A sign at the EDGE of a
+    // number is not absorbed by it — bidi W4 only merges a separator that sits
+    // BETWEEN two numbers — so it is demoted to a neutral and takes the
+    // paragraph direction.
+    //
+    // This group records the corrected boundary. Which strings in the product
+    // fall on which side of it is not a judgement made here: the Arabic ARB is
+    // scanned for the signature by
+    // `apps/customer_app/test/i18n/bidi_neutral_test.dart`, which then checks
+    // every call site of every string it finds.
+    testWidgets('an unsigned and a signed figure are different problems',
+        (tester) async {
+      const String plain = '4.0';
+      const String signed = '4.0+';
+
+      await tester.pumpWidget(
+        harness(
+          Cell.arLight,
+          const Column(
+            children: <Widget>[
+              Text(plain, style: TextStyle(fontSize: 18)),
+              Text(signed, style: TextStyle(fontSize: 18)),
+            ],
+          ),
+        ),
+      );
+      await stabilise(tester);
+
+      // Both lay out; the sign is what moves, and a Rect cannot express glyph
+      // order any more than it could for the phone number above. What IS
+      // checkable is that the signed form is a strictly longer run than the
+      // plain one — i.e. there is a neutral character in it for the algorithm
+      // to reposition, which is the precondition for the defect.
+      expect(signed.length, plain.length + 1);
+      expect(find.text(signed), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      // And that the remedy applies to it, unlike to the plain figure, where
+      // the library doc says not to bother.
+      expect(ltrRun(signed).codeUnitAt(0), 0x2066);
     });
   });
 }

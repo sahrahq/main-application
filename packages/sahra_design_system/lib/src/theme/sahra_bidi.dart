@@ -43,9 +43,25 @@ const String _pdi = '\u2069';
 ///
 /// For anything that is a sequence of Latin-script or numeric SEGMENTS: phone
 /// numbers, time ranges, addresses with house numbers, reservation codes,
-/// URLs. NOT for a single number — `4.8` has no internal neutrals and renders
-/// correctly on its own, and wrapping every figure would litter the copy with
-/// invisible characters and make ARB values impossible to diff.
+/// URLs.
+///
+/// AND for a lone figure that carries a SIGN — `4.0+`, `<15`, `~20`, `-5`.
+/// That case was missed when this was first written, and it shipped: the rule
+/// here said "not for a single number", which is true of `4.8` and false of
+/// `4.0+`. A `+` at the edge of a number is not absorbed by the number the way
+/// an internal `:` or `.` is (bidi rule W4 covers only the *between* case), so
+/// it is demoted to a neutral and takes the paragraph's direction — landing on
+/// the far side of the figure it modifies. `4.0+` rendered `+4.0`, and the
+/// rating chip stopped saying "or better".
+///
+/// Still NOT for a bare figure with nothing attached. `4.8` has no neutrals at
+/// all; wrapping every number would litter the copy with invisible characters
+/// and make ARB values impossible to diff.
+///
+/// The boundary between those two is no longer a judgement call:
+/// `apps/customer_app/test/i18n/bidi_neutral_test.dart` reads the Arabic ARB,
+/// finds the strings that carry the risk, and fails if any call site of one is
+/// not wrapped here.
 String ltrRun(String text) => '$_lri$text$_pdi';
 
 /// The same, tolerant of null.
