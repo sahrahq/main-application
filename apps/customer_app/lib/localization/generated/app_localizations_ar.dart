@@ -31,6 +31,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errReviewTooEarly => 'تقدر تقيّم بعد ما ميعاد الطاولة يخلص.';
 
   @override
+  String get errReviewNotFound => 'مش لاقيين التقييم ده.';
+
+  @override
+  String get errCannotReportOwnReview => 'ده تقييمك إنت.';
+
+  @override
   String get errBookingsOutsideNewHours =>
       'فيه حجوزات مؤكدة هتقع بره المواعيد دي.';
 
@@ -1160,4 +1166,52 @@ class AppLocalizationsAr extends AppLocalizations {
   String resultDistance(String km) {
     return '$km كم';
   }
+
+  @override
+  String get reviewReport => 'بلّغ';
+
+  @override
+  String get reviewReportTitle => 'بلّغ عن التقييم ده';
+
+  @override
+  String get reviewReportWhy => 'إيه المشكلة فيه؟';
+
+  @override
+  String get reviewReportReasonSpam => 'سبام أو إعلان';
+
+  @override
+  String get reviewReportReasonAbusive => 'مسيء أو بذيء';
+
+  @override
+  String get reviewReportReasonNotMyVisit => 'دي مش زيارتي';
+
+  @override
+  String get reviewReportReasonWrongVenue => 'المطعم غلط';
+
+  @override
+  String get reviewReportReasonOther => 'حاجة تانية';
+
+  @override
+  String get reviewReportNoteLabel => 'عايز تضيف حاجة؟';
+
+  @override
+  String get reviewReportNoteHint => 'اختياري. هيوصل للي بيراجع.';
+
+  @override
+  String get reviewReportSubmit => 'ابعت البلاغ';
+
+  @override
+  String get reviewReportSubmitting => 'بنبعت…';
+
+  @override
+  String get reviewReportSent => 'شكراً ليك. حد هيبص عليه.';
+
+  @override
+  String get reviewReportNoReasonYet => 'اختار السبب الأول.';
+
+  @override
+  String get reviewReportHonest => 'البلاغ مش بيخفي التقييم. حد بيقراه وبيقرر.';
+
+  @override
+  String get reviewReportAlready => 'إنت بلّغت عن ده قبل كده.';
 }

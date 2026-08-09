@@ -148,6 +148,8 @@ model User {
   waitlists       Waitlist[]
   notifications   Notification[]
   reviews         Review[]
+  reviewReports   ReviewReport[]    @relation("ReportReporter")
+  resolvedReports ReviewReport[]    @relation("ReportResolver")
 
   @@index([status], map: "idx_users_status")
   @@map("users")
@@ -572,9 +574,10 @@ model Review {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  reservation Reservation @relation(fields: [reservationId], references: [id])
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  restaurant  Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  reservation Reservation    @relation(fields: [reservationId], references: [id])
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant  Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  reports     ReviewReport[]
 
   @@index([restaurantId, status, createdAt(sort: Desc)], map: "idx_reviews_rest")
   @@index([userId, createdAt(sort: Desc)], map: "idx_reviews_user")
@@ -588,6 +591,70 @@ enum ReviewStatus {
   removed
 
   @@map("review_status")
+}
+
+/// C-4.4's report flow — RECORDING WITH NO READER, deliberately.
+///
+/// The queue is A-3 (admin content moderation, P1) and is not built. Nothing
+/// reads a report. Same terms as the waitlist's join-without-notify: the half
+/// that exists is real, the half that does not is a decision, and this
+/// sentence is here so nobody later reads it as unfinished.
+///
+/// A REPORT DOES NOT CHANGE `Review.status`. The venue page and the rating
+/// trigger both read `published`, so a report that moved a review to
+/// `pending_moderation` would let ONE account silence any review with no
+/// moderator to release it — the brigading `idx_review_reports_unique` exists
+/// to prevent, through the front door. Corrected from the Group D schema doc,
+/// which said the opposite; see the migration header.
+model ReviewReport {
+  id       String @id @default(uuid()) @db.Uuid
+  reviewId String @map("review_id") @db.Uuid
+
+  /// Who reported it. UNIQUE with `reviewId` — one person cannot brigade a
+  /// review alone, and a second press is the same report.
+  reporterUserId String @map("reporter_user_id") @db.Uuid
+
+  reason ReportReason
+  note   String?
+
+  status ReportStatus @default(open)
+
+  /// Set together, by A-3, when there is somebody to set them.
+  resolvedBy String?   @map("resolved_by") @db.Uuid
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporter User   @relation("ReportReporter", fields: [reporterUserId], references: [id], onDelete: Cascade)
+  resolver User?  @relation("ReportResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  @@unique([reviewId, reporterUserId], map: "idx_review_reports_unique")
+  @@index([reviewId, status], map: "idx_review_reports_review")
+  @@map("review_reports")
+}
+
+enum ReportReason {
+  spam
+  abusive
+
+  /// About US rather than about the reviewer: a review attached to the wrong
+  /// reservation is a bug in the verified-diner guarantee, not a moderation
+  /// question.
+  not_my_visit
+  wrong_venue
+  other
+
+  @@map("report_reason")
+}
+
+enum ReportStatus {
+  open
+  upheld
+  rejected
+
+  @@map("report_status")
 }
 
 // ─────────────────────────────────────────────────────────── notifications ──

@@ -189,7 +189,16 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
                 Center(
                   child: Text(
                     l10n.writeReviewNeedsRating,
-                    style: text.bodySmall?.copyWith(color: s.textFaint),
+                    // Same treatment as the report sheet's equivalent. This one
+                    // passes `textContrastGuideline` today and would start
+                    // failing on a copy edit that changed its length — the
+                    // check is length-sensitive because it is sampling
+                    // anti-aliased edges. The line explaining a disabled button
+                    // should not be the faintest text on the screen either way.
+                    style: text.bodySmall?.copyWith(
+                      color: s.textSoft,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

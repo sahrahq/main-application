@@ -87,6 +87,8 @@ Map<String, String> _byKey(AppLocalizations l) => <String, String>{
       'errReviewAlreadyExists': l.errReviewAlreadyExists,
       'errReviewNotEligible': l.errReviewNotEligible,
       'errReviewTooEarly': l.errReviewTooEarly,
+      'errReviewNotFound': l.errReviewNotFound,
+      'errCannotReportOwnReview': l.errCannotReportOwnReview,
       'errSearchUnavailable': l.errSearchUnavailable,
       'errServiceBusy': l.errServiceBusy,
       'errServiceUnavailable': l.errServiceUnavailable,

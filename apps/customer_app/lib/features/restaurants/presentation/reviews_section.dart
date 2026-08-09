@@ -6,6 +6,7 @@ import '../../../localization/generated/app_localizations.dart';
 import '../../reservations/presentation/reservation_copy.dart';
 import '../domain/review.dart';
 import 'menu_notifier.dart';
+import 'report_review_sheet.dart';
 
 /// C-4.4 / C-2.6 — reviews on the venue page, and the sheet behind them.
 ///
@@ -151,7 +152,7 @@ class _ReviewsSheet extends ConsumerWidget {
                 _Summary(summary: page.summary),
                 const SizedBox(height: SahraSpace.s4),
                 for (final review in page.results) ...<Widget>[
-                  ReviewCard(review: review),
+                  ReviewCard(review: review, reportable: true),
                   const SizedBox(height: SahraSpace.s3),
                 ],
                 if (page.nextCursor != null)
@@ -299,13 +300,35 @@ class _BreakdownBar extends StatelessWidget {
 }
 
 /// One review.
-class ReviewCard extends StatelessWidget {
-  const ReviewCard({required this.review, super.key});
+///
+/// The REPORT control lives here rather than on the venue page's preview,
+/// deliberately. A diner scanning three reviews under a booking button is
+/// deciding where to eat; a diner who has opened the full list and read one is
+/// the one who might have a reason to flag it. Putting it on every card in
+/// every context would add a third affordance to a card whose job is to be read.
+class ReviewCard extends ConsumerStatefulWidget {
+  const ReviewCard({required this.review, this.reportable = false, super.key});
 
   final Review review;
 
+  /// True inside the all-reviews sheet, false in the venue page's preview.
+  final bool reportable;
+
+  @override
+  ConsumerState<ReviewCard> createState() => _ReviewCardState();
+}
+
+class _ReviewCardState extends ConsumerState<ReviewCard> {
+  /// Set once this diner has reported this review in this session.
+  ///
+  /// The API answers 200 rather than an error on a repeat, so nothing forces
+  /// this — it exists so the control stops inviting a second press it will do
+  /// nothing with.
+  bool _reported = false;
+
   @override
   Widget build(BuildContext context) {
+    final Review review = widget.review;
     final l10n = AppLocalizations.of(context);
     final s = Theme.of(context).sahra;
     final text = Theme.of(context).textTheme;
@@ -388,6 +411,60 @@ class ReviewCard extends StatelessWidget {
                 if (review.ambienceRating != null)
                   _SubRating(label: l10n.reviewAmbience, value: review.ambienceRating!),
               ],
+            ),
+          ],
+          if (widget.reportable) ...<Widget>[
+            const SizedBox(height: SahraSpace.s2),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: _reported
+                  // Says it landed, and stops offering a press that would do
+                  // nothing. The API would answer 200 either way.
+                  ? Padding(
+                      padding: SahraSpace.symmetric(vertical: SahraSpace.s2),
+                      child: Text(
+                        l10n.reviewReportAlready,
+                        style: text.labelSmall?.copyWith(color: s.textFaint),
+                      ),
+                    )
+                  : GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () async {
+                        final bool sent = await showReportReviewSheet(
+                          context,
+                          reviewId: review.id,
+                        );
+                        if (!sent || !context.mounted) return;
+                        setState(() => _reported = true);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.reviewReportSent)),
+                        );
+                      },
+                      // `Center(widthFactor: 1)`, NOT a bare `Align`.
+                      //
+                      // An `Align` with no width constraint expands to fill,
+                      // so the tap target became the full card width and the
+                      // word rendered CENTRED under the review — reading as a
+                      // heading rather than an action. Found in the golden.
+                      // `widthFactor: 1` shrink-wraps to the text while the
+                      // `SizedBox` keeps the full 44pt height.
+                      child: SizedBox(
+                        height: SahraRules.minTouchTarget,
+                        child: Center(
+                          widthFactor: 1,
+                          child: Text(
+                            l10n.reviewReport,
+                            // NOT the accent. A report control that draws the
+                            // eye competes with the review it sits under, and
+                            // it is not the thing a diner came to do.
+                            style: text.labelSmall?.copyWith(
+                              color: s.textFaint,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
             ),
           ],
           if (review.ownerReply != null) ...<Widget>[

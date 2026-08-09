@@ -767,6 +767,21 @@ class SahraApi {
     return ReviewResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `POST /v1/reviews/{id}/report`
+  ///
+  /// Report a review (recorded; the queue is A-3)
+  Future<void> reportReview({
+    required String id,
+    required ReportReviewDto body,
+  }) async {
+    await _transport.send(
+      method: 'POST',
+      path: '/v1/reviews/$id/report',
+      body: body.toJson(),
+    );
+    return;
+  }
+
   /// `GET /v1/saved`
   ///
   /// The caller's saved venues, newest first

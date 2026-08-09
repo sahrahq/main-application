@@ -140,6 +140,18 @@ abstract class AppLocalizations {
   /// **'You can review this once your table time is over.'**
   String get errReviewTooEarly;
 
+  /// No description provided for @errReviewNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not find that review.'**
+  String get errReviewNotFound;
+
+  /// No description provided for @errCannotReportOwnReview.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s your own review.'**
+  String get errCannotReportOwnReview;
+
   /// No description provided for @errBookingsOutsideNewHours.
   ///
   /// In en, this message translates to:
@@ -2113,6 +2125,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{km} km'**
   String resultDistance(String km);
+
+  /// No description provided for @reviewReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get reviewReport;
+
+  /// No description provided for @reviewReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report this review'**
+  String get reviewReportTitle;
+
+  /// No description provided for @reviewReportWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s wrong with it?'**
+  String get reviewReportWhy;
+
+  /// No description provided for @reviewReportReasonSpam.
+  ///
+  /// In en, this message translates to:
+  /// **'Spam or an advert'**
+  String get reviewReportReasonSpam;
+
+  /// No description provided for @reviewReportReasonAbusive.
+  ///
+  /// In en, this message translates to:
+  /// **'Abusive or offensive'**
+  String get reviewReportReasonAbusive;
+
+  /// The one reason that is about US rather than the reviewer. A review attached to the wrong reservation is a bug in the verified-diner guarantee, not a moderation question — so this reason needs to be reachable rather than folded into 'something else'.
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t my visit'**
+  String get reviewReportReasonNotMyVisit;
+
+  /// No description provided for @reviewReportReasonWrongVenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong restaurant'**
+  String get reviewReportReasonWrongVenue;
+
+  /// No description provided for @reviewReportReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else'**
+  String get reviewReportReasonOther;
+
+  /// No description provided for @reviewReportNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything to add?'**
+  String get reviewReportNoteLabel;
+
+  /// No description provided for @reviewReportNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. It goes to whoever reviews this.'**
+  String get reviewReportNoteHint;
+
+  /// No description provided for @reviewReportSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Send report'**
+  String get reviewReportSubmit;
+
+  /// No description provided for @reviewReportSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get reviewReportSubmitting;
+
+  /// No description provided for @reviewReportSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you. Someone will look at it.'**
+  String get reviewReportSent;
+
+  /// No description provided for @reviewReportNoReasonYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a reason first.'**
+  String get reviewReportNoReasonYet;
+
+  /// SHOWN IN THE SHEET, above the button, not after. A report is recorded and read by nobody until A-3 builds the queue, and it does NOT change the review's status — a report that hid a review would let one account silence any of them. Telling the diner what will and will not happen is the only honest version of a control whose effect is invisible.
+  ///
+  /// In en, this message translates to:
+  /// **'Reporting doesn\'t hide the review. A person reads it and decides.'**
+  String get reviewReportHonest;
+
+  /// No description provided for @reviewReportAlready.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve already reported this one.'**
+  String get reviewReportAlready;
 }
 
 class _AppLocalizationsDelegate

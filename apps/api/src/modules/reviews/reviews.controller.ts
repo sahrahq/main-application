@@ -5,10 +5,13 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -21,7 +24,8 @@ import { JwtAuthGuard } from '../../shared/auth/jwt-auth.guard';
 import { CurrentUser } from '../../shared/auth/current-user.decorator';
 import type { AuthedUser } from '../../shared/auth/jwt.strategy';
 import { ReviewsService } from './reviews.service';
-import { CreateReviewDto } from './dto/reviews.dto';
+import { ReviewReportsService } from './review-reports.service';
+import { CreateReviewDto, ReportReviewDto } from './dto/reviews.dto';
 import { ReviewPageResponse, ReviewResponse } from '../../shared/api/responses.dto';
 
 /**
@@ -72,7 +76,10 @@ export class RestaurantReviewsController {
 @UseGuards(JwtAuthGuard)
 @Controller('reviews')
 export class ReviewsController {
-  constructor(private readonly reviews: ReviewsService) {}
+  constructor(
+    private readonly reviews: ReviewsService,
+    private readonly reports: ReviewReportsService,
+  ) {}
 
   @Post()
   @ApiOkResponse({ type: ReviewResponse })
@@ -111,5 +118,48 @@ export class ReviewsController {
       ambienceRating: dto.ambienceRating,
       body: dto.body,
     }) as Promise<ReviewResponse>;
+  }
+
+  /**
+   * Report a review. C-4.4's report flow.
+   *
+   * **NOTHING READS THIS.** The queue is A-3 and is not built; a report is
+   * recorded and looked at by nobody until then. That is the agreed shape, not
+   * an unfinished edge — see `ReviewReportsService` for why recording without a
+   * reader is better than offering no way to flag a published review.
+   *
+   * **And it does not change the review.** A report that moved a review to
+   * `pending_moderation` would take it off the venue page and out of the
+   * rating, which would let one account silence any review with no moderator
+   * to release it.
+   *
+   * 201 the first time, 200 on a repeat — a second press means the same thing
+   * as the first. No `Idempotency-Key`: the unique index on
+   * (review, reporter) makes a replay structurally unable to create a second
+   * row.
+   */
+  @Post(':id/report')
+  @ApiOperation({ summary: 'Report a review (recorded; the queue is A-3)' })
+  @ApiResponse({ status: 201, description: 'Reported' })
+  @ApiOkResponse({ description: 'Already reported by this diner' })
+  @ApiResponse({ status: 400, description: 'cannot_report_own_review' })
+  @ApiResponse({
+    status: 404,
+    description:
+      'review_not_found — ALSO for a review that is not published, deliberately',
+  })
+  async reportReview(
+    @CurrentUser() user: AuthedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReportReviewDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    const { created } = await this.reports.report({
+      reviewId: id,
+      reporterUserId: user.id,
+      reason: dto.reason,
+      note: dto.note,
+    });
+    res.status(created ? 201 : 200);
   }
 }

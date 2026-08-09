@@ -304,7 +304,7 @@ Stated plainly so you are not hunting for it:
 
 | | Why |
 |---|---|
-| **Reporting a review** | Reviews are published immediately (there is no moderator to queue them behind). Reporting one is the other half of that and is scheduled next — `docs/decisions/2026-08-09-group-d-schema-proposal.md` §5.4 |
+| **Anything HAPPENING to a reported review** | You can report one, and it is recorded. Nobody reads it: the moderation queue is A-3 and is not built. The sheet says so in a line above the button, because a control with no visible effect looks broken otherwise |
 | **Review photos** | C-4.4 wants them. They are the diner-facing upload path the multipart boundary forbids, so they wait on a dependency decision |
 | **Uploading a menu, or a menu PDF** | The tables and the column exist and the app renders both. Getting a menu INTO them is manual, like photos — there is no owner console |
 | **Map** | The reference uses Leaflet; C-2.4 is P1 and no map package is in the doc 08 stack. Group H is an address plus a handoff to the phone's own map app |

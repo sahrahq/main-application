@@ -350,6 +350,139 @@ void main() {
     });
   });
 
+  group('reporting one', () {
+    // The control is in the SHEET, not on the venue page's preview: a diner
+    // scanning three reviews under a booking button is deciding where to eat.
+    Future<void> openReviewsSheet(WidgetTester tester) async {
+      await _pump(
+        tester,
+        const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+        overrides: <Override>[
+          transportProvider.overrideWithValue(
+            venueTransport(reviewPage: reviews()),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(find.byType(VenueScreen));
+      final Finder all = find.text(AppLocalizations.of(context).venueReviewsAll);
+      await tester.ensureVisible(all);
+      await tester.pumpAndSettle();
+      await tester.tap(all);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the venue page preview offers no report control', (tester) async {
+      await _pump(
+        tester,
+        const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+        overrides: <Override>[
+          transportProvider.overrideWithValue(
+            venueTransport(reviewPage: reviews()),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(find.byType(VenueScreen));
+      expect(find.text(AppLocalizations.of(context).reviewReport), findsNothing);
+    });
+
+    testWidgets('the sheet does, and it says what a report will NOT do',
+        (tester) async {
+      await openReviewsSheet(tester);
+
+      final BuildContext context = tester.element(find.byType(VenueScreen));
+      final AppLocalizations l10n = AppLocalizations.of(context);
+
+      await tester.tap(find.text(l10n.reviewReport).first);
+      await tester.pumpAndSettle();
+
+      // THE SENTENCE THAT MAKES THE CONTROL HONEST. A report has no visible
+      // effect — the review stays, the rating does not move, nobody reads it
+      // until A-3 — so a diner who was not told concludes it is broken.
+      expect(find.text(l10n.reviewReportHonest), findsOneWidget);
+      // And the button is dead until a reason is chosen.
+      expect(find.text(l10n.reviewReportNoReasonYet), findsOneWidget);
+    });
+
+    testWidgets('sends the snake_case reason the API expects', (tester) async {
+      // `ReportReason.notMyVisit.name` is `notMyVisit`, which the API refuses.
+      // Asserted on the WIRE, because a chip that looks right and 400s on
+      // submit is the failure this guards.
+      late FakeTransport transport;
+      await _pump(
+        tester,
+        const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+        overrides: <Override>[
+          transportProvider.overrideWithValue(
+            transport = venueTransport(reviewPage: reviews()),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(find.byType(VenueScreen));
+      final AppLocalizations l10n = AppLocalizations.of(context);
+      final Finder all = find.text(l10n.venueReviewsAll);
+      await tester.ensureVisible(all);
+      await tester.pumpAndSettle();
+      await tester.tap(all);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(l10n.reviewReport).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.reviewReportReasonNotMyVisit));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.reviewReportSubmit));
+      await tester.pumpAndSettle();
+
+      final Object? body = transport.bodyFor('/v1/reviews/rev-0/report');
+      expect(body, isA<Map<String, Object?>>());
+      expect((body! as Map<String, Object?>)['reason'], 'not_my_visit');
+    });
+
+    testWidgets('a refusal is shown IN the sheet', (tester) async {
+      await _pump(
+        tester,
+        const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+        overrides: <Override>[
+          transportProvider.overrideWithValue(
+            FakeTransport((method, path, query) {
+              if (method == 'POST' && path.endsWith('/report')) {
+                throw envelope(400, 'cannot_report_own_review');
+              }
+              if (path.endsWith('/menus')) return <Object>[];
+              if (path.endsWith('/reviews')) return reviews();
+              return profile();
+            }),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(find.byType(VenueScreen));
+      final AppLocalizations l10n = AppLocalizations.of(context);
+      final Finder all = find.text(l10n.venueReviewsAll);
+      await tester.ensureVisible(all);
+      await tester.pumpAndSettle();
+      await tester.tap(all);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(l10n.reviewReport).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.reviewReportReasonSpam));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.reviewReportSubmit));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.errCannotReportOwnReview), findsOneWidget);
+      // Still open, with what they chose still on it.
+      expect(find.text(l10n.reviewReportSubmit), findsOneWidget);
+    });
+  });
+
   group('writing one', () {
     Map<String, Object?> reservation({required bool canReview, String? reviewId}) =>
         <String, Object?>{

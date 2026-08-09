@@ -271,5 +271,21 @@
   "locationDeniedForever": "الموقع مقفول لسهرة. افتحه من إعدادات التليفون عشان الترتيب بالمسافة.",
   "locationServiceDisabled": "الموقع مقفول على التليفون ده.",
   "locationUnavailable": "مقدرناش نلاقيك. دوّر على منطقة بدل كده.",
-  "resultDistance": "{km} كم"
+  "resultDistance": "{km} كم",
+  "reviewReport": "بلّغ",
+  "reviewReportTitle": "بلّغ عن التقييم ده",
+  "reviewReportWhy": "إيه المشكلة فيه؟",
+  "reviewReportReasonSpam": "سبام أو إعلان",
+  "reviewReportReasonAbusive": "مسيء أو بذيء",
+  "reviewReportReasonNotMyVisit": "دي مش زيارتي",
+  "reviewReportReasonWrongVenue": "المطعم غلط",
+  "reviewReportReasonOther": "حاجة تانية",
+  "reviewReportNoteLabel": "عايز تضيف حاجة؟",
+  "reviewReportNoteHint": "اختياري. هيوصل للي بيراجع.",
+  "reviewReportSubmit": "ابعت البلاغ",
+  "reviewReportSubmitting": "بنبعت…",
+  "reviewReportSent": "شكراً ليك. حد هيبص عليه.",
+  "reviewReportNoReasonYet": "اختار السبب الأول.",
+  "reviewReportHonest": "البلاغ مش بيخفي التقييم. حد بيقراه وبيقرر.",
+  "reviewReportAlready": "إنت بلّغت عن ده قبل كده."
 }

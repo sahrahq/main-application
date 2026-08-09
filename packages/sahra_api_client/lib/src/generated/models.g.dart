@@ -1234,6 +1234,27 @@ class RemoveTableResponse {
       };
 }
 
+class ReportReviewDto {
+  const ReportReviewDto({
+    this.note,
+    required this.reason,
+  });
+
+  factory ReportReviewDto.fromJson(Map<String, dynamic> json) => ReportReviewDto(
+        note: json['note'] == null ? null : json['note'] as String,
+        reason: json['reason'] as String,
+      );
+
+  final String? note;
+  /// `not_my_visit` is the one that is about US rather than the reviewer — a review attached to the wrong reservation is a bug in the verified-diner guarantee, not a moderation question.
+  final String reason;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (note != null) 'note': note!,
+        'reason': reason,
+      };
+}
+
 class RequestOtpDto {
   const RequestOtpDto({
     required this.phone,

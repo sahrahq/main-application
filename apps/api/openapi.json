@@ -1164,6 +1164,29 @@
         ],
         "type": "object"
       },
+      "ReportReviewDto": {
+        "properties": {
+          "note": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "reason": {
+            "description": "`not_my_visit` is the one that is about US rather than the reviewer — a review attached to the wrong reservation is a bug in the verified-diner guarantee, not a moderation question.",
+            "enum": [
+              "spam",
+              "abusive",
+              "not_my_visit",
+              "wrong_venue",
+              "other"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
       "RequestOtpDto": {
         "properties": {
           "phone": {
@@ -4522,6 +4545,54 @@
           }
         ],
         "summary": "Review a visit that happened",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/v1/reviews/{id}/report": {
+      "post": {
+        "operationId": "ReviewsController_reportReview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportReviewDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Already reported by this diner"
+          },
+          "201": {
+            "description": "Reported"
+          },
+          "400": {
+            "description": "cannot_report_own_review"
+          },
+          "404": {
+            "description": "review_not_found — ALSO for a review that is not published, deliberately"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Report a review (recorded; the queue is A-3)",
         "tags": [
           "reviews"
         ]

@@ -242,6 +242,13 @@ is listed here so that fact is visible rather than discovered.
 
 ### 2.4 DECISION NEEDED — `status` defaults to `published`
 
+> **CORRECTED 2026-08-09.** The last paragraph of this section said
+> `pending_moderation` is "a state a REPORT moves a review into". It is not, and
+> must not be: the venue page and the rating trigger both read `published`, so a
+> report that moved a review there would let ONE account silence any review with
+> no moderator to release it. A report is a record and changes nothing. See
+> `docs/decisions/2026-08-09-review-reports.md` §2.
+
 Proposing `published`. The alternative, `pending_moderation`, means every
 review waits for a moderator, and A-10 (support) and A-3 (moderation) are both
 P1 and unbuilt. A queue with nobody reading it does not moderate reviews; it
@@ -410,6 +417,9 @@ Built. `GalleryStrip` draws everything after the hero.
 The owner's reason for upgrading it from "known gap" to "scheduled":
 
 > published-by-default with no way to report is the combination that hurts
+
+**BUILT 2026-08-09** — `20260809030000_review_reports`. The estimate held.
+Full write-up: `docs/decisions/2026-08-09-review-reports.md`.
 
 **Cost: half a batch, and it is not migration-heavy.** One table, one diner
 endpoint, one unique index:

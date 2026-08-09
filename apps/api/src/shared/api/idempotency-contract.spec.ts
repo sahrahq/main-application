@@ -152,6 +152,11 @@ describe('Idempotency-Key coverage across mutations', () => {
    * it is a POST that creates a row. The difference is that the row has a
    * natural unique key supplied by the caller, which a new restaurant or a new
    * image does not.
+   *
+   * `POST /v1/reviews/{id}/report` is the same argument again:
+   * `idx_review_reports_unique` on (review, reporter) means a replay cannot
+   * create a second report, and the endpoint answers 200 rather than an error
+   * when it finds one — a second press means the same thing as the first.
    */
   it('the mutations WITHOUT a key are the known list, and no more', () => {
     expect(withoutKey.sort()).toEqual([
@@ -186,6 +191,7 @@ describe('Idempotency-Key coverage across mutations', () => {
       'POST /v1/reservations/{id}/acknowledge-cancellation',
       'POST /v1/reservations/{id}/cancel',
       'POST /v1/reviews',
+      'POST /v1/reviews/{id}/report',
       'POST /v1/saved',
       'POST /v1/waitlists',
     ]);

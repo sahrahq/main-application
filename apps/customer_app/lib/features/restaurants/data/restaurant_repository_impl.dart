@@ -3,6 +3,7 @@ import 'package:sahra_api_client/sahra_api_client.dart';
 import '../../../core/error/guarded.dart';
 import '../domain/menu.dart';
 import '../domain/restaurant_repository.dart';
+import '../domain/report_reason.dart';
 import '../domain/review.dart';
 import '../domain/search_sort.dart';
 import '../domain/venue.dart';
@@ -176,6 +177,27 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
       ),
       results: page.results.map(_review).toList(),
       nextCursor: page.nextCursor,
+    );
+  }
+
+  @override
+  Future<void> reportReview({
+    required String reviewId,
+    required ReportReason reason,
+    String? note,
+  }) async {
+    final trimmed = note?.trim();
+    await guarded(
+      () => _api.reportReview(
+        id: reviewId,
+        body: ReportReviewDto(
+          // `wire`, not `name`: the API's enum is snake_case and Dart's is not.
+          reason: reason.wire,
+          // An empty note is the absent note it actually is — the CHECK
+          // constraint refuses a present-but-blank one.
+          note: trimmed == null || trimmed.isEmpty ? null : trimmed,
+        ),
+      ),
     );
   }
 

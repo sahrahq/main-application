@@ -56,6 +56,8 @@ const Map<String, String> errorCodeToArbKey = <String, String>{
   'review_already_exists': 'errReviewAlreadyExists',
   'review_not_eligible': 'errReviewNotEligible',
   'review_too_early': 'errReviewTooEarly',
+  'review_not_found': 'errReviewNotFound',
+  'cannot_report_own_review': 'errCannotReportOwnReview',
   'search_unavailable': 'errSearchUnavailable',
   'service_busy': 'errServiceBusy',
   'service_unavailable': 'errServiceUnavailable',

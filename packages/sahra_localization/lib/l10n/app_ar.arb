@@ -9,6 +9,8 @@
   "errReviewAlreadyExists": "إنت قيّمت الزيارة دي قبل كده.",
   "errReviewNotEligible": "التقييم بيكون للزيارات اللي حصلت فعلاً.",
   "errReviewTooEarly": "تقدر تقيّم بعد ما ميعاد الطاولة يخلص.",
+  "errReviewNotFound": "مش لاقيين التقييم ده.",
+  "errCannotReportOwnReview": "ده تقييمك إنت.",
   "errBookingsOutsideNewHours": "فيه حجوزات مؤكدة هتقع بره المواعيد دي.",
   "errCapacityConflictWithReservations": "فيه حجوزات قادمة على الطاولة دي مش هتناسب السعة الجديدة.",
   "errConflict": "الحالة اتغيّرت. حدّث الصفحة وحاول تاني.",

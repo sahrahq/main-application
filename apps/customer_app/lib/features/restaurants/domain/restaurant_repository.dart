@@ -1,4 +1,5 @@
 import 'menu.dart';
+import 'report_reason.dart';
 import 'review.dart';
 import 'search_sort.dart';
 import 'venue.dart';
@@ -62,6 +63,23 @@ abstract class RestaurantRepository {
   /// Empty is an ordinary answer: most venues have no menu in the system yet,
   /// because every row of one is typed in by hand.
   Future<List<Menu>> menus(String idOrSlug);
+
+  /// Report a review (C-4.4).
+  ///
+  /// **Recording with no reader.** The moderation queue is A-3 and is not
+  /// built, and a report does NOT change the review — it stays on the page and
+  /// in the rating. The sheet says so, because a control with no visible effect
+  /// looks broken unless it admits what it does.
+  ///
+  /// Succeeds whether or not this is the first report from this diner: the API
+  /// answers 201 then 200, because a second press means the same thing. Throws
+  /// `ValidationFailure(code: 'cannot_report_own_review')` and
+  /// `NotFoundFailure(code: 'review_not_found')`.
+  Future<void> reportReview({
+    required String reviewId,
+    required ReportReason reason,
+    String? note,
+  });
 
   /// A venue's published reviews, newest first (doc 06 §3, C-4.4).
   ///

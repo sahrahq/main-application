@@ -242,6 +242,27 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
     ],
   ),
 
+  // ── review_reports ──────────────────────────────────────────────────────
+  'Reviews/report-sheet': ScreenCase(
+    build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
+    overrides: (_) => _transport(_venueRoutes(
+      profile: <String, Object?>{..._profile, 'rating': 4.25, 'rating_count': 4},
+      menus: _menusFixture,
+      reviews: _reviewsFixture,
+    ),),
+    // Reached by tapping "All reviews" and then "Report" on a card — two real
+    // controls, in order. A sheet built directly is a sheet whose only route in
+    // is the test.
+    after: (tester) async {
+      await _tapLabel(tester, (l) => l.venueReviewsAll, scroll: true);
+      final BuildContext context = tester.element(find.byType(VenueScreen));
+      await tester.tap(
+        find.text(AppLocalizations.of(context).reviewReport).first,
+      );
+      await tester.pumpAndSettle();
+    },
+  ),
+
   // ── The location half-batch ─────────────────────────────────────────────
   //
   // Two cases, and the second is the one that ships broken elsewhere: a diner

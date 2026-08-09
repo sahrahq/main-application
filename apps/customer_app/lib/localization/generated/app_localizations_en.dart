@@ -35,6 +35,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'You can review this once your table time is over.';
 
   @override
+  String get errReviewNotFound => 'We could not find that review.';
+
+  @override
+  String get errCannotReportOwnReview => 'That\'s your own review.';
+
+  @override
   String get errBookingsOutsideNewHours =>
       'Some confirmed bookings fall outside these hours.';
 
@@ -1183,4 +1189,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String resultDistance(String km) {
     return '$km km';
   }
+
+  @override
+  String get reviewReport => 'Report';
+
+  @override
+  String get reviewReportTitle => 'Report this review';
+
+  @override
+  String get reviewReportWhy => 'What\'s wrong with it?';
+
+  @override
+  String get reviewReportReasonSpam => 'Spam or an advert';
+
+  @override
+  String get reviewReportReasonAbusive => 'Abusive or offensive';
+
+  @override
+  String get reviewReportReasonNotMyVisit => 'This isn\'t my visit';
+
+  @override
+  String get reviewReportReasonWrongVenue => 'Wrong restaurant';
+
+  @override
+  String get reviewReportReasonOther => 'Something else';
+
+  @override
+  String get reviewReportNoteLabel => 'Anything to add?';
+
+  @override
+  String get reviewReportNoteHint =>
+      'Optional. It goes to whoever reviews this.';
+
+  @override
+  String get reviewReportSubmit => 'Send report';
+
+  @override
+  String get reviewReportSubmitting => 'Sending…';
+
+  @override
+  String get reviewReportSent => 'Thank you. Someone will look at it.';
+
+  @override
+  String get reviewReportNoReasonYet => 'Pick a reason first.';
+
+  @override
+  String get reviewReportHonest =>
+      'Reporting doesn\'t hide the review. A person reads it and decides.';
+
+  @override
+  String get reviewReportAlready => 'You\'ve already reported this one.';
 }

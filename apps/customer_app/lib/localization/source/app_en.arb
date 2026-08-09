@@ -576,5 +576,27 @@
       }
     },
     "description": "One decimal, pre-formatted. Shown on a result row ONLY when the server computed it, i.e. only when the diner shared a position."
+  },
+  "reviewReport": "Report",
+  "reviewReportTitle": "Report this review",
+  "reviewReportWhy": "What's wrong with it?",
+  "reviewReportReasonSpam": "Spam or an advert",
+  "reviewReportReasonAbusive": "Abusive or offensive",
+  "reviewReportReasonNotMyVisit": "This isn't my visit",
+  "reviewReportReasonWrongVenue": "Wrong restaurant",
+  "reviewReportReasonOther": "Something else",
+  "reviewReportNoteLabel": "Anything to add?",
+  "reviewReportNoteHint": "Optional. It goes to whoever reviews this.",
+  "reviewReportSubmit": "Send report",
+  "reviewReportSubmitting": "Sending…",
+  "reviewReportSent": "Thank you. Someone will look at it.",
+  "reviewReportNoReasonYet": "Pick a reason first.",
+  "reviewReportHonest": "Reporting doesn't hide the review. A person reads it and decides.",
+  "reviewReportAlready": "You've already reported this one.",
+  "@reviewReportHonest": {
+    "description": "SHOWN IN THE SHEET, above the button, not after. A report is recorded and read by nobody until A-3 builds the queue, and it does NOT change the review's status — a report that hid a review would let one account silence any of them. Telling the diner what will and will not happen is the only honest version of a control whose effect is invisible."
+  },
+  "@reviewReportReasonNotMyVisit": {
+    "description": "The one reason that is about US rather than the reviewer. A review attached to the wrong reservation is a bug in the verified-diner guarantee, not a moderation question — so this reason needs to be reachable rather than folded into 'something else'."
   }
 }

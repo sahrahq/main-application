@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 /**
  * doc 06 §Reviews:
@@ -66,4 +66,30 @@ export class CreateReviewDto {
   @IsString()
   @MaxLength(2000)
   body?: string;
+}
+
+/**
+ * C-4.4's report flow — `POST /reviews/:id/report`.
+ *
+ * `reason` is a CLOSED SET, not free text. A reason picked from five is one a
+ * moderator can sort a queue by; a paragraph is one they have to read first.
+ * `note` exists for the case the five do not cover, and is optional.
+ */
+export class ReportReviewDto {
+  @ApiProperty({
+    enum: ['spam', 'abusive', 'not_my_visit', 'wrong_venue', 'other'],
+    description:
+      '`not_my_visit` is the one that is about US rather than the reviewer — a ' +
+      'review attached to the wrong reservation is a bug in the verified-diner ' +
+      'guarantee, not a moderation question.',
+  })
+  @IsIn(['spam', 'abusive', 'not_my_visit', 'wrong_venue', 'other'])
+  reason!: 'spam' | 'abusive' | 'not_my_visit' | 'wrong_venue' | 'other';
+
+  /** 1000 to match the CHECK constraint. Validated here for the message. */
+  @ApiPropertyOptional({ maxLength: 1000 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
 }
