@@ -372,6 +372,42 @@ were sitting in it, two of them also on `main`:
 None of it was subtle. All of it was invisible, because reading `ci.yml` is
 reading a pattern.
 
+## A measurement can be true, precise, and about the wrong thing
+
+Found 2026-08-10, on a defect reported as "the search bar is misaligned — the
+thing drawn around the field is smaller than the field".
+
+A probe measured every rect in the component, in all four cells, focused and
+unfocused. Everything nested correctly: pill 768x48, Row inset by the padding
+and the border, TextField centred inside it, nothing overflowing, RTL mirrored
+properly. **Every number was correct.** The obvious conclusion was that the
+component was fine and the report was mistaken.
+
+It was not. The bar really did draw two outlines. The `TextField` was painting
+its own rounded rectangle inside the pill, because `InputDecoration.border` is
+only a FALLBACK and the theme's `enabledBorder` / `focusedBorder` win — a fact
+about *painting*, which a probe that measures *layout* cannot see. The rects
+were true, precise, and answered a question nobody had asked.
+
+What located it was rendering the component enlarged and **looking at the
+picture**: four horizontal lines where there should have been two.
+
+**THE RULE: when a report says "it looks wrong" and the numbers say "it is
+fine", render it and look before concluding the report is mistaken.** The
+numbers are evidence about whatever they measure. A human looking at a screen
+is evidence about the screen. When they disagree, the numbers are usually
+measuring the wrong property, because the human is looking at the actual
+artefact and the instrument is looking at a model of it.
+
+This is a sibling of the standing rule *LOOK at the goldens at the end of every
+wave*, and it is why that rule survives every attempt to automate it away. It
+is also why `--update-goldens` is never the end of a golden change: the
+regenerated file is guaranteed to match the code and guarantees nothing about
+whether the code is right.
+
+Corollary for reporting: "I measured X and it is correct" is not an answer to
+"it looks wrong" unless X is the property that would be wrong.
+
 ## A capability that is never called is indistinguishable from one that does not exist
 
 Twice in two days the lower layer supported a rule and the upper layer never
