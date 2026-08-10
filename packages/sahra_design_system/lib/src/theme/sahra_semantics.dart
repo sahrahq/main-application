@@ -146,6 +146,52 @@ class SahraSemantics extends ThemeExtension<SahraSemantics> {
 
   Color tintFor(Color status) => status.withValues(alpha: badgeTintAlpha);
 
+  // ─────────────────────────────────────────────────────── the photo well ──
+  //
+  // `Photo.jsx` draws a photo — or, with no `src`, a warm dark gradient with a
+  // mashrabiya lattice. It hardcodes `#4A392C → #2C2018`, `rgba(253,251,247,
+  // .09)`, `rgba(253,251,247,.18)`, `rgba(20,12,8,.82)` and `#FDFBF7`; none of
+  // those five are in tokens.json.
+  //
+  // They are COMPOSED from committed tokens here rather than copied as hex
+  // literals into a widget — the precedent `accentOnSurface` set, and the only
+  // option that does not break "colours come from tokens only". Two of them
+  // land a shade off the reference: `#4A392C` becomes `night-border #413024`
+  // and `#2C2018` becomes `night-overlay #31251C`, the nearest committed
+  // members of the same warm-brown family. Flagged as cosmetic; adding two
+  // tokens for one component's placeholder is how a scale stops being a scale.
+  //
+  // DELIBERATELY NOT THEME-VARYING. A photo well is dark on a cream page too —
+  // that is what makes it read as a photo. So these are derived getters rather
+  // than constructor fields: there is nothing for `lerp` to interpolate, and a
+  // field nobody varies is a field somebody eventually varies by accident.
+
+  Color get photoPlaceholderTop => SahraTokens.nightBorder;
+  Color get photoPlaceholderBottom => SahraTokens.nightOverlay;
+
+  /// The lattice over the placeholder — `rgba(253,251,247,0.09)`, exactly
+  /// `night-text` at 9%.
+  Color get photoLattice => SahraTokens.nightText.withValues(alpha: 0.09);
+
+  /// The centred image glyph — the same cream at 18%.
+  Color get photoCue => SahraTokens.nightText.withValues(alpha: 0.18);
+
+  /// The bottom scrim that makes overlaid text readable at all.
+  Color get photoScrim => SahraTokens.night.withValues(alpha: 0.82);
+  Color get photoScrimClear => SahraTokens.night.withValues(alpha: 0.0);
+
+  /// Text and icons drawn ON a photo, in both themes. `#FDFBF7` in the
+  /// reference, which is `night-text` (and `cream`) exactly.
+  ///
+  /// `textContrastGuideline` CANNOT evaluate this — it skips text over an
+  /// image — so the scrim above is the mechanism, and a human looking at the
+  /// golden is the only check.
+  Color get onPhoto => SahraTokens.nightText;
+
+  /// A translucent well for an icon button floating over a photo
+  /// (`VenueDetailScreen.jsx` IconBtn: `rgba(20,12,8,.5)`).
+  Color get photoControlWell => SahraTokens.night.withValues(alpha: 0.5);
+
   /// EVERY token from tokens.json, resolved for this theme, keyed by its exact
   /// JSON name.
   ///

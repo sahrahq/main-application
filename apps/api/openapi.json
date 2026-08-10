@@ -17,7 +17,7 @@
           },
           "neighborhood": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "slug": {
             "type": "string"
@@ -136,18 +136,18 @@
           },
           "guestName": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "guestPhone": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "id": {
             "type": "string"
           },
           "occasion": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "partySize": {
             "type": "integer"
@@ -158,7 +158,7 @@
           },
           "specialRequests": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "startsAt": {
             "type": "string"
@@ -186,6 +186,101 @@
           "status",
           "source",
           "tables"
+        ],
+        "type": "object"
+      },
+      "CancelOwnReservationDto": {
+        "properties": {
+          "reason": {
+            "description": "Optional. Free text, for the venue.",
+            "maxLength": 280,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CancelReservationDto": {
+        "properties": {
+          "reason": {
+            "description": "REQUIRED. Shown to the diner verbatim.",
+            "example": "Burst pipe in the kitchen — we are so sorry.",
+            "maxLength": 300,
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
+      "CancelledReservationResponse": {
+        "properties": {
+          "cancel_reason": {
+            "description": "Shown to the diner verbatim.",
+            "type": "string"
+          },
+          "cancelled_at": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "party_size": {
+            "type": "integer"
+          },
+          "starts_at": {
+            "type": "string"
+          },
+          "status": {
+            "description": "Always `cancelled_by_restaurant`.",
+            "type": "string"
+          },
+          "table_released": {
+            "description": "True when the table this booking held is now available again. Released by trg_resv_propagate, which flips reservation_tables.active off for any status outside held|pending|confirmed|seated.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "status",
+          "cancelled_at",
+          "cancel_reason",
+          "starts_at",
+          "party_size",
+          "table_released"
+        ],
+        "type": "object"
+      },
+      "CompleteRegistrationDto": {
+        "properties": {
+          "challengeId": {
+            "description": "A challenge that has already been verified",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "locale": {
+            "default": "ar",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "challengeId",
+          "fullName"
         ],
         "type": "object"
       },
@@ -313,6 +408,43 @@
         ],
         "type": "object"
       },
+      "CreateReviewDto": {
+        "properties": {
+          "ambienceRating": {
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "body": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "foodRating": {
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "rating": {
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "reservationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "serviceRating": {
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reservationId",
+          "rating"
+        ],
+        "type": "object"
+      },
       "CreateShiftDto": {
         "properties": {
           "active": {
@@ -328,6 +460,10 @@
             "type": "integer"
           },
           "defaultTurnMinutes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Party-size band → turn minutes. A bare `type: object` here would generate Map<String, dynamic> in the client, so the value type is declared.",
             "example": {
               "1-2": 90,
               "3-4": 105,
@@ -468,6 +604,22 @@
         ],
         "type": "object"
       },
+      "DeviceResponse": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "registered": {
+            "description": "Always true; the call is an upsert.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "registered"
+        ],
+        "type": "object"
+      },
       "ErrorDetailResponse": {
         "properties": {
           "field": {
@@ -483,10 +635,115 @@
         ],
         "type": "object"
       },
+      "HealthResponse": {
+        "properties": {
+          "push": {
+            "$ref": "#/components/schemas/PushHealthResponse"
+          },
+          "reasons": {
+            "description": "One line per degradation, for whoever has to fix it. Empty when ok.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "push",
+          "reasons"
+        ],
+        "type": "object"
+      },
+      "ImageResponse": {
+        "properties": {
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_cover": {
+            "description": "The venue hero. Exactly one per owner.",
+            "type": "boolean"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Width in px → public URL. Pick the smallest that fits.",
+            "example": {
+              "160": "https://…/160.webp",
+              "400": "…",
+              "1200": "…"
+            },
+            "type": "object"
+          },
+          "width": {
+            "description": "The ORIGINAL's width, for the aspect box.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "urls",
+          "width",
+          "height",
+          "position",
+          "is_cover"
+        ],
+        "type": "object"
+      },
+      "JoinWaitlistDto": {
+        "properties": {
+          "desiredDate": {
+            "description": "The VENUE'S wall-clock day.",
+            "example": "2026-08-12",
+            "type": "string"
+          },
+          "partySize": {
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "restaurantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "windowEnd": {
+            "example": "2026-08-12T19:00:00.000Z",
+            "type": "string"
+          },
+          "windowStart": {
+            "description": "Absolute instant.",
+            "example": "2026-08-12T16:00:00.000Z",
+            "type": "string"
+          }
+        },
+        "required": [
+          "restaurantId",
+          "desiredDate",
+          "windowStart",
+          "windowEnd",
+          "partySize"
+        ],
+        "type": "object"
+      },
       "LoginDto": {
         "properties": {
           "identifier": {
-            "description": "Phone or email",
+            "description": "Phone number, E.164 or local Egyptian. NOT an email.",
+            "example": "+201000000000",
             "type": "string"
           },
           "password": {
@@ -505,6 +762,10 @@
             "default": false,
             "type": "boolean"
           },
+          "deviceToken": {
+            "description": "FCM token to revoke — send it on sign-out",
+            "type": "string"
+          },
           "refreshToken": {
             "type": "string"
           }
@@ -514,19 +775,394 @@
         ],
         "type": "object"
       },
-      "OtpSentResponse": {
+      "MarkNotificationsReadDto": {
         "properties": {
-          "retryAfter": {
-            "description": "Seconds until another code may be requested.",
-            "type": "number"
+          "ids": {
+            "description": "Notification ids to mark read. Omit to mark every unread notification for the caller. Ids belonging to another user are ignored, not refused.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "MarkReadResponse": {
+        "properties": {
+          "marked": {
+            "description": "How many rows this call changed. Zero is an ordinary outcome — everything was already read — and is what makes \"it did nothing\" distinguishable in a test rather than assumed.",
+            "type": "integer"
           },
-          "sent": {
-            "type": "boolean"
+          "unread_count": {
+            "description": "Unread remaining, after this call.",
+            "type": "integer"
           }
         },
         "required": [
-          "sent",
-          "retryAfter"
+          "marked",
+          "unread_count"
+        ],
+        "type": "object"
+      },
+      "MenuCategoryResponse": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MenuItemResponse"
+            },
+            "type": "array"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name_en",
+          "name_ar",
+          "items"
+        ],
+        "type": "object"
+      },
+      "MenuItemResponse": {
+        "properties": {
+          "currency": {
+            "example": "EGP",
+            "type": "string"
+          },
+          "description_ar": {
+            "nullable": true,
+            "type": "string"
+          },
+          "description_en": {
+            "nullable": true,
+            "type": "string"
+          },
+          "dietary_tags": {
+            "description": "From a fixed vocabulary a CHECK constraint enforces. We mark the exception, never the default — there is no `halal` tag, because in Cairo it is the default and marking it would imply the unmarked dishes are not.",
+            "example": [
+              "vegetarian",
+              "spicy"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "image": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageResponse"
+              }
+            ],
+            "nullable": true
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "price": {
+            "description": "Decimal string; never a float.",
+            "example": "320.00",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name_en",
+          "name_ar",
+          "price",
+          "currency",
+          "dietary_tags"
+        ],
+        "type": "object"
+      },
+      "MenuResponse": {
+        "properties": {
+          "categories": {
+            "description": "Available items only, ordered. A category whose items are all off tonight is omitted rather than sent empty.",
+            "items": {
+              "$ref": "#/components/schemas/MenuCategoryResponse"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "description": "food | drinks | ramadan | set",
+            "type": "string"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "pdf_url": {
+            "description": "R-2.3 fallback for a venue whose menu is one scanned file. Composed from the stored key; the client hands it to the phone rather than rendering it.",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name_en",
+          "name_ar",
+          "kind",
+          "categories"
+        ],
+        "type": "object"
+      },
+      "ModifyReservationDto": {
+        "properties": {
+          "partySize": {
+            "example": 4,
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "startsAt": {
+            "description": "The new start, ISO-8601 UTC. Must be in the future.",
+            "example": "2026-08-09T17:00:00.000Z",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MyReservationResponse": {
+        "properties": {
+          "can_review": {
+            "description": "Whether POST /reviews would accept this visit right now — seated or completed, the table time is over, and not already reviewed. DERIVED ON THE SERVER from the same function the endpoint enforces, so the control the client draws cannot disagree with the answer it gets.",
+            "type": "boolean"
+          },
+          "cancel_reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelled_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "cancelled_by": {
+            "description": "'user' | 'restaurant' | null. Derived, so no client parses a status string.",
+            "nullable": true,
+            "type": "string"
+          },
+          "code": {
+            "description": "Human-readable, quoted at the door. e.g. SAH-7K2M",
+            "type": "string"
+          },
+          "date": {
+            "description": "YYYY-MM-DD on the RESTAURANT'S wall clock.",
+            "type": "string"
+          },
+          "ends_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "needs_acknowledgement": {
+            "description": "The RESTAURANT cancelled and the diner has not seen it yet. THE CLIENT MUST SURFACE THIS. It is the only signal that a booking they believe they hold is gone, and a reservation carrying it stays in `upcoming` regardless of date until POST /reservations/{id}/acknowledge-cancellation.",
+            "type": "boolean"
+          },
+          "occasion": {
+            "nullable": true,
+            "type": "string"
+          },
+          "party_size": {
+            "type": "integer"
+          },
+          "restaurant": {
+            "$ref": "#/components/schemas/ReservationVenueResponse"
+          },
+          "review_id": {
+            "description": "The review this visit already has. Null is the common case.",
+            "nullable": true,
+            "type": "string"
+          },
+          "source": {
+            "description": "app | walk_in | phone — which door it came through.",
+            "type": "string"
+          },
+          "special_requests": {
+            "nullable": true,
+            "type": "string"
+          },
+          "starts_at": {
+            "description": "Absolute instant, ISO-8601 UTC.",
+            "type": "string"
+          },
+          "status": {
+            "description": "pending | confirmed | seated | completed | no_show | cancelled_*",
+            "type": "string"
+          },
+          "time": {
+            "description": "HH:MM on the RESTAURANT'S wall clock.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "status",
+          "source",
+          "starts_at",
+          "ends_at",
+          "date",
+          "time",
+          "party_size",
+          "needs_acknowledgement",
+          "can_review",
+          "restaurant"
+        ],
+        "type": "object"
+      },
+      "NotificationListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationResponse"
+            },
+            "type": "array"
+          },
+          "unread_count": {
+            "description": "Unread across the WHOLE history, not across `items`. A count of the page would read zero for a diner with more notifications than one page.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "unread_count"
+        ],
+        "type": "object"
+      },
+      "NotificationResponse": {
+        "properties": {
+          "created_at": {
+            "description": "When we owed them this. ISO 8601, UTC.",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Substitutions for the copy, and the deep-link target. Keys vary by type; `reservation_id` and `restaurant_id` are what the client routes on when present. Values are always strings.",
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "read_at": {
+            "description": "When they FIRST saw it — never re-stamped on a later read. Null while unread.",
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "description": "Machine-readable kind. THE CLIENT OWNS THE COPY, keyed by this — the same rule as the doc 06 §1 error codes. The server renders text only for a lock screen, where there is no client to localise anything.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "data",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "OpeningHoursResponse": {
+        "properties": {
+          "closes_at": {
+            "type": "string"
+          },
+          "day_of_week": {
+            "description": "0=Sunday; null on a one-off date",
+            "nullable": true,
+            "type": "integer"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "opens_at": {
+            "description": "HH:MM on the restaurant's wall clock.",
+            "type": "string"
+          },
+          "spans_midnight": {
+            "type": "boolean"
+          },
+          "specific_date": {
+            "description": "YYYY-MM-DD; null on a weekly row",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name_en",
+          "name_ar",
+          "opens_at",
+          "closes_at",
+          "spans_midnight"
+        ],
+        "type": "object"
+      },
+      "OtpChallengeResponse": {
+        "properties": {
+          "challengeId": {
+            "description": "Opaque. Answer it at /auth/verify-otp.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "challengeId"
+        ],
+        "type": "object"
+      },
+      "PushHealthResponse": {
+        "properties": {
+          "configured": {
+            "description": "True when a real push carrier is bound at all.",
+            "type": "boolean"
+          },
+          "deliverable": {
+            "description": "Platforms a handset would actually be reached on.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "project_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "unreachable": {
+            "description": "Platforms a diner can register a token for and never hear from. Non-empty means the service reports 503.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "configured",
+          "deliverable",
+          "unreachable"
         ],
         "type": "object"
       },
@@ -538,6 +1174,36 @@
         },
         "required": [
           "refreshToken"
+        ],
+        "type": "object"
+      },
+      "RegisterDeviceDto": {
+        "properties": {
+          "locale": {
+            "default": "ar",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "type": "string"
+          },
+          "platform": {
+            "enum": [
+              "android",
+              "ios",
+              "web"
+            ],
+            "type": "string"
+          },
+          "token": {
+            "description": "FCM registration token",
+            "maxLength": 4096,
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "platform"
         ],
         "type": "object"
       },
@@ -577,6 +1243,10 @@
       },
       "RegisterResponse": {
         "properties": {
+          "challengeId": {
+            "description": "Answer it at /auth/verify-otp.",
+            "type": "string"
+          },
           "otpRequired": {
             "type": "boolean"
           },
@@ -586,7 +1256,8 @@
         },
         "required": [
           "userId",
-          "otpRequired"
+          "otpRequired",
+          "challengeId"
         ],
         "type": "object"
       },
@@ -635,15 +1306,51 @@
         ],
         "type": "object"
       },
-      "ResendOtpDto": {
+      "ReportReviewDto": {
         "properties": {
-          "userId": {
-            "format": "uuid",
+          "note": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "reason": {
+            "description": "`not_my_visit` is the one that is about US rather than the reviewer — a review attached to the wrong reservation is a bug in the verified-diner guarantee, not a moderation question.",
+            "enum": [
+              "spam",
+              "abusive",
+              "not_my_visit",
+              "wrong_venue",
+              "other"
+            ],
             "type": "string"
           }
         },
         "required": [
-          "userId"
+          "reason"
+        ],
+        "type": "object"
+      },
+      "RequestOtpDto": {
+        "properties": {
+          "phone": {
+            "description": "E.164 or local Egyptian (01xxxxxxxxx)",
+            "example": "+201000000000",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone"
+        ],
+        "type": "object"
+      },
+      "ResendOtpDto": {
+        "properties": {
+          "challengeId": {
+            "description": "The challenge to re-send. The number comes from it.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "challengeId"
         ],
         "type": "object"
       },
@@ -657,15 +1364,15 @@
           },
           "guestName": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "guestPhone": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "holdExpiresAt": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "id": {
             "type": "string"
@@ -693,7 +1400,7 @@
           },
           "userId": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           }
         },
         "required": [
@@ -719,6 +1426,161 @@
         ],
         "type": "object"
       },
+      "ReservationVenueResponse": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "nullable": true,
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "timezone": {
+            "description": "IANA zone `date` and `time` are expressed in.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name_en",
+          "name_ar",
+          "city",
+          "timezone"
+        ],
+        "type": "object"
+      },
+      "RestaurantProfileResponse": {
+        "properties": {
+          "address_ar": {
+            "nullable": true,
+            "type": "string"
+          },
+          "address_en": {
+            "nullable": true,
+            "type": "string"
+          },
+          "amenities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "booking_mode": {
+            "description": "instant | request",
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "cuisines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description_ar": {
+            "nullable": true,
+            "type": "string"
+          },
+          "description_en": {
+            "nullable": true,
+            "type": "string"
+          },
+          "hours": {
+            "items": {
+              "$ref": "#/components/schemas/OpeningHoursResponse"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "images": {
+            "description": "The venue gallery, cover first then by position. Empty for a venue with no photos — which the client draws as a designed empty state, never as a broken image.",
+            "items": {
+              "$ref": "#/components/schemas/ImageResponse"
+            },
+            "type": "array"
+          },
+          "lat": {
+            "nullable": true,
+            "type": "number"
+          },
+          "lng": {
+            "nullable": true,
+            "type": "number"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "nullable": true,
+            "type": "string"
+          },
+          "phone": {
+            "nullable": true,
+            "type": "string"
+          },
+          "policies": {
+            "additionalProperties": true,
+            "nullable": true,
+            "type": "object"
+          },
+          "price_band": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "rating_count": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "timezone": {
+            "description": "IANA zone every wall-clock time here is in.",
+            "type": "string"
+          },
+          "website": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name_en",
+          "name_ar",
+          "cuisines",
+          "city",
+          "rating",
+          "rating_count",
+          "amenities",
+          "images",
+          "timezone",
+          "booking_mode",
+          "hours"
+        ],
+        "type": "object"
+      },
       "RestaurantResponse": {
         "properties": {
           "city": {
@@ -726,11 +1588,11 @@
           },
           "descriptionAr": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "descriptionEn": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "id": {
             "type": "string"
@@ -743,7 +1605,7 @@
           },
           "neighborhood": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "priceBand": {
             "nullable": true,
@@ -766,6 +1628,199 @@
         ],
         "type": "object"
       },
+      "ReviewPageResponse": {
+        "properties": {
+          "next_cursor": {
+            "description": "Keyset, not offset — a new review must not shift page two.",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewResponse"
+            },
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ReviewSummaryResponse"
+          }
+        },
+        "required": [
+          "summary",
+          "results"
+        ],
+        "type": "object"
+      },
+      "ReviewResponse": {
+        "properties": {
+          "ambience_rating": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "author": {
+            "description": "First name and a surname initial (\"Nour H.\"). Never the full name a diner gave at registration.",
+            "example": "Nour H.",
+            "type": "string"
+          },
+          "body": {
+            "description": "Nullable — stars alone is a complete review.",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "food_rating": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "owner_replied_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "owner_reply": {
+            "nullable": true,
+            "type": "string"
+          },
+          "rating": {
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "service_rating": {
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "rating",
+          "author",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "ReviewSummaryResponse": {
+        "properties": {
+          "breakdown": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Star figure → how many gave it. Always all five keys.",
+            "example": {
+              "1": 3,
+              "2": 5,
+              "3": 16,
+              "4": 78,
+              "5": 210
+            },
+            "type": "object"
+          },
+          "rating": {
+            "description": "Computed from the reviews themselves, not from the cached column.",
+            "type": "number"
+          },
+          "rating_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rating",
+          "rating_count",
+          "breakdown"
+        ],
+        "type": "object"
+      },
+      "RevokeDeviceDto": {
+        "properties": {
+          "token": {
+            "description": "The token to stop pushing to",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "type": "object"
+      },
+      "SaveVenueDto": {
+        "properties": {
+          "restaurantId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "restaurantId"
+        ],
+        "type": "object"
+      },
+      "SavedVenueResponse": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "cover": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageResponse"
+              }
+            ],
+            "nullable": true
+          },
+          "cuisines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "nullable": true,
+            "type": "string"
+          },
+          "price_band": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "rating_count": {
+            "type": "integer"
+          },
+          "saved_at": {
+            "description": "When it was saved. Drives the newest-first order.",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name_en",
+          "name_ar",
+          "cuisines",
+          "city",
+          "rating",
+          "rating_count",
+          "saved_at"
+        ],
+        "type": "object"
+      },
       "SearchResponse": {
         "properties": {
           "availability_filtered": {
@@ -776,7 +1831,7 @@
           },
           "next_cursor": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "results": {
             "items": {
@@ -794,6 +1849,15 @@
       },
       "SearchResultResponse": {
         "properties": {
+          "cover": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageResponse"
+              }
+            ],
+            "description": "The venue hero, or null. Fetched for the whole page in ONE query — a search list that asked per row would issue twenty requests over a Cairo mobile connection to render its first screenful.",
+            "nullable": true
+          },
           "cuisines": {
             "items": {
               "type": "string"
@@ -814,7 +1878,7 @@
           },
           "neighborhood": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "next_available": {
             "description": "Local HH:MM teasers. A HINT, not an offer — no absolute instant is given precisely so no client can treat one as bookable.",
@@ -861,6 +1925,10 @@
             "type": "integer"
           },
           "defaultTurnMinutes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Party-size band → turn minutes, e.g. {\"1-2\":90}.",
             "type": "object"
           },
           "id": {
@@ -883,7 +1951,7 @@
           },
           "specificDate": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           }
         },
         "required": [
@@ -1007,6 +2075,24 @@
         ],
         "type": "object"
       },
+      "UpdateProfileDto": {
+        "properties": {
+          "fullName": {
+            "example": "Nour Hassan",
+            "maxLength": 120,
+            "type": "string"
+          },
+          "locale": {
+            "description": "Language for notifications and copy.",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UpdateRestaurantDto": {
         "properties": {
           "bookingMode": {
@@ -1064,6 +2150,10 @@
             "type": "integer"
           },
           "defaultTurnMinutes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Party-size band → turn minutes. A bare `type: object` here would generate Map<String, dynamic> in the client, so the value type is declared.",
             "example": {
               "1-2": 90,
               "3-4": 105,
@@ -1141,7 +2231,7 @@
         "properties": {
           "email": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "fullName": {
             "type": "string"
@@ -1177,20 +2267,113 @@
       },
       "VerifyOtpDto": {
         "properties": {
+          "challengeId": {
+            "description": "The opaque handle returned by /auth/request-otp",
+            "type": "string"
+          },
           "code": {
             "example": "123456",
             "maxLength": 6,
             "minLength": 6,
             "type": "string"
+          }
+        },
+        "required": [
+          "challengeId",
+          "code"
+        ],
+        "type": "object"
+      },
+      "VerifyOtpResponse": {
+        "properties": {
+          "status": {
+            "enum": [
+              "signed_in",
+              "profile_needed"
+            ],
+            "type": "string"
           },
-          "userId": {
-            "format": "uuid",
+          "tokens": {
+            "$ref": "#/components/schemas/TokenPairResponse"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "WaitlistEntryResponse": {
+        "properties": {
+          "desired_date": {
+            "description": "The VENUE'S wall-clock day, YYYY-MM-DD.",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "offer_expires_at": {
+            "description": "Set only while `offered`. C-3.6 gives a 10-minute claim window, and a CHECK constraint ties the two together in both directions.",
+            "nullable": true,
+            "type": "string"
+          },
+          "party_size": {
+            "type": "integer"
+          },
+          "restaurant": {
+            "$ref": "#/components/schemas/WaitlistVenueResponse"
+          },
+          "status": {
+            "description": "waiting | offered | converted | expired | cancelled",
+            "type": "string"
+          },
+          "window_end": {
+            "description": "And the latest. An offer outside this range is worse than none.",
+            "type": "string"
+          },
+          "window_start": {
+            "description": "Absolute instant. The earliest the diner will accept.",
             "type": "string"
           }
         },
         "required": [
-          "userId",
-          "code"
+          "id",
+          "status",
+          "desired_date",
+          "window_start",
+          "window_end",
+          "party_size",
+          "restaurant"
+        ],
+        "type": "object"
+      },
+      "WaitlistVenueResponse": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "nullable": true,
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name_en",
+          "name_ar",
+          "city"
         ],
         "type": "object"
       }
@@ -1211,6 +2394,38 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Degraded — at least one push platform a diner can register for cannot be reached. The process is healthy; the capability is not."
+          }
+        },
+        "summary": "Service health, including which push platforms are reachable",
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/v1/admin/restaurants": {
       "get": {
         "operationId": "AdminRestaurantsController_list",
@@ -1326,6 +2541,193 @@
         ]
       }
     },
+    "/v1/admin/restaurants/{restaurantId}/images": {
+      "get": {
+        "operationId": "AdminImagesController_listImages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ImageResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A venue's photos, in order",
+        "tags": [
+          "admin:images"
+        ]
+      },
+      "post": {
+        "operationId": "AdminImagesController_upload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Make this the hero. The first photo of a venue becomes one anyway.",
+            "in": "query",
+            "name": "cover",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "invalid_image | image_too_large (>12582912 bytes) | unsupported_image_type (accepted: image/jpeg, image/png, image/webp)"
+          },
+          "404": {
+            "description": "restaurant_not_found"
+          },
+          "503": {
+            "description": "storage_unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin:images"
+        ]
+      }
+    },
+    "/v1/admin/restaurants/{restaurantId}/images/{imageId}": {
+      "delete": {
+        "operationId": "AdminImagesController_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "imageId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted, with every rendition"
+          },
+          "404": {
+            "description": "image_not_found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a photo and every rendition of it",
+        "tags": [
+          "admin:images"
+        ]
+      }
+    },
+    "/v1/auth/complete-registration": {
+      "post": {
+        "operationId": "AuthController_completeRegistration",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteRegistrationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "description": "Access + refresh token pair"
+          },
+          "400": {
+            "description": "invalid_otp — not verified, expired, or spent"
+          }
+        },
+        "summary": "Create the account for a verified challenge",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/v1/auth/login": {
       "post": {
         "operationId": "AuthController_login",
@@ -1408,6 +2810,44 @@
           }
         ],
         "summary": "The caller identified by the access token",
+        "tags": [
+          "auth"
+        ]
+      },
+      "patch": {
+        "operationId": "AuthController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "validation_failed — including `unknown_field` for `email` or `phone`. Both are refused rather than ignored: an address here would be unverified (email chain step 3 is not built), and a number is proved by OTP, never typed."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit your own name or language",
         "tags": [
           "auth"
         ]
@@ -1497,6 +2937,47 @@
         ]
       }
     },
+    "/v1/auth/request-otp": {
+      "post": {
+        "operationId": "AuthController_requestOtp",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestOtpDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtpChallengeResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "202": {
+            "description": "Code sent; continue at /auth/verify-otp"
+          },
+          "429": {
+            "description": "otp_rate_limited"
+          },
+          "503": {
+            "description": "otp_sending_unavailable — global daily ceiling"
+          }
+        },
+        "summary": "Send a code to a phone. No account lookup.",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/v1/auth/resend-otp": {
       "post": {
         "operationId": "AuthController_resendOtp",
@@ -1516,7 +2997,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OtpSentResponse"
+                  "$ref": "#/components/schemas/OtpChallengeResponse"
                 }
               }
             },
@@ -1524,9 +3005,12 @@
           },
           "429": {
             "description": "otp_rate_limited"
+          },
+          "503": {
+            "description": "otp_sending_unavailable"
           }
         },
-        "summary": "Re-send the phone code (rate limited)",
+        "summary": "Re-send to the number the challenge went to",
         "tags": [
           "auth"
         ]
@@ -1551,7 +3035,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenPairResponse"
+                  "$ref": "#/components/schemas/VerifyOtpResponse"
                 }
               }
             },
@@ -1564,9 +3048,205 @@
             "description": "too_many_attempts"
           }
         },
-        "summary": "Verify the phone code; activates the account",
+        "summary": "Answer a challenge; signs in or asks for a name",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/v1/devices": {
+      "delete": {
+        "operationId": "DevicesController_revoke",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeDeviceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Revoked (idempotent)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke this handset — call on sign-out",
+        "tags": [
+          "devices"
+        ]
+      },
+      "post": {
+        "operationId": "DevicesController_registerDevice",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register this handset for push",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_listNotifications",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The notification centre — newest first, with an unread count",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/notifications/read": {
+      "post": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkNotificationsReadDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkReadResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark notifications read — ids, or all of them",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/owner/reservations/{id}/cancel": {
+      "post": {
+        "operationId": "OwnerReservationActionsController_cancel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelReservationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelledReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "validation_failed — a reason is REQUIRED"
+          },
+          "403": {
+            "description": "not_an_owner"
+          },
+          "404": {
+            "description": "reservation_not_found — ALSO returned for another venue's reservation, deliberately, and byte-identical to an id that exists for nobody."
+          },
+          "409": {
+            "description": "invalid_status_transition — already settled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a booking, as the restaurant",
+        "tags": [
+          "owner:reservations"
         ]
       }
     },
@@ -2346,6 +4026,52 @@
         ]
       }
     },
+    "/v1/reservations": {
+      "get": {
+        "operationId": "MyReservationsController_listMyReservations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "upcoming",
+                "past"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MyReservationResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "invalid_query_param"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's own reservations",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
     "/v1/reservations/holds": {
       "post": {
         "operationId": "ReservationsController_createHold",
@@ -2388,6 +4114,11 @@
             "description": "slot_taken | pacing_limit_reached"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Hold a table for 5 minutes",
         "tags": [
           "reservations"
@@ -2444,7 +4175,248 @@
             "description": "hold_expired | invalid_status_transition"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Confirm a held table",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/v1/reservations/{id}": {
+      "get": {
+        "operationId": "MyReservationsController_one",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "reservation_not_found — ALSO returned for a reservation belonging to someone else, deliberately. A 403 would confirm the row exists."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One of the caller's own reservations",
+        "tags": [
+          "reservations"
+        ]
+      },
+      "patch": {
+        "operationId": "MyReservationsController_modify",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyReservationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "validation_failed — no fields, or a past time"
+          },
+          "404": {
+            "description": "reservation_not_found — ALSO returned for another diner's reservation, deliberately, and byte-identical to an id that exists for nobody."
+          },
+          "409": {
+            "description": "slot_taken | pacing_limit_reached | invalid_status_transition | reservation_not_modifiable (already started)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the time or party size of your own booking",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/v1/reservations/{id}/acknowledge-cancellation": {
+      "post": {
+        "operationId": "MyReservationsController_acknowledge",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Acknowledged (idempotent)"
+          },
+          "404": {
+            "description": "reservation_not_found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a restaurant-initiated cancellation as seen",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/v1/reservations/{id}/available-slots": {
+      "get": {
+        "operationId": "MyReservationsController_movableSlots",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "example": "2026-08-09",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_size",
+            "required": false,
+            "schema": {
+              "example": 2,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "invalid_date | invalid_party_size"
+          },
+          "404": {
+            "description": "reservation_not_found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Times this booking could be moved to",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/v1/reservations/{id}/cancel": {
+      "post": {
+        "operationId": "MyReservationsController_cancelOwn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelOwnReservationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReservationResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "reservation_not_found"
+          },
+          "409": {
+            "description": "invalid_status_transition — already settled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel your own booking",
         "tags": [
           "reservations"
         ]
@@ -2602,6 +4574,128 @@
         ]
       }
     },
+    "/v1/restaurants/{idOrSlug}": {
+      "get": {
+        "operationId": "PublicRestaurantsController_profile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "idOrSlug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestaurantProfileResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "restaurant_not_found — also returned for a venue that is not active"
+          }
+        },
+        "summary": "Public restaurant profile, by id or slug",
+        "tags": [
+          "restaurants"
+        ]
+      }
+    },
+    "/v1/restaurants/{idOrSlug}/menus": {
+      "get": {
+        "operationId": "MenusController_listMenus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "idOrSlug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MenuResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "restaurant_not_found — also for a venue that is not active"
+          }
+        },
+        "summary": "A venue's menus, with categories and available items",
+        "tags": [
+          "menus"
+        ]
+      }
+    },
+    "/v1/restaurants/{idOrSlug}/reviews": {
+      "get": {
+        "operationId": "RestaurantReviewsController_listReviews",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "idOrSlug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "ISO instant from `next_cursor`.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPageResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "restaurant_not_found"
+          }
+        },
+        "summary": "A venue's published reviews, newest first",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/v1/restaurants/{id}/availability": {
       "get": {
         "operationId": "AvailabilityController_getSlots",
@@ -2648,6 +4742,308 @@
         "summary": "Bookable slots for a date and party size",
         "tags": [
           "availability"
+        ]
+      }
+    },
+    "/v1/reviews": {
+      "post": {
+        "operationId": "ReviewsController_createReview",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReviewDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "description": "Posted, and live immediately"
+          },
+          "400": {
+            "description": "validation_failed — including `photo_ids`, which is not accepted; see the DTO"
+          },
+          "403": {
+            "description": "review_not_eligible (the visit did not happen) or review_too_early (the table time is not over)"
+          },
+          "404": {
+            "description": "reservation_not_found — ALSO for another diner's reservation, deliberately"
+          },
+          "409": {
+            "description": "review_already_exists — one review per visit"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Review a visit that happened",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/v1/reviews/{id}/report": {
+      "post": {
+        "operationId": "ReviewsController_reportReview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportReviewDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Already reported by this diner"
+          },
+          "201": {
+            "description": "Reported"
+          },
+          "400": {
+            "description": "cannot_report_own_review"
+          },
+          "404": {
+            "description": "review_not_found — ALSO for a review that is not published, deliberately"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Report a review (recorded; the queue is A-3)",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/v1/saved": {
+      "get": {
+        "operationId": "FavoritesController_listSaved",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SavedVenueResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's saved venues, newest first",
+        "tags": [
+          "saved"
+        ]
+      },
+      "post": {
+        "operationId": "FavoritesController_save",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveVenueDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Already saved"
+          },
+          "201": {
+            "description": "Saved"
+          },
+          "404": {
+            "description": "restaurant_not_found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a venue (idempotent)",
+        "tags": [
+          "saved"
+        ]
+      }
+    },
+    "/v1/saved/{restaurantId}": {
+      "delete": {
+        "operationId": "FavoritesController_unsave",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Not saved any more, either way"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unsave a venue (idempotent)",
+        "tags": [
+          "saved"
+        ]
+      }
+    },
+    "/v1/waitlists": {
+      "get": {
+        "operationId": "WaitlistController_listWaitlists",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WaitlistEntryResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's live waitlist entries",
+        "tags": [
+          "waitlists"
+        ]
+      },
+      "post": {
+        "operationId": "WaitlistController_join",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinWaitlistDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistEntryResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "description": "Joined"
+          },
+          "400": {
+            "description": "validation_failed — past date, or window inverted"
+          },
+          "404": {
+            "description": "restaurant_not_found"
+          },
+          "409": {
+            "description": "already_on_waitlist"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Join the waitlist for a date and window",
+        "tags": [
+          "waitlists"
+        ]
+      }
+    },
+    "/v1/waitlists/{id}": {
+      "delete": {
+        "operationId": "WaitlistController_leave",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Left (the row is kept, marked cancelled)"
+          },
+          "404": {
+            "description": "waitlist_entry_not_found — ALSO for another diner's entry, deliberately."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Leave the waitlist",
+        "tags": [
+          "waitlists"
         ]
       }
     }

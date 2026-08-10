@@ -14,6 +14,7 @@ import { PrismaClient, ReservationStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { ReservationsService, extractPgCode } from '../src/modules/reservations/reservations.service';
 import { PrismaService } from '../src/shared/prisma/prisma.service';
+import { createTestDiner, removeTestDiner } from './support/test-diner';
 
 /**
  * Run against the SESSION pooler (DIRECT_URL, port 5432) when available.
@@ -72,6 +73,12 @@ let ownerUserId: string;
 let ownerId: string;
 let restaurantId: string;
 let tableId: string;
+/**
+ * Owns the app bookings below. C-1.6 requires one, and the DB constraint
+ * `app_booking_has_diner` enforces it beneath the service — a fixture with a
+ * null user was reproducing the bug that shipped.
+ */
+let testDinerId: string;
 
 /** Tomorrow 21:00 UTC — deterministic, never collides with other test data. */
 const SLOT = (() => {
@@ -83,6 +90,7 @@ const SLOT = (() => {
 
 beforeAll(async () => {
   await prisma.$connect();
+  testDinerId = await createTestDiner(prisma);
 
   ownerUserId = randomUUID();
   await prisma.user.create({
@@ -140,6 +148,7 @@ afterAll(async () => {
   }
   if (ownerId) await prisma.restaurantOwner.delete({ where: { id: ownerId } }).catch(() => undefined);
   if (ownerUserId) await prisma.user.delete({ where: { id: ownerUserId } }).catch(() => undefined);
+  await removeTestDiner(prisma, testDinerId);
   await prisma.$disconnect();
 }, 60_000);
 
@@ -147,8 +156,8 @@ describe('reservation engine — concurrency', () => {
   it(`allows exactly one of ${CONCURRENCY} simultaneous holds on the last table`, async () => {
     const attempts = Array.from({ length: CONCURRENCY }, (_, i) =>
       service
-        .createHold({
-          restaurantId,
+        .createHold({ userId: testDinerId,
+      restaurantId,
           partySize: 2,
           startsAt: SLOT,
           guestName: `Racer ${i}`,
@@ -224,6 +233,11 @@ describe('reservation engine — concurrency', () => {
         endsAt: new Date(SLOT.getTime() + 120 * 60_000),
         status: ReservationStatus.held,
         guestName: 'Rogue Writer',
+        // Deliberately a staff-source row. This test simulates layers 1-2
+        // regressing and writes straight to the join table; `app` source
+        // would be refused by `app_booking_has_diner` before layer 3 ever got
+        // a chance to speak, which would prove the wrong thing.
+        source: 'phone',
       },
     });
 
@@ -249,14 +263,14 @@ describe('reservation engine — concurrency', () => {
     const key = randomUUID();
     const slot = new Date(SLOT.getTime() + 4 * 60 * 60_000); // a free window
 
-    const first = await service.createHold({
+    const first = await service.createHold({ userId: testDinerId,
       restaurantId,
       partySize: 2,
       startsAt: slot,
       guestName: 'Replay',
       idempotencyKey: key,
     });
-    const second = await service.createHold({
+    const second = await service.createHold({ userId: testDinerId,
       restaurantId,
       partySize: 2,
       startsAt: slot,

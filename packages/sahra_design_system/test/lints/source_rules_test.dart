@@ -45,6 +45,37 @@ void main() {
     expect(v, isEmpty, reason: describe(v, 'banned-import'));
   });
 
+  group('the bidi isolate constants are intact', () {
+    // These two constants are the only place in the repo whose CORRECTNESS IS
+    // INVISIBLE ON SCREEN: their whole value is one Unicode control character,
+    // and a reviewer reading the diff cannot tell a correct one from a
+    // corrupted one. Shell escaping has destroyed them once and came within
+    // two commands of shipping `2066+20 2 2735 00002069` as a phone number.
+    //
+    // `flutter analyze` was GREEN throughout that, because the warning it had
+    // been emitting was about the control characters being present — and they
+    // were gone. See ENGINEERING-STANDARDS, "a guard that can be satisfied by
+    // destroying the thing it guards".
+    final bidi = File('${lib.path}/src/theme/sahra_bidi.dart');
+
+    test('the guarded file is where the lint thinks it is — census', () {
+      // Every assertion below is "find problems, expect none", which a scanner
+      // pointed at a missing file satisfies trivially.
+      expect(bidi.existsSync(), isTrue, reason: 'sahra_bidi.dart not at ${bidi.path}');
+      expect(bidi.readAsStringSync().length, greaterThan(500));
+    });
+
+    test('each is exactly one code point, and the right one', () {
+      final v = bidiConstantsIntact(bidi);
+      expect(v, isEmpty, reason: describeBidi(v));
+    });
+
+    test('the corruption signature appears nowhere in the package', () {
+      final v = noBidiCorruptionSignature(lib);
+      expect(v, isEmpty, reason: describeBidi(v));
+    });
+  });
+
   test('exemption count is visible', () {
     for (final tag in <String>['design', 'rtl', 'i18n']) {
       final n = countExemptions(dartSources(lib), tag);

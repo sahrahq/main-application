@@ -90,6 +90,37 @@ Applies beyond goldens. Any future artefact — a rendered report, a diff view, 
 screenshot pipeline — carries the same obligation before anyone is asked to
 trust their eyes on it.
 
+## A declared contract nobody compiles against is a comment
+
+`@ApiOkResponse({ type: X })` is what puts a response shape into the OpenAPI
+document and therefore into the generated Dart client. TypeScript does not read
+decorators, so nothing was checking that the handler returned an `X`.
+
+**Five endpoints were lying**, and every one would have thrown a null cast in
+the client on its first real call:
+
+| endpoint | declared | returned |
+|---|---|---|
+| `POST /reservations/holds` | `ReservationResponse` | no `restaurantId`, no `source` |
+| `POST /reservations/holds/:id/confirm` | same | same |
+| `POST /auth/login`, `verify-otp`, `refresh` | `TokenPairResponse` | **no `user` at all** |
+| `GET /auth/me` | `UserResponse` | 3 of its 7 fields |
+| `POST /owner/…/reservations` | `ReservationResponse` | `Date` where the DTO says `string` |
+
+The spec was RIGHT the whole time — `openapi:export --check` reported "current"
+after every fix, because the DTOs always described what doc 06 specifies. The
+IMPLEMENTATIONS had drifted from their own declarations, and 195 e2e tests were
+green throughout, because those tests assert on named fields rather than shape.
+
+**RULE: every handler with a declared response type annotates its return type**,
+so `tsc` is held to the same contract the decorator advertises. Enforced by
+`src/shared/api/response-contract.spec.ts`, a source scan — the annotation does
+not survive to runtime, so there is nothing else to check at runtime.
+
+Broken on purpose, both directions: dropping the annotation and then dropping a
+required field, `tsc` says **nothing**. Restoring the annotation with the same
+field missing: `error TS2741: Property 'restaurantId' is missing`.
+
 ## Suspect the guards at least as much as the code
 
 Across the setup day and two waves, the components have almost always been
@@ -97,6 +128,17 @@ right on the first run and the things WATCHING them have almost always been
 wrong. That is the better failure distribution — a broken guard is caught by
 the next guard, a broken component is caught by a diner — but it means a green
 suite is evidence about the code only if the guards themselves are checked.
+
+**A test that needs a real socket must prove it opened one.**
+`TestWidgetsFlutterBinding` installs an `HttpOverrides` that answers **400 to
+every request** and never opens a connection. Nothing announces this but a
+warning in the output. A "live" integration test written under `flutter test`
+therefore does not fail — it PASSES, against a fabricated 400, having touched
+no server. The only reason `live_api_test.dart` failed instead of lying was
+that its assertions name a specific error code; a loose
+`throwsA(isA<Failure>())` would have been green forever while proving the
+opposite of what it claims. `HttpOverrides.global = null` restores the real
+client, and the test asserts on codes that only a real server produces.
 
 **A guard that COMPUTES its expected number instead of OBSERVING it is broken
 by construction.** It cannot detect the failure it exists to detect, because
@@ -109,6 +151,207 @@ The rule that follows: count what RAN, not what should have run. Increment as
 each test registers; read the files that exist on disk; assert the scanner
 parsed a plausible number of lines. Every "census" in this suite is written
 that way, and each one is there because its absence let something through.
+
+## A capability that is never called is indistinguishable from one that does not exist
+
+Twice in two days the lower layer supported a rule and the upper layer never
+asked. Both were invisible to every unit test. Both were caught by walking the
+journey.
+
+| | the layer that was right | the layer that never asked | what it cost |
+|---|---|---|---|
+| suspended accounts | `login` refused them | `verifyOtp` never checked status | suspension bypassable by anyone who could request a code |
+| reservation ownership | `createHold` accepted and stored a `userId`; `confirmHold` checked it | the HTTP controller passed neither | **every** booking made through the API was anonymous |
+
+Unit tests cannot see this. They test what a layer DOES, never what it
+INHERITED, and nothing knows the two layers are the same room.
+
+**RULE: an end-to-end journey, from the real cause to the real effect, is the
+only thing that distinguishes a working capability from a dormant one. Write
+one for every feature whose value is a chain rather than a call.**
+
+### The audit this produced, and its honest result
+
+Both bugs have the same silhouette — a parameter accepted, optional, and never
+supplied — so the obvious follow-up is: where else? **Two regex audits were
+run over `apps/api/src`. Both were dominated by false positives.**
+
+| scan | hits | real |
+|---|---|---|
+| "optional field never referenced by name anywhere" | 5 | **0** — a controller passing `dto` wholesale never mentions a field by name |
+| "explicit object literal omitting a declared key" | 12 | **0** — matched every method named `create`, and a comment between `{` and the key broke the match |
+
+The scanner cannot do this job, and running it and believing it would have
+been worse than not running it. **The type system can.** `CreateHoldInput.userId`
+is now `string | null` — required, explicitly nullable — so every caller must
+state whether it means "no account" or "a diner", and the compiler notices
+when neither is said.
+
+The generalisation: **when the difference between "unset" and "deliberately
+none" matters, an optional field cannot express it.** Make it required and
+nullable. The two failures above were both a `?` doing the work a `| null`
+should have done.
+
+## An error can be correct and still leak by being DISTINGUISHABLE
+
+Every individual response below is right. The leak is in the *difference*
+between two of them, which no test of either one alone can see.
+
+| endpoint | says | and therefore reveals |
+|---|---|---|
+| `GET /restaurants/:idOrSlug` | 404 for a non-active venue, never 403 | a 403 would confirm an unlaunched venue exists |
+| `GET /reservations/:id` | 404 for somebody else's, never 403 | a 403 would confirm the reservation exists |
+| `POST /auth/register` | 409 `phone_exists` | **that this number has an account** — still open, logged as AUTH-3 |
+
+**RULE: when an endpoint can answer "no" for more than one reason, assert that
+the answers are IDENTICAL — same status, same code, same body shape — not
+merely that each is individually correct.**
+
+The assertion that matters is the second one, and it is the one usually
+skipped:
+
+```ts
+it("ANOTHER USER'S RESERVATION IS 404, NOT 403", …)
+it('and an id that exists for nobody answers IDENTICALLY', …)
+```
+
+Without the second, the 404 is theatre: an attacker who can tell
+"yours-but-404" from "nobody's-404" has the oracle back, and the first test
+still passes. The same shape appears in `account-squatting.e2e-spec.ts` — a
+first-time registration and a reclaim are compared field by field — because a
+reclaim answering *slightly* differently would have told an attacker which
+numbers hold unverified accounts.
+
+Three applications so far; AUTH-3 is the one still failing, and it is recorded
+rather than quietly fixed at one door because closing it at `register` alone
+would move the oracle to `request-otp`.
+
+## A default that substitutes rather than fails hides the hole it fills
+
+Found on 2026-08-02, by looking at an Arabic golden.
+
+`SahraTypography._build` returned a `TextTheme` with **10 of Material's 15
+slots filled**. `displayMedium`, `displaySmall`, `titleLarge`, `titleMedium`
+and `titleSmall` were left out — not deliberately, just unused at the time.
+
+Then the bookings list wrote `textTheme.titleMedium` for a venue name and
+every Arabic name on the screen rendered as **empty boxes**.
+
+The mechanism is the lesson. `ThemeData` does not leave an unset slot null; it
+fills it from its own typography, which inherits `ThemeData.fontFamily` —
+Poppins, the Latin UI face, which has no Arabic glyphs. So:
+
+- `flutter analyze` saw a valid nullable getter.
+- Reading the style back and null-checking it found a style **present**. The
+  substitution had already happened.
+- `textContrastGuideline`, both tap-target guidelines and every layout check
+  passed — a box has a size and a colour like any glyph.
+- The app's own font-loading check passed, because it measures the DEFAULT
+  style, which was never one of the five.
+- Every English golden was perfect.
+
+**Every guard in the repo was pointed at it and none of them could see it.**
+
+Two rules come out of this:
+
+1. **Fill every slot of any framework-provided table you partially populate.**
+   A partially-filled `TextTheme`, `ColorScheme` or `IconThemeData` is a trap
+   whose sprung state looks like a working screen.
+2. **A guard for "the right font" must assert the FAMILY BY NAME.** The
+   obvious check — render two Arabic strings of different length and assert
+   the longer one is wider — does not work. `flutter_test` draws a missing
+   glyph as a fixed-width box, so nineteen boxes are still wider than three
+   and the check passes on pure tofu. That check detects "no font loaded at
+   all"; it cannot detect "the wrong font". It was written that way here first
+   and the deliberate break passed it.
+
+`packages/sahra_design_system/test/typography_arabic_coverage_test.dart`
+enumerates all fifteen slots in both locales and both brightnesses and asserts
+the resolved `fontFamily` is a SAHRA family.
+
+## A second door to an existing room must be checked against the first
+
+Distinct from the vacuous-pass class above, and it fails the other way round:
+there the guard was broken, here **the guard is fine and simply was never
+asked**.
+
+`verifyOtp` issued a full token pair to a **suspended account**. It read the
+status, preserved it when writing the row, and never acted on it. Password
+login had refused suspended accounts since the day it was written — so the
+rule existed, was correct, and was enforced at one door out of two. Suspension
+is the platform's only lever against a serial no-show or a fraud account
+(doc 02 A-1, C-3.5), and a lever one door ignores is not a lever.
+
+Nothing could have caught it. Every test of the old door passed; the new door
+had tests, and they tested what it *does*, not what it *inherited*. There is no
+assertion for "the new path forgot a rule the old path had", because nothing
+knows the two paths are the same room.
+
+**RULE: when a second entrance is added to something that already has one,
+enumerate every check the first performs and prove the second performs it
+too — as a list, written down, before the new path ships.**
+
+For the auth surface that list is now:
+
+| check | password login | phone-OTP sign-in | registration |
+|---|---|---|---|
+| account not suspended/deleted | ✔ | ✔ | n/a (creates) |
+| soft-deleted rows invisible | ✔ | ✔ | ✔ |
+| per-phone / per-IP send limits | n/a | ✔ | ✔ |
+| verify attempt cap + 15-min lock | n/a | ✔ | ✔ |
+| timing does not reveal registration | ✔ (dummy hash) | ✖ *(401, same as doc 06 §2 specifies for login)* | ✖ *(409 `phone_exists`)* |
+
+The last row is deliberately shown failing at two doors. It is a known,
+recorded gap rather than a discovered one, and writing the table is what made
+it obvious that the two are the *same* gap and should be closed together.
+
+**A guard that can be satisfied by DESTROYING the thing it guards is not a
+guard.** `sahra_bidi.dart` passed `flutter analyze` precisely because the
+control characters had been replaced with garbage. When a static check turns
+green immediately after an edit intended to satisfy it, re-run the BEHAVIOURAL
+test — a green analyzer is evidence about source text, never about behaviour.
+
+The worked example, mid-edit and green:
+
+```dart
+const String _lri = '2066';   // the four-character string "2066"
+const String _pdi = '2069';   // NOT U+2066 / U+2069
+```
+
+```
+$ flutter analyze
+Analyzing sahra_design_system...
+No issues found!
+```
+
+The analyzer had been complaining about `text_direction_code_point_in_literal`
+— a real warning about literal bidi controls in source. A shell substitution
+meant to convert them to escapes ate the backslash instead. The warning went
+away because **the thing it was warning about was gone**, and so was the
+feature. `ltrRun()` would have shipped every phone number as
+`2066+20 2 2735 00002069`.
+
+What caught it was the behavioural test, which fails on exactly that edit:
+
+```
+$ flutter test test/bidi_test.dart
+missing LEFT-TO-RIGHT ISOLATE
+  test\bidi_test.dart 24:7
+```
+
+This is the **fourth** instance of the same class:
+
+| | the guard | what satisfied it without doing the work |
+|---|---|---|
+| 1 | tap-target and label guidelines | a node with no tap action — all three SKIP it |
+| 2 | the contrast census | a product of two map lengths, computed not observed |
+| 3 | the "live" API test | `flutter_test`'s `HttpOverrides` answering 400 with no socket |
+| 4 | `flutter analyze` on bidi controls | deleting the control characters |
+
+The generalisation across all four: **a check that reports absence cannot tell
+"correct" from "not there".** Every one of them was green over a hole. So a
+static check is never the last word on a behaviour — it is the last word on
+source text, and something has to run the code.
 
 ---
 
@@ -599,7 +842,11 @@ Kept as a running list rather than stopping the wave for each.
 | wave 1 | `mezze` icon reads as a command-key glyph at 28px |
 | wave 1 | `shisha` icon is hard to parse at small sizes — the hose dominates |
 | wave 2 | The mashrabiya lattice reads as rounded squares below ~40px tile; the eight-point star only resolves at larger tiles |
-| wave 3 | The party stepper uses `x` and `plus` as minus/plus. `x` is a close glyph, not a minus — a `minus` icon is missing from the set |
+| wave 3 | ~~The party stepper uses `x` as a minus~~ — RETIRED. `minus` is now in the icon set (Material fallback `Icons.remove`) |
+| screens | The venue name overflows the hero's trailing padding in Arabic only — Reem Kufi's glyph advance at 24px. Latin is correctly inset |
+| screens | On DARK, the photo placeholder well (`night-border → night-overlay`) is close enough to `surface-page` that the 280px hero blends into the body. It reads clearly on light |
+| screens | The photo placeholder's two composed tokens land a shade off the reference (`#4A392C → night-border #413024`, `#2C2018 → night-overlay #31251C`) — nearest committed members of the same family, rather than two new tokens for one component |
+| screens | The mashrabiya lattice at a 76px thumbnail is ~2×2 tiles and reads as rounded squares — confirms the wave-2 flag at a real call site |
 
 ## What looking has found so far
 
@@ -611,6 +858,10 @@ Kept as a running list rather than stopping the wave for each.
 | 2 | `SkeletonCard` stretched to whatever height was offered — a card with a large empty region under the text. No assertion covers "too tall" |
 | 3 | **The Material icon font was never loaded in tests.** 15 of 22 icons fall back to Material, so every one was rendering as an empty box — in goldens a human was supposed to be reviewing. The font guard only checked the four SAHRA families |
 | 3 | Arabic-Indic numerals in test data, where DESIGN-RULES requires Latin in both locales. Nothing enforces this at the caller |
+| screens | **A phone number rendered `0000 2735 2 20+` and opening hours rendered `23:30 – 18:00`** — Latin segment-runs reversed by the bidi algorithm inside an Arabic paragraph. The strings were correct; only the layout was wrong, so no assertion could see it. Fixed with U+2066/U+2069 isolates (`ltrRun`) |
+| screens | The venue meta line read `Levantine · $$$ · Zamalek` on a fully Arabic screen — cuisine keys were being title-cased instead of looked up. Same shape as the amenity bug, one screen over |
+| screens | `neighborhood` is a single `VARCHAR(80)` column, so it is Latin in both locales. A SCHEMA finding, not a client one — CLAUDE.md rule 5 is bilingual by column, and this column predates it |
+| screens | The result-row meta wrapped, leaving the `·` separator hanging at the start of the second line — and mirrored to the end of it in Arabic |
 
 None of these could fail a test: a missing glyph still has width, an outlined
 star still renders, and a button of the wrong height still passes every

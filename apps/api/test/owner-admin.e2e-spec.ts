@@ -40,7 +40,18 @@ let plainUserId: string;
 let restaurantId: string;
 let tableId: string;
 
-/** Insert a reservation directly at a known ABSOLUTE instant. */
+/**
+ * Insert a reservation directly at a known ABSOLUTE instant.
+ *
+ * `source = 'phone'`, not `'app'`. These fixtures carry a guest NAME and no
+ * account, which is a staff-taken booking (R-3.2) — and the constraint
+ * `app_booking_has_diner` correctly refuses to call that an app booking. This
+ * suite is about the owner's BOOK, so which door a row came through is
+ * incidental; naming it honestly is not.
+ *
+ * (A backtick inside the SQL below would end the template literal, which is
+ * why this note lives up here rather than as a `--` comment in the query.)
+ */
 async function seatAt(utcIso: string, guest: string, status = 'confirmed'): Promise<string> {
   const startsAt = new Date(utcIso);
   const endsAt = new Date(startsAt.getTime() + 90 * 60_000);
@@ -51,7 +62,7 @@ async function seatAt(utcIso: string, guest: string, status = 'confirmed'): Prom
     ) VALUES (
       ${'SAH-' + Math.random().toString(36).slice(2, 6).toUpperCase()},
       ${restaurantId}::uuid, ${guest}, 2, ${startsAt}, ${endsAt},
-      ${status}::reservation_status, 'app', now(), now()
+      ${status}::reservation_status, 'phone', now(), now()
     ) RETURNING id`;
   await prisma.$executeRaw`
     INSERT INTO reservation_tables (reservation_id, table_id, during, active)

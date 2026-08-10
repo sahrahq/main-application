@@ -97,6 +97,18 @@ class SahraTypeScale {
   /// above and below the baseline, where Latin has nothing.
   static const double leadingArabic = SahraTokens.leadingArabic;
 
+  /// Arabic DISPLAY leading — `type-arabic.html` sets its 32px heading sample
+  /// to `line-height: 1.3`.
+  ///
+  /// Not `leadingTight` (1.15), which is the LATIN value and was being used for
+  /// Arabic headings as well. Arabic needs the extra room for the same reason
+  /// its body leading is 1.7 rather than 1.5: dots and diacritics sit above and
+  /// below the baseline where Latin has nothing.
+  ///
+  /// Asserted against the guideline HTML itself by
+  /// `arabic_heading_leading_test.dart`, so the document stays the source.
+  static const double leadingArabicDisplay = SahraTokens.leadingArabicDisplay;
+
   /// `.14em` in CSS. Flutter's letterSpacing is logical pixels, so it is
   /// applied per size rather than being a single constant.
   static const double trackingOverlineEm = SahraTokens.trackingOverline;

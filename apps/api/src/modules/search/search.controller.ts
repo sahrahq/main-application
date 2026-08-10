@@ -45,7 +45,7 @@ export class SearchController {
     @Query('sort') sort?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
-  ) {
+  ): Promise<SearchResponse> {
     const date = availableAt ? this.parseDate(availableAt) : undefined;
     const party = partySize === undefined ? undefined : this.int(partySize, 'party_size', 1, 50);
 

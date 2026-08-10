@@ -5,7 +5,7 @@ import '../theme/sahra_semantics.dart';
 
 /// `docs/design/components/core/Button.d.ts`:
 /// `{variant, size, pill, disabled, icon, children, onClick}`.
-enum SahraButtonVariant { primary, secondary, ghost, gold }
+enum SahraButtonVariant { primary, secondary, ghost, gold, destructive }
 
 enum SahraButtonSize { sm, md, lg }
 
@@ -215,6 +215,36 @@ class _SahraButtonState extends State<SahraButton> {
       SahraButtonVariant.gold => _Palette(
           background: s.premium,
           foreground: SahraSemantics.light().textBody,
+        ),
+      // ── Destructive ──────────────────────────────────────────────────────
+      //
+      // For an action that DESTROYS something the user cannot get back:
+      // cancelling a booking today, deleting an account later. Not for
+      // "close", not for "discard draft", and never as a second primary — the
+      // whole value of a red button is that it is rare enough to mean
+      // something.
+      //
+      // WHY THIS IS NOT LEFT TO THE COPY. The cancel sheet shipped with a
+      // primary button and the danger carried entirely by its words. Copy is
+      // the part most likely to be reworded — by a translator, by a product
+      // pass, by somebody shortening a line that wrapped — and a warning that
+      // can be edited away by a tone change is not a warning.
+      //
+      // THE FOREGROUND FLIPS BY THEME, and that is the whole subtlety. `error`
+      // is a DARK red on light (#A73D27) and a LIGHT salmon on night
+      // (#DD8270) — it is tuned for legibility against its own surface, not to
+      // be a button fill. So white clears AA on light at 6.3:1 and fails on
+      // night at 2.8:1. Night therefore takes the light theme's ink, exactly
+      // as `gold` does above and for exactly the same reason.
+      //
+      // Both ratios are OBSERVED in `palette_contrast_test.dart`, computed
+      // from these very colours rather than written down here — a number in a
+      // comment is a number nobody re-checks after a token moves.
+      SahraButtonVariant.destructive => _Palette(
+          background: s.error,
+          foreground: s.brightness == Brightness.dark
+              ? SahraSemantics.light().textBody
+              : s.accentContrast,
         ),
     };
   }

@@ -15,6 +15,8 @@ import { PrismaService } from '../src/shared/prisma/prisma.service';
 import { ReservationsService } from '../src/modules/reservations/reservations.service';
 import { HoldExpiryService } from '../src/modules/reservations/expiry/hold-expiry.service';
 import { HOLD_EXPIRY_QUEUE, EXPIRE_HOLD_JOB } from '../src/modules/reservations/expiry/hold-expiry.constants';
+import { createTestDiner, removeTestDiner } from './support/test-diner';
+import { realWaitlistOffers } from './support/waitlist-offers';
 
 const REDIS_UP = process.env.REDIS_AVAILABLE === '1';
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
@@ -27,7 +29,7 @@ const url = (() => {
 const prisma = new PrismaClient({ datasources: { db: { url } } });
 const p = prisma as unknown as PrismaService;
 const reservations = new ReservationsService(p);
-const expiry = new HoldExpiryService(p);
+const expiry = new HoldExpiryService(p, realWaitlistOffers(p));
 
 const QUEUE = `${HOLD_EXPIRY_QUEUE}-test`;
 let queue: Queue | null = null;
@@ -36,6 +38,12 @@ let worker: Worker | null = null;
 let ownerUserId: string;
 let ownerId: string;
 let restaurantId: string;
+/**
+ * Owns the app bookings below. C-1.6 requires one, and the DB constraint
+ * `app_booking_has_diner` enforces it beneath the service — a fixture with a
+ * null user was reproducing the bug that shipped.
+ */
+let testDinerId: string;
 
 const DATE = (() => {
   const d = new Date();
@@ -61,6 +69,7 @@ const describeIf = REDIS_UP ? describe : describe.skip;
 
 beforeAll(async () => {
   await prisma.$connect();
+  testDinerId = await createTestDiner(prisma);
   if (!REDIS_UP) return;
 
   const connection = { url: REDIS_URL, maxRetriesPerRequest: null };
@@ -118,6 +127,7 @@ afterAll(async () => {
   }
   if (ownerId) await prisma.restaurantOwner.delete({ where: { id: ownerId } }).catch(() => undefined);
   if (ownerUserId) await prisma.user.delete({ where: { id: ownerUserId } }).catch(() => undefined);
+  await removeTestDiner(prisma, testDinerId);
   await prisma.$disconnect();
 }, 60_000);
 
@@ -127,7 +137,7 @@ describeIf('BullMQ delayed job (doc 05 §4 primary)', () => {
   });
 
   it('expires the hold when the job fires', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
     });
     // Age it first: expireOne is guarded on hold_expires_at < now(), so a job
@@ -147,7 +157,7 @@ describeIf('BullMQ delayed job (doc 05 §4 primary)', () => {
   }, 60_000);
 
   it('a job that fires EARLY does not expire a hold that is still live', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('20:00'), idempotencyKey: randomUUID(),
     });
     // hold_expires_at is five minutes out; the job runs now.
@@ -158,7 +168,7 @@ describeIf('BullMQ delayed job (doc 05 §4 primary)', () => {
   }, 60_000);
 
   it('at-least-once delivery is safe: a duplicate job cannot expire a CONFIRMED booking', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('21:00'), idempotencyKey: randomUUID(),
     });
     await reservations.confirmHold({ holdId: hold.id, idempotencyKey: randomUUID() });
@@ -174,7 +184,7 @@ describeIf('BullMQ delayed job (doc 05 §4 primary)', () => {
   }, 60_000);
 
   it('running the same job twice is idempotent', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('22:00'), idempotencyKey: randomUUID(),
     });
     await prisma.$executeRaw`

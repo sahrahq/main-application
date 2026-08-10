@@ -2,9 +2,15 @@
   "@@locale": "ar",
   "@@x-review-status": "UNREVIEWED",
   "@@x-note": "مكتوبة كمحاولة أولى من الهندسة — لسه محتاجة مراجعة كاملة من متحدث مصري أصلي. Written by engineering as a best attempt. NOT yet reviewed by a native Egyptian speaker — see docs/decisions/2026-08-02-a11y-manual-pass-launch-blocker.md",
-
   "errAccountUnavailable": "الحساب ده مش متاح دلوقتي. كلّم خدمة العملاء لو سمحت.",
   "errBadRequest": "فيه حاجة في الطلب مش مظبوطة. حاول تاني.",
+  "errAlreadyOnWaitlist": "إنت بالفعل في قائمة الانتظار لليلة دي.",
+  "errWaitlistEntryNotFound": "مش لاقيين طلب الانتظار ده.",
+  "errReviewAlreadyExists": "إنت قيّمت الزيارة دي قبل كده.",
+  "errReviewNotEligible": "التقييم بيكون للزيارات اللي حصلت فعلاً.",
+  "errReviewTooEarly": "تقدر تقيّم بعد ما ميعاد الطاولة يخلص.",
+  "errReviewNotFound": "مش لاقيين التقييم ده.",
+  "errCannotReportOwnReview": "ده تقييمك إنت.",
   "errBookingsOutsideNewHours": "فيه حجوزات مؤكدة هتقع بره المواعيد دي.",
   "errCapacityConflictWithReservations": "فيه حجوزات قادمة على الطاولة دي مش هتناسب السعة الجديدة.",
   "errConflict": "الحالة اتغيّرت. حدّث الصفحة وحاول تاني.",
@@ -22,15 +28,22 @@
   "errInvalidQueryParam": "واحد من الفلاتر دي مش صحيح.",
   "errInvalidSort": "طريقة الترتيب دي مش متاحة.",
   "errInvalidStatusTransition": "الحجز ده اتغيّر بالفعل. حدّث عشان تشوف حالته.",
+  "errImageNotFound": "مالقيناش الصورة دي.",
+  "errImageTooLarge": "الصورة كبيرة أوي. خليها أقل من 12 ميجا.",
+  "errInvalidImage": "مقدرناش نقرا الملف ده كصورة.",
+  "errStorageUnavailable": "مقدرناش نحفظ الصورة. حاول تاني.",
+  "errUnsupportedImageType": "استخدم صورة JPEG أو PNG أو WebP.",
   "errMissingIdempotencyKey": "حصلت مشكلة وإحنا بنبعت. حاول تاني.",
   "errNotAnOwner": "الحساب ده مش مسجّل كصاحب مطعم.",
   "errNotFound": "مالقيناش ده.",
   "errOtpExpired": "الكود خلصت مدته. اطلب كود جديد.",
   "errOtpRateLimited": "طلبت أكواد كتير. حاول تاني بعد كام دقيقة.",
+  "errOtpSendingUnavailable": "مش قادرين نبعت أكواد دلوقتي. حاول تاني بعد شوية.",
   "errPacingLimitReached": "المطبخ مزحوم في الميعاد ده. جرّب ميعاد قريب منه.",
   "errPayloadTooLarge": "حجم الملف كبير أوي.",
   "errRateLimited": "الطلبات كتير. استنى شوية.",
   "errReservationNotFound": "مالقيناش الحجز ده.",
+  "errReservationNotModifiable": "الحجز ده بدأ خلاص، فمش ممكن يتعدّل. لسه تقدر تلغيه.",
   "errRestaurantNotFound": "مالقيناش المطعم ده.",
   "errSearchUnavailable": "البحث فيه مشكلة دلوقتي. حاول تاني.",
   "errServiceBusy": "المطعم مزحوم دلوقتي. حاول تاني بعد لحظات.",
@@ -42,18 +55,27 @@
   "errTableHasFutureReservations": "الطاولة دي عليها حجوزات قادمة. انقلها أو الغيها الأول.",
   "errTableNameTaken": "عندك طاولة بنفس الاسم.",
   "errTableNotFound": "مالقيناش الطاولة دي.",
-  "errTooManyAttempts": "حاولت كتير. اطلب كود جديد.",
+  "errTooManyAttempts": "حاولت كتير والكود مظبطش. استنى 15 دقيقة وجرّب تاني — طلب كود جديد مش هيفيد دلوقتي.",
   "errUnauthenticated": "سجّل دخولك وحاول تاني.",
   "errUnprocessable": "مقدرناش ننفّذ ده. راجع البيانات وحاول تاني.",
   "errValidationFailed": "فيه بيانات لسه مش مظبوطة.",
-
   "errOffline": "إنت مش متصل بالإنترنت. هنحاول تاني أول ما ترجع.",
   "errUnknown": "حصل خطأ. حاول تاني لو سمحت.",
-
   "actionRetry": "حاول تاني",
   "actionDismiss": "تمام",
   "errorReference": "رقم مرجعي {requestId}",
   "@errorReference": {
-    "placeholders": { "requestId": { "type": "String" } }
-  }
+    "placeholders": {
+      "requestId": {
+        "type": "String"
+      }
+    }
+  },
+  "errTitleOffline": "إنت أوفلاين",
+  "errTitleNetwork": "ده أخد وقت طويل",
+  "errTitleAuth": "محتاج حساب للخطوة دي",
+  "errTitleConflict": "في حاجة اتغيرت دلوقتي",
+  "errTitleValidation": "راجع ده تاني",
+  "errTitleServer": "سهرة تعبانة شوية",
+  "errTitleUnknown": "في حاجة غلط"
 }

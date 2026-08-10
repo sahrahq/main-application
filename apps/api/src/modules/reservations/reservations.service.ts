@@ -12,6 +12,7 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { bookingWindow, DEFAULT_TURN_MINUTES } from './turn-time';
 import { generateReservationCode } from './reservation-code';
 import { HoldExpiryQueue } from './expiry/hold-expiry.queue';
+import type { FreedSlot } from '../favorites/waitlist-offer.service';
 
 /** Statuses that occupy inventory (doc 05 §2). Mirrored by idx_resv_active. */
 export const LIVE_STATUSES: ReservationStatus[] = [
@@ -54,7 +55,27 @@ export function extractPgCode(err: unknown): string | undefined {
 
 export interface CreateHoldInput {
   restaurantId: string;
-  userId?: string | null;
+
+  /**
+   * The diner, or `null` for a staff-entered booking (R-3.2).
+   *
+   * **REQUIRED, AND EXPLICITLY NULLABLE. Do not make this optional again.**
+   *
+   * It was `userId?:` for weeks. The HTTP controller simply never passed one,
+   * so every reservation created through the API had `user_id = NULL` — a
+   * diner's own booking never appeared in their own `GET /reservations`, and
+   * nothing anywhere objected. The service supported the field, stored it, and
+   * even checked it on confirm; the layer above just never mentioned it.
+   *
+   * Optional meant the difference between "no account" and "I FORGOT TO SAY"
+   * was invisible. Required-and-nullable makes every caller state which one it
+   * means, and makes the compiler the thing that notices — which is the only
+   * tool that reliably can. Two regex audits were run over this codebase
+   * looking for the same shape elsewhere and BOTH were dominated by false
+   * positives; a type is not.
+   */
+  userId: string | null;
+
   guestName?: string | null;
   guestPhone?: string | null;
   partySize: number;
@@ -355,6 +376,263 @@ export class ReservationsService {
     return this.prisma.reservation.findUniqueOrThrow({ where: { id: input.holdId } });
   }
 
+  /**
+   * C-3.4 — the DINER moves their own booking.
+   *
+   * ── WHY THIS IS A BOOKING WRITE, NOT AN UPDATE ──────────────────────────
+   *
+   * It is tempting to read a modify as "change two columns". It is not: it
+   * releases inventory and takes different inventory, which is exactly what
+   * `createHold` does, so it runs through the same three layers or it is a
+   * double-booking with a friendlier name.
+   *
+   * ── THE ORDER INSIDE THE LOCK, WHICH IS THE WHOLE PROBLEM ───────────────
+   *
+   * A reservation can collide with ITSELF. Moving 19:00 → 20:00 with a
+   * 90-minute turn asks for 17:00–18:30Z while still holding 16:00–17:30Z on
+   * the same table. So the old allocation is DELETED first, inside the lock,
+   * before the re-check runs — otherwise the EXCLUDE constraint rejects a move
+   * that is obviously legal, and it does so only for overlapping moves, which
+   * is the subset least likely to be tried by hand.
+   *
+   * DELETE rather than `active = false`: the triggers own that column, and
+   * `sahra_resv_propagate` would set it straight back to true on the very next
+   * status/window update. A column with a trigger owner has no second owner.
+   *
+   * ── AND WHY THE WHOLE THING IS ONE TRANSACTION ──────────────────────────
+   *
+   * If the re-check fails after the delete, the rollback puts the original
+   * allocation back. A diner whose modify was refused must still have the
+   * table they already had — the alternative is a confirmed reservation seated
+   * nowhere, which is worse than the change they were denied.
+   *
+   * ── NO IDEMPOTENCY-KEY, DELIBERATELY (CLAUDE.md rule 2) ─────────────────
+   *
+   * The rule covers mutations that CREATE or COMMIT a reservation. This one
+   * does neither: it names absolute values, so replaying it lands on the same
+   * window with the same party, and no retry can produce a second row. That is
+   * idempotency by construction rather than by bookkeeping, and it is the
+   * reason this route needs no third key column. Pinned in
+   * `idempotency-contract.spec.ts` with that reasoning attached — if the shape
+   * ever becomes relative ("move by 30 minutes") the argument collapses and
+   * the key becomes mandatory.
+   */
+  async modifyOwn(input: {
+    reservationId: string;
+    userId: string;
+    startsAt?: Date;
+    partySize?: number;
+  }) {
+    const existing = await this.prisma.reservation.findFirst({
+      where: { id: input.reservationId, userId: input.userId },
+      select: {
+        id: true,
+        restaurantId: true,
+        status: true,
+        startsAt: true,
+        partySize: true,
+      },
+    });
+
+    // 404 for another diner's booking, byte-identical to one that exists for
+    // nobody — the ownership rule already established on the reads.
+    if (!existing) throw this.reservationNotFound();
+
+    if (
+      existing.status !== ReservationStatus.confirmed &&
+      existing.status !== ReservationStatus.pending
+    ) {
+      throw new ConflictException({
+        code: 'invalid_status_transition',
+        message: `This reservation is ${existing.status.replace(/_/g, ' ')} and cannot be changed.`,
+        message_ar: 'الحجز ده مش في حالة تسمح بالتعديل.',
+        details: [{ field: 'status', issue: existing.status }],
+      });
+    }
+
+    // A booking whose time has passed is not a thing to move — the party
+    // either arrived or did not, and both of those are the venue's call now.
+    // Distinct from the status refusal above because the diner's next step is
+    // different: book again, rather than nothing.
+    if (existing.startsAt.getTime() <= Date.now()) {
+      throw new ConflictException({
+        code: 'reservation_not_modifiable',
+        message: 'That booking has already started. Please make a new one.',
+        message_ar: 'الحجز ده بدأ خلاص. من فضلك اعمل حجز جديد.',
+      });
+    }
+
+    const partySize = input.partySize ?? existing.partySize;
+    const requestedStart = input.startsAt ?? existing.startsAt;
+
+    const turnConfig = await this.turnConfigFor(existing.restaurantId, requestedStart);
+    const { startsAt, endsAt } = bookingWindow(requestedStart, partySize, turnConfig);
+
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: existing.restaurantId },
+      select: { pacingLimit: true, slotIntervalMin: true },
+    });
+
+    try {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          // ══ LAYER 1 ══ the restaurant-day being ALLOCATED into.
+          //
+          // Only the target day. Releasing the old allocation can never create
+          // an overlap — it only ever gives inventory back — so serialising
+          // the old day would buy nothing and introduce a two-lock ordering
+          // problem across a date change, which is how deadlocks are written.
+          const lockKey = `${existing.restaurantId}:${startsAt.toISOString().slice(0, 10)}`;
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey})::bigint)`;
+
+          // Release FIRST, so the re-check does not see this reservation as
+          // its own competitor. Rolled back with everything else if the move
+          // is refused below.
+          await tx.$executeRaw`
+            DELETE FROM reservation_tables WHERE reservation_id = ${existing.id}::uuid`;
+
+          // ══ LAYER 2 ══ recompute free tables inside the lock.
+          const allocation = await this.allocate(tx, {
+            restaurantId: existing.restaurantId,
+            partySize,
+            startsAt,
+            endsAt,
+          });
+
+          if (allocation.length === 0) {
+            throw new ConflictException({
+              code: 'slot_taken',
+              message: 'That time is no longer available.',
+              message_ar: 'الوقت ده مابقاش متاح.',
+            });
+          }
+
+          await this.assertPacing(tx, {
+            restaurantId: existing.restaurantId,
+            startsAt,
+            intervalMin: restaurant?.slotIntervalMin ?? 15,
+            pacingLimit: restaurant?.pacingLimit ?? null,
+            partySize,
+            // ITS OWN COVERS DO NOT COUNT AGAINST IT. Without this a party of
+            // four at a venue paced to four could not change its own booking
+            // by five minutes: the pacing query would find the reservation
+            // being moved sitting in the target bucket and refuse to make room
+            // for the thing already occupying it.
+            excludeReservationId: existing.id,
+          });
+
+          // Written BEFORE the new allocation rows, because
+          // `sahra_resv_table_sync` reads `starts_at`/`ends_at` off this row
+          // to compute `during`. Insert first and the EXCLUDE constraint is
+          // checked against the OLD window.
+          await tx.$executeRaw`
+            UPDATE reservations
+               SET starts_at = ${startsAt},
+                   ends_at   = ${endsAt},
+                   party_size = ${partySize},
+                   version    = version + 1,
+                   updated_at = now()
+             WHERE id = ${existing.id}::uuid`;
+
+          // ══ LAYER 3 ══ the EXCLUDE constraint fires here if 1–2 regressed.
+          for (const table of allocation) {
+            await tx.$executeRaw`
+              INSERT INTO reservation_tables (reservation_id, table_id, during, active)
+              VALUES (
+                ${existing.id}::uuid,
+                ${table.id}::uuid,
+                tstzrange(${startsAt}, ${endsAt}, '[)'),
+                true
+              )`;
+          }
+
+          return { id: existing.id };
+        },
+        { timeout: 20_000, maxWait: 15_000 },
+      );
+    } catch (err) {
+      if (err instanceof ConflictException) throw err;
+      return this.translateWriteError(err, `modify:${input.reservationId}`);
+    }
+  }
+
+  /**
+   * C-3.5 — the DINER cancels their own booking.
+   *
+   * A SEPARATE DOOR FROM THE VENUE'S, and it must stay that way. The actor on
+   * the row is what the entire acknowledgement model keys off: a booking the
+   * diner cancelled leaves their upcoming list at once, and one the RESTAURANT
+   * cancelled stays visible until they have actually seen it. One handler with
+   * a role branch inside would be one refactor from recording the wrong one.
+   *
+   * ── NO TIME LIMIT ON CANCELLING, DELIBERATELY ───────────────────────────
+   *
+   * A diner who cannot cancel a booking that starts in ten minutes does not
+   * become a diner who attends. They become a no-show, and the venue learns
+   * about the empty table when it stays empty. Refusing a late cancellation
+   * manufactures the exact outcome the feature exists to prevent, so the only
+   * bar is the status: it must still be a booking somebody could turn up for.
+   *
+   * `seated` is excluded — you are at the table. What follows is `completed`
+   * or a conversation with the staff, not a cancellation.
+   *
+   * NOT IMPLEMENTED, AND SAID PLAINLY: doc 02 C-3.5 also wants "policy
+   * display" and late-cancel tracking per user. There is no cancellation
+   * window on `restaurants` and no late-cancel counter on `users` — both are
+   * migrations, and R-2.1 owns the first. Logged rather than improvised.
+   */
+  async cancelOwn(input: {
+    reservationId: string;
+    userId: string;
+    reason?: string | null;
+  }): Promise<FreedSlot> {
+    // Conditional UPDATE, so two taps race in Postgres rather than in us:
+    // exactly one writes and the loser reads the same 409 as a late retry.
+    //
+    // RETURNING the freed slot rather than void. C-3.6's offer engine needs to
+    // know what became available, and the alternative — reading the row back
+    // afterwards — would be a second query against a row whose status this
+    // statement just changed, i.e. asking the database to describe something we
+    // are already holding.
+    const cancelled = await this.prisma.$queryRaw<
+      { restaurant_id: string; starts_at: Date; party_size: number }[]
+    >`
+      UPDATE reservations
+         SET status        = 'cancelled_by_user',
+             cancelled_at  = now(),
+             cancel_reason = ${input.reason ?? null},
+             version       = version + 1,
+             updated_at    = now()
+       WHERE id      = ${input.reservationId}::uuid
+         AND user_id = ${input.userId}::uuid
+         AND status::text IN ('pending', 'confirmed')
+      RETURNING restaurant_id, starts_at, party_size`;
+
+    if (cancelled.length === 1) {
+      return {
+        restaurantId: cancelled[0].restaurant_id,
+        startsAt: cancelled[0].starts_at,
+        partySize: cancelled[0].party_size,
+      };
+    }
+
+    // Nothing was written. Two situations, and only one of them may be named.
+    const existing = await this.prisma.reservation.findFirst({
+      where: { id: input.reservationId, userId: input.userId },
+      select: { status: true },
+    });
+
+    // Someone else's, or nobody's. The same answer for both.
+    if (!existing) throw this.reservationNotFound();
+
+    throw new ConflictException({
+      code: 'invalid_status_transition',
+      message: `This reservation is ${existing.status.replace(/_/g, ' ')} and cannot be cancelled.`,
+      message_ar: 'الحجز ده مش في حالة تسمح بالإلغاء.',
+      details: [{ field: 'status', issue: existing.status }],
+    });
+  }
+
   private reservationNotFound(): NotFoundException {
     return new NotFoundException({
       code: 'reservation_not_found',
@@ -441,6 +719,13 @@ export class ReservationsService {
       intervalMin: number;
       pacingLimit: number | null;
       partySize: number;
+      /**
+       * A reservation whose covers must NOT count against the limit — the one
+       * being moved. Its party is already in `args.partySize`, so leaving it
+       * in the sum counts the same diners twice and refuses a modify on the
+       * strength of the booking being modified.
+       */
+      excludeReservationId?: string;
     },
   ): Promise<void> {
     if (args.pacingLimit == null) return;
@@ -455,7 +740,8 @@ export class ReservationsService {
       WHERE restaurant_id = ${args.restaurantId}::uuid
         AND status IN ('held', 'pending', 'confirmed', 'seated')
         AND starts_at >= ${bucketStart}
-        AND starts_at <  ${bucketEnd}`;
+        AND starts_at <  ${bucketEnd}
+        AND id IS DISTINCT FROM ${args.excludeReservationId ?? null}::uuid`;
 
     const existing = Number(rows[0]?.covers ?? 0);
     if (existing + args.partySize > args.pacingLimit) {

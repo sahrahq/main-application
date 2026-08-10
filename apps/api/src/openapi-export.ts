@@ -39,7 +39,18 @@ function sortDeep(value: unknown): unknown {
 async function main(): Promise<void> {
   const check = process.argv.includes('--check');
 
-  const app = await NestFactory.create(AppModule, { logger: false });
+  // `logger: false` HERE MEANS A BOOT FAILURE IS SILENT.
+  //
+  // It was `false`, to keep the export's output clean. Then a module in Group D
+  // failed to resolve a provider, and this script exited 1 with NOTHING on
+  // either stream — because Nest logs a dependency-resolution failure through
+  // its own ExceptionHandler and then exits, so the `main().catch` below never
+  // runs and the suppressed logger swallows the only explanation.
+  //
+  // "Spec export failed" with no reason sends whoever hits it to guess. Errors
+  // and warnings are on; `log` and `debug` stay off, which is what the quiet
+  // was actually for.
+  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] });
   // Mirrors main.ts. The prefix is part of the contract — a client generated
   // without it would call the wrong paths.
   app.setGlobalPrefix('v1', { exclude: ['health'] });

@@ -8,9 +8,16 @@ import { AuditModule } from "./shared/audit/audit.module";
 import { ReservationsModule } from "./modules/reservations/reservations.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { RestaurantsModule } from "./modules/restaurants/restaurants.module";
+import { PublicRestaurantsModule } from "./modules/restaurants/public-restaurants.module";
 import { AvailabilityModule } from "./modules/availability/availability.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { SearchModule } from "./modules/search/search.module";
+import { HealthModule } from './modules/health/health.module';
+import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { ImagesModule } from './modules/images/images.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
+import { MenusModule } from './modules/menus/menus.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -33,12 +40,29 @@ import { SearchModule } from "./modules/search/search.module";
     ErrorsModule,
     PrismaModule,
     AuditModule,
+    // Global — the event that causes a notification lives in whichever
+    // module it happens in, so this is imported once rather than everywhere.
+    NotificationsModule,
+    // Reads PUSH_READINESS off the global module above, so `/health` and the
+    // send path answer "can we reach an iPhone?" from the same function.
+    HealthModule,
     AuthModule,
     RestaurantsModule,
     AvailabilityModule,
     SearchModule,
     AdminModule,
+    ImagesModule,
+    FavoritesModule,
+    // Both mount two-segment routes under /restaurants, so they go above the
+    // one-segment wildcard for the same reason search and availability do.
+    MenusModule,
+    ReviewsModule,
     ReservationsModule,
+    // LAST, and it has to stay last: its `GET /restaurants/:idOrSlug` is a
+    // wildcard that would shadow /restaurants/search and
+    // /restaurants/:id/availability if registered before them. Guarded by
+    // test/public-restaurant.e2e-spec.ts, not by this comment.
+    PublicRestaurantsModule,
   ],
 })
 export class AppModule {}

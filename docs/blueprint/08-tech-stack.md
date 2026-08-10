@@ -104,3 +104,76 @@ flowchart TB
 | Payments | Paymob (cards, wallets, kiosk) + Fawry; Apple Pay later |
 | Hosting | MVP: Fly.io/Railway or ECS Fargate → Growth: ECS → Enterprise: EKS |
 | Observability | Sentry + Grafana Cloud (Prometheus/Loki) |
+| Image processing | `sharp` (server-side resize + WebP, on upload) |
+| Platform intents | `url_launcher` (Flutter — `mailto:`, `tel:`, and `https:` **for our own hosted documents only**) |
+| Device location | `geolocator` (Flutter — **one-shot, coarse, on-use only**) |
+
+### Approved package additions, and what each one is allowed to cover
+
+The stack table is a gate: CLAUDE.md says stop and ask before adding a
+dependency that is not in it. These two were approved on 2026-08-08, and the
+scope of each is recorded here so the next screen that needs one does not have
+to re-open the question.
+
+**`url_launcher`** — opening a platform intent from a link the user tapped.
+Approved for **both `mailto:` and `tel:`**, deliberately as one decision: the
+support address on the sign-in screen and the venue's phone number on the
+reservation detail are the same capability wearing two schemes, and splitting
+them would mean justifying the second one on its own weeks later.
+
+*Everything it launches must degrade.* A platform with no handler — a desktop
+browser, a tablet with no dialler — has to leave the diner with something they
+can read and copy, not a tap that silently does nothing. The address and the
+number are therefore selectable text FIRST and tappable SECOND, which is the
+order they were built in.
+
+**`https:` — approved 2026-08-09, and ONLY for a document WE host at a key WE
+control.** Concretely: the menu PDF (R-2.3), whose address this app composes
+from `menus.pdf_key` in our own Supabase bucket. Nothing else.
+
+**The venue website link is NOT covered by this.** Neither is any other URL
+that arrives inside venue data. That distinction is the whole approval: opening
+a document we put in a bucket is a different act from opening whatever somebody
+typed into a profile form, and the second is a decision that has not been made.
+A future screen wanting to open `restaurants.website` has to come back here.
+
+It was widened because the capability had already shipped outside its scope —
+Group D's PDF button called `launchUrl` directly on an `https:` URL. It also
+bypassed the degrade-gracefully seam, which was the more serious half: it is
+now routed through `contactLauncherProvider`, and
+`menu_reviews_test.dart` covers the no-handler path on that specific call.
+
+Everything under this entry degrades or it does not ship.
+
+**`geolocator`** — approved 2026-08-09, for C-2.2's distance filter and C-2.3's
+distance sort. The scope is as narrow as the capability allows and every clause
+is enforced somewhere:
+
+| Clause | Enforced by |
+|---|---|
+| **One-shot position.** `getCurrentPosition`, never a stream. | `GeolocatorLocationSource` is the only file that imports the package, and it calls one method. |
+| **Coarse accuracy.** `LocationAccuracy.low` — a neighbourhood, not a doorway. | The manifest declares `ACCESS_COARSE_LOCATION` and nothing else, so FINE is not available to ask for. |
+| **Asked on use, never on launch.** The dialog appears on the tap that turns "near me" on. | `DinerLocation.build()` returns null and asks nothing; the filter sheet is the only caller of `request()`. `location_test.dart` counts the calls, so "no prompt" is an integer rather than an intention. |
+| **No background location.** | No `ACCESS_BACKGROUND_LOCATION`, no `NSLocationAlwaysUsageDescription`. |
+| **Not stored.** The position lives in memory for the session. | Nothing writes it to `flutter_secure_storage`; it leaves only as `lat`/`lng` on a search query. |
+
+*And it degrades*, same rule as `url_launcher`. Four refusals — declined,
+declined permanently, location services off, and unavailable — get four
+different sentences, because three of them cannot be fixed by tapping again. A
+diner who says no keeps a working search; the distance controls simply are not
+there.
+
+**Not approved for a map.** C-2.4 still has no map package and this does not
+become one — knowing where somebody is and drawing a map are separate
+decisions, and Group H is an address plus a handoff to the phone's own map app.
+
+**`sharp`** — resizing images at UPLOAD time, never at display time
+(doc 10 §Images). Three fixed widths, WebP, originals kept in a bucket path the
+app never requests. It runs only in the API's upload path; nothing on a request
+path resizes anything, because an image transformed per view is an image paid
+for per view.
+
+**Declined at the same time: `flutter_blurhash`.** A designed empty state plus
+explicit dimensions on every image already gives the two things a blurhash
+would buy — no layout jump, and something to look at while loading — without a
+package and without a hash to compute, store and keep in step with the file.

@@ -43,13 +43,78 @@ checked across the whole palette, not component by component.
 - **Gold `#E0A96D` is accent/celebration only** — never a background wash, never a second primary, never body text on light (use `gold-dark` for text).
 - **Cream `#FDFBF7`, never pure white.** Cards on light are `cream-card #FBF6EE`.
 - **Dark theme is warm brown-black `#1A1310`** with terracotta undertone — never cool charcoal. Terracotta `#C64A2B` is used unmodified in both themes.
-- **Full bilingual parity**: every screen supports `dir="rtl"` + Arabic strings. Fonts switch (Newsreader/Poppins ↔ Reem Kufi/IBM Plex Sans Arabic). Numerals stay Latin for prices/ratings.
+- **Full bilingual parity**: every screen supports `dir="rtl"` + Arabic strings. Fonts switch (Newsreader/Poppins ↔ Reem Kufi/IBM Plex Sans Arabic). **Every figure is a Latin figure** — see below.
 - **44px minimum hit targets** on mobile.
 - **No emoji in product UI.** Unicode ★ for ratings.
 - **Icons**: SAHRA custom 1.6px line set (`components/core/Icon`); Lucide only as fallback for glyphs not yet drawn.
 - **Type scale**: Display 40 / H1 32 / H2 24 / H3 18 / Body 16-14-13 / Caption 12 / Overline 11 uppercase +0.14em. Headline weight max 600. Serif (Newsreader/Reem Kufi) for display + venue names; sans for all UI.
 - **Spacing**: 4px scale. **Radius**: sm 8 / md 12 / lg 16 / xl 24 / pill 999. **Shadows**: warm ink-tinted only; on dark, elevation = lighter surface, not shadow.
 - **Motion**: 150–200ms ease-out; press scale .98; no bounces. Signature moments per motion spec in `HANDOFF.md` (splash, confirmation, save-heart, skeleton shimmer, pull-to-refresh lantern).
+
+### Figures are Latin. All of them, everywhere.
+
+Prices, times, dates, party sizes, phone numbers, reservation codes, the digit
+count in "a 6-digit code", the minutes in "wait 15 minutes" — **Latin figures
+in Arabic copy as well as English**. `٥` and `١٥` do not appear in this
+product.
+
+Decided 2026-08-02 by the product owner, overriding their own earlier Arabic
+wording: *"I typed that by hand, it was not a design decision."*
+
+The reasoning is consistency, not preference. **Mixing two numeral systems in
+one interface is worse than either used consistently.** An Arabic screen that
+renders a price in Latin figures (because a token said so) and a wait time in
+Arabic-Indic (because a human typed it) makes a diner parse two systems in one
+glance, and it makes every number look like it might belong to the other one.
+Egyptian interfaces overwhelmingly use Latin figures for prices and times
+already; the split was the defect, not the choice of system.
+
+This is why `SahraTypography.numeric` pins the Latin face — but the face is
+only half of it. **The caller must also format with Latin digits.**
+`DateFormat.d('ar')` returns Arabic-Indic numerals and will silently
+reintroduce them; that is why `reservation_copy.dart` looks month names up in
+a table instead of asking `intl` for a localised date.
+
+Enforced by `apps/customer_app/test/i18n/arb_test.dart`, which fails on any
+Arabic-Indic codepoint (U+0660–U+0669, U+06F0–U+06F9) in either ARB.
+
+## Layout width — content stops stretching at 560
+
+Every screen here was drawn on a phone. `ui_kits/app/index.html` renders each
+one at exactly **375 × 812** and nothing in this package contemplates a wider
+window, because nothing was meant to be seen in one. Flutter builds for web and
+for tablets, and a `Column` given 1440 points will use all of them: a venue
+description becomes one 200-character line, a result row becomes a thumbnail
+marooned in whitespace, a booking button stretches a whole monitor.
+
+**Rule: content has a maximum readable width and CENTRES beyond it, rather than
+stretching edge to edge.** `SahraLayout.maxContentWidth = 560`, applied through
+`SahraPageWidth` — one wrapper at the top of a screen's body.
+
+Why 560:
+
+- ~1.5× the 375 the screens were actually drawn at, so a layout never stretches
+  more than half again beyond what a designer saw;
+- it keeps the venue description at roughly 60–75 characters a line, the
+  measure typography settled on a century ago;
+- it is **below 768**, so tablet portrait gets the centred phone layout rather
+  than a stretched one. Deliberate: `management_app` is the tablet-first
+  surface, its screens will be *drawn* for tablets, and the customer app must
+  not inherit a half-considered wide layout in the meantime.
+
+**This is not a breakpoint system.** One number, one behaviour, one place — the
+same discipline as the tokens. A screen that needs a real tablet layout should
+get a designed one, not a wider phone.
+
+Do **not** put `MediaQuery.of(context).size.width` checks in widgets. That is
+how three screens end up with three ideas of "wide", and how changing the
+number becomes a search-and-replace instead of an edit. Components are exempt
+by construction: a component fills what its parent offers.
+
+Enforced by `packages/sahra_design_system/test/layout/page_width_test.dart` and
+by the viewport matrix in `packages/sahra_test_harness`, which renders every
+screen and component at six real device sizes — including 320×568 at 200% text,
+which is where things actually break.
 
 ## Voice
 Warm host, not a booking engine. One clear recommendation. Direct second person, sentence case; UPPERCASE only for overlines/micro-labels. Meta pattern: `★ 4.8 (312) · Levantine · $$$`.

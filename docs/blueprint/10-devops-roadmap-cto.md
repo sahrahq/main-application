@@ -57,6 +57,46 @@ Team costs assume blended Cairo senior rates (~$2–4.5k/mo — an Egypt cost ad
 - **Feature rollout:** Remote Config flags; percentage + cohort targeting (e.g., Ramadan features to Egypt only); every flag has an owner and removal date.
 - **Versioning:** SemVer for API spec + apps; `/v1` contract frozen by contract tests; force-upgrade mechanism reserved for security/compat breaks.
 
+## 3b. Images — pipeline, and the manual cost we are carrying
+
+**Storage:** Supabase Storage. Same vendor as Postgres, so no new account, no
+new bill, and the files sit next to the ACLs that govern them. Free tier is
+1 GB stored and 5 GB egress per month; five venues at twenty photos each is
+roughly 30 MB stored, and at a few MB per browsing session 5 GB covers on the
+order of a couple of thousand sessions a month. The next tier is $25/month for
+100 GB / 250 GB and we should not need it before real usage.
+
+**Resize on UPLOAD, never on display.** `sharp` writes three fixed widths —
+160 (search rows, booking cards), 400 (cards, hero on a phone), 1200 (venue
+hero) — as WebP. The client asks for the smallest that fits the slot.
+Originals are kept, in a bucket path the app never requests, so a re-crop or a
+fourth size later does not mean re-collecting photos from restaurants.
+
+No paid image-transformation feature is used, and nothing resizes on a request
+path. An image transformed per view is an image paid for per view, and the
+free tier is the constraint that keeps that honest.
+
+### THE UPLOAD PATH IS MANUAL, AND IT SCALES LINEARLY WITH VENUES
+
+R-2.2 — "photo upload with ordering, cover photo" — is an **owner-facing P0
+with no owner-facing surface to put it on.** `management_app` does not exist
+and is not scheduled. So until it does, photos reach the platform through an
+admin endpoint and a seed script that **we** run.
+
+In plain terms: **onboarding a restaurant means one of us collects their
+photos, checks them, and uploads them.** Nobody at the venue can do it. At five
+pilot venues that is an afternoon. At fifty it is somebody's job, every week,
+for as long as venues keep joining and keep changing their menus and rooms.
+
+**This is the first thing that will make the management app urgent ahead of
+schedule.** Not the reservation book, not the floor plan — photo upload, because
+it is the one task that recurs per venue and cannot be batched away. The
+sentence is written down here so the fiftieth venue is not a surprise: when
+onboarding starts costing more than an afternoon a week, the answer is not more
+hours, it is R-2.2 in `management_app`.
+
+Recorded 2026-08-08, accepted with eyes open by the product owner.
+
 ## 4. CTO Recommendation (Section 16)
 
 **What I would personally build:** exactly the hybrid in doc 08 — Flutter (three surfaces, one design system) → NestJS modular monolith → Supabase PostgreSQL + Redis + BullMQ + Meilisearch, Firebase confined to FCM/Analytics/Crashlytics/Remote Config, Paymob+Fawry for money, WhatsApp as the messaging backbone, ECS Fargate + Terraform, Cloudflare in front. Boring, correct, and cheap — every exotic choice deferred until a measured bottleneck earns it.

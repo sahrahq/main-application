@@ -2,9 +2,15 @@
   "@@locale": "en",
   "@@x-review-status": "UNREVIEWED",
   "@@x-note": "English source copy. Reviewed alongside the Arabic in one pass — see docs/decisions/2026-08-02-a11y-manual-pass-launch-blocker.md",
-
   "errAccountUnavailable": "This account can't be used right now. Please contact support.",
   "errBadRequest": "Something about that request wasn't right. Please try again.",
+  "errAlreadyOnWaitlist": "You're already on the list for that night.",
+  "errWaitlistEntryNotFound": "We could not find that waitlist request.",
+  "errReviewAlreadyExists": "You've already reviewed this visit.",
+  "errReviewNotEligible": "Reviews are for visits that happened.",
+  "errReviewTooEarly": "You can review this once your table time is over.",
+  "errReviewNotFound": "We could not find that review.",
+  "errCannotReportOwnReview": "That's your own review.",
   "errBookingsOutsideNewHours": "Some confirmed bookings fall outside these hours.",
   "errCapacityConflictWithReservations": "Upcoming bookings on this table no longer fit the new capacity.",
   "errConflict": "That doesn't match the current state. Please refresh and try again.",
@@ -22,15 +28,22 @@
   "errInvalidQueryParam": "One of those filters isn't valid.",
   "errInvalidSort": "That sort option isn't available.",
   "errInvalidStatusTransition": "That booking has already moved on. Refresh to see where it stands.",
+  "errImageNotFound": "We couldn't find that photo.",
+  "errImageTooLarge": "That photo is too large. Keep it under 12 MB.",
+  "errInvalidImage": "That file couldn't be read as a photo.",
+  "errStorageUnavailable": "We couldn't store that photo. Please try again.",
+  "errUnsupportedImageType": "Use a JPEG, PNG or WebP photo.",
   "errMissingIdempotencyKey": "Something went wrong sending that. Please try again.",
   "errNotAnOwner": "This account isn't registered as a restaurant owner.",
   "errNotFound": "We couldn't find that.",
   "errOtpExpired": "That code has expired. Ask for a new one.",
   "errOtpRateLimited": "You've asked for a few codes already. Try again in a few minutes.",
+  "errOtpSendingUnavailable": "We can't send codes right now. Please try again shortly.",
   "errPacingLimitReached": "The kitchen is at capacity for that time. Try a slot nearby.",
   "errPayloadTooLarge": "That file is too large.",
   "errRateLimited": "That's a lot of requests. Give it a moment.",
   "errReservationNotFound": "We couldn't find that booking.",
+  "errReservationNotModifiable": "That booking has already started, so it can't be changed. You can still cancel it.",
   "errRestaurantNotFound": "We couldn't find that restaurant.",
   "errSearchUnavailable": "Search is having a moment. Please try again.",
   "errServiceBusy": "This restaurant is busy right now. Try again in a moment.",
@@ -42,18 +55,33 @@
   "errTableHasFutureReservations": "This table has upcoming bookings. Move or cancel them first.",
   "errTableNameTaken": "You already have a table with that name.",
   "errTableNotFound": "We couldn't find that table.",
-  "errTooManyAttempts": "Too many tries. Ask for a new code.",
+  "errTooManyAttempts": "Too many attempts. Please wait 15 minutes and try again — asking for a new code won't help until then.",
   "errUnauthenticated": "Please sign in and try again.",
   "errUnprocessable": "We couldn't process that. Please check and try again.",
   "errValidationFailed": "Some of the details aren't right yet.",
-
   "errOffline": "You're offline. We'll try again when you're back.",
   "errUnknown": "Something went wrong. Please try again.",
-
   "actionRetry": "Try again",
   "actionDismiss": "Dismiss",
   "errorReference": "Reference {requestId}",
   "@errorReference": {
-    "placeholders": { "requestId": { "type": "String" } }
+    "placeholders": {
+      "requestId": {
+        "type": "String"
+      }
+    }
+  },
+  "errTitleOffline": "You're offline",
+  "errTitleNetwork": "That took too long",
+  "errTitleAuth": "You need an account for that",
+  "errTitleConflict": "Something just changed",
+  "errTitleValidation": "Check that again",
+  "errTitleServer": "SAHRA is having a moment",
+  "errTitleUnknown": "Something went wrong",
+  "@errTitleOffline": {
+    "description": "Short HEADING for an error state; the code's own sentence is the body. One per sealed Failure member (ENGINEERING-STANDARDS §7), so failureTitle's switch is exhaustive at compile time."
+  },
+  "@errTooManyAttempts": {
+    "description": "Shown after 5 wrong OTP codes, when verification is locked for 15 minutes (doc 11 flow 1). TWO THINGS THIS COPY MUST DO. (1) Say that WAITING is required: the original said 'ask for a new code', which is exactly what does not work during a lock — the diner burns their three sends against a shut door and then calls support. (2) Put the fault on the ATTEMPT, not the person. An earlier draft opened with 'wrong codes, too many of them', which Egyptian readers take as being told off at the moment they are already locked out. If LOCK_SECONDS changes in otp.service.ts, change this."
   }
 }

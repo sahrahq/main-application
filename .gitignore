@@ -9,6 +9,27 @@
 *.keystore
 key.properties
 
+# APNs auth key. Added 2026-08-10 — it is neither .pem nor .key, so NOTHING
+# above matched it, and a `.p8` in the tree would have been committed by the
+# next `git add -A`. Found by asking `git check-ignore` rather than by reading
+# these patterns, which is the only way to be sure.
+*.p8
+
+# Anything under a directory called `secrets`, at any depth. Belt and braces:
+# the real service-account key lives OUTSIDE this repo and always should, but
+# "somebody copies it in to try something" is a five-second mistake with a
+# rotation as its only fix.
+secrets/
+**/secrets/
+
+# Firebase service-account keys, by the name the console gives them.
+# `*-firebase-adminsdk-*.json` is the exact download filename. This one is the
+# real prize: it can push to every user of the project and is not scoped to an
+# app. If it is ever committed, deleting the commit does NOT help — it is in
+# every clone. Rotate it.
+*-firebase-adminsdk-*.json
+serviceAccountKey.json
+
 # Flutter runtime config (DEVELOPMENT.md §4) — .example.json versions ARE committed
 **/env/*.json
 !**/env/*.example.json
@@ -110,3 +131,12 @@ desktop.ini
 # be looked at locally; CI uploads them as a build artifact instead. Never
 # committed — they are the output of a failure, not a baseline.
 **/test/**/failures/
+
+# ── Flutter generated-but-COMMITTED output ──────────────────────────────
+# Same treatment as tokens.g.dart and the API client: generated, committed,
+# excluded from formatting, drift-checked in CI. Un-ignored explicitly because
+# the blanket `*.g.dart` rule above would otherwise swallow them.
+!apps/customer_app/lib/**/*.g.dart
+!apps/customer_app/lib/localization/generated/
+!apps/customer_app/lib/localization/app_ar.arb
+!apps/customer_app/lib/localization/app_en.arb

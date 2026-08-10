@@ -97,7 +97,7 @@
 
 | ID | Requirement | Priority | Notes |
 |---|---|---|---|
-| A-1 | User management: search, view, suspend/ban, role assignment, impersonate-for-support (audited) | P0 | |
+| A-1 | User management: search, view, suspend/ban, role assignment | P0 | **Impersonate-for-support was REMOVED from this requirement on 2026-08-09** — `docs/decisions/2026-08-09-no-admin-impersonation.md`. Not deferred, not flagged off: out of scope. |
 | A-2 | Restaurant approval queue: review docs, approve/reject with reason, request changes | P0 | |
 | A-3 | Content moderation: photos, menus, reviews; report queue; automated profanity/spam flagging (ar/en) | P1 | |
 | A-4 | Payment management: transactions, refunds, settlement to restaurants, reconciliation with Paymob/Fawry | P1 | |

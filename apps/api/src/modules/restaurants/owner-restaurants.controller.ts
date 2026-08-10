@@ -52,21 +52,21 @@ export class OwnerRestaurantsController {
   @ApiOkResponse({ type: RestaurantResponse })
   @ApiOperation({ summary: 'Create a restaurant (lands in draft)' })
   @ApiResponse({ status: 201 })
-  async create(@CurrentUser() user: AuthedUser, @Body() dto: CreateRestaurantDto) {
+  async create(@CurrentUser() user: AuthedUser, @Body() dto: CreateRestaurantDto): Promise<RestaurantResponse> {
     return this.restaurants.create(await this.ownerIdOf(user), dto);
   }
 
   @Get()
   @ApiOkResponse({ type: [RestaurantResponse] })
   @ApiOperation({ summary: 'List my restaurants' })
-  async listMine(@CurrentUser() user: AuthedUser) {
+  async listMine(@CurrentUser() user: AuthedUser): Promise<RestaurantResponse[]> {
     return this.restaurants.listMine(await this.ownerIdOf(user));
   }
 
   @Get(':id')
   @ApiOkResponse({ type: RestaurantResponse })
   @ApiOperation({ summary: 'Get one of my restaurants' })
-  async getOne(@CurrentUser() user: AuthedUser, @Param('id', ParseUUIDPipe) id: string) {
+  async getOne(@CurrentUser() user: AuthedUser, @Param('id', ParseUUIDPipe) id: string): Promise<RestaurantResponse> {
     return this.restaurants.getOwned(await this.ownerIdOf(user), id);
   }
 
@@ -77,7 +77,7 @@ export class OwnerRestaurantsController {
     @CurrentUser() user: AuthedUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRestaurantDto,
-  ) {
+  ): Promise<RestaurantResponse> {
     return this.restaurants.update(await this.ownerIdOf(user), id, dto);
   }
 
@@ -94,7 +94,7 @@ export class OwnerRestaurantsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Query('date') date: string,
     @Query('status') status?: string,
-  ) {
+  ): Promise<BookResponse> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '')) {
       throw new BadRequestException({
         code: 'invalid_date',
@@ -114,7 +114,7 @@ export class OwnerRestaurantsController {
   @ApiOkResponse({ type: RestaurantResponse })
   @ApiOperation({ summary: 'draft → pending_review' })
   @ApiResponse({ status: 409, description: 'invalid_status_transition' })
-  async submit(@CurrentUser() user: AuthedUser, @Param('id', ParseUUIDPipe) id: string) {
+  async submit(@CurrentUser() user: AuthedUser, @Param('id', ParseUUIDPipe) id: string): Promise<RestaurantResponse> {
     return this.restaurants.submitForReview(await this.ownerIdOf(user), id);
   }
 }

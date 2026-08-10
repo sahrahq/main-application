@@ -30,7 +30,7 @@ export class AdminRestaurantsController {
   @ApiOkResponse({ type: [AdminRestaurantResponse] })
   @Roles("admin", "support", "moderator")
   @ApiOperation({ summary: "The pending_review queue, oldest first" })
-  list(@CurrentUser() user: AuthedUser) {
+  list(@CurrentUser() user: AuthedUser): Promise<AdminRestaurantResponse[]> {
     return this.admin.listPendingReview({ actorId: user.id, actorRoles: user.roles });
   }
 
@@ -39,7 +39,7 @@ export class AdminRestaurantsController {
   @Roles("admin")
   @ApiOperation({ summary: "pending_review to active" })
   @ApiResponse({ status: 409, description: "invalid_status_transition" })
-  approve(@CurrentUser() user: AuthedUser, @Param("id", ParseUUIDPipe) id: string, @Req() req: Request) {
+  approve(@CurrentUser() user: AuthedUser, @Param("id", ParseUUIDPipe) id: string, @Req() req: Request): Promise<AdminRestaurantResponse> {
     return this.admin.approve({
       actorId: user.id, actorRoles: user.roles, restaurantId: id,
       ip: req.ip ?? null, userAgent: req.get("user-agent") ?? null,
@@ -55,7 +55,7 @@ export class AdminRestaurantsController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: RejectRestaurantDto,
     @Req() req: Request,
-  ) {
+  ): Promise<AdminRestaurantResponse> {
     return this.admin.reject({
       actorId: user.id,
       actorRoles: user.roles,

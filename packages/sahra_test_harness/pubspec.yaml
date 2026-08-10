@@ -1,0 +1,26 @@
+name: sahra_test_harness
+description: >
+  Layout-health checks shared by every Flutter surface. Lives in its own
+  package for the same reason sahra_lints does: three copies of a rule are
+  three definitions that drift. Consumed as a dev_dependency only — nothing
+  here ships.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # A regular dependency HERE and a dev_dependency everywhere else. This
+  # package exists only to be imported from tests, so flutter_test is its
+  # subject matter rather than its tooling.
+  flutter_test:
+    sdk: flutter
+  sahra_design_system:
+    path: ../sahra_design_system
+
+dev_dependencies:
+  flutter_lints: ^5.0.0

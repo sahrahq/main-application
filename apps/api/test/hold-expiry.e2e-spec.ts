@@ -20,6 +20,8 @@ import { PrismaService } from '../src/shared/prisma/prisma.service';
 import { ReservationsService } from '../src/modules/reservations/reservations.service';
 import { HoldExpiryService } from '../src/modules/reservations/expiry/hold-expiry.service';
 import { AvailabilityService } from '../src/modules/availability/availability.service';
+import { createTestDiner, removeTestDiner } from './support/test-diner';
+import { realWaitlistOffers } from './support/waitlist-offers';
 
 const url = (() => {
   const base = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
@@ -30,13 +32,20 @@ const prisma = new PrismaClient({ datasources: { db: { url } } });
 const p = prisma as unknown as PrismaService;
 
 const reservations = new ReservationsService(p);
-const expiry = new HoldExpiryService(p);
+// The REAL offer service, not a stub — see `support/waitlist-offers.ts`.
+const expiry = new HoldExpiryService(p, realWaitlistOffers(p));
 const availability = new AvailabilityService(p);
 
 let ownerUserId: string;
 let ownerId: string;
 let restaurantId: string;
 let tableId: string;
+/**
+ * Owns the app bookings below. C-1.6 requires one, and the DB constraint
+ * `app_booking_has_diner` enforces it beneath the service — a fixture with a
+ * null user was reproducing the bug that shipped.
+ */
+let testDinerId: string;
 
 /** Tomorrow, UTC — the venue is pinned to UTC so wall-clock == UTC here. */
 const DATE = (() => {
@@ -66,6 +75,7 @@ const liveAllocations = async (id: string): Promise<number> => {
 
 beforeAll(async () => {
   await prisma.$connect();
+  testDinerId = await createTestDiner(prisma);
   const stamp = Date.now().toString().slice(-8);
 
   ownerUserId = randomUUID();
@@ -132,12 +142,13 @@ afterAll(async () => {
   }
   if (ownerId) await prisma.restaurantOwner.delete({ where: { id: ownerId } }).catch(() => undefined);
   if (ownerUserId) await prisma.user.delete({ where: { id: ownerUserId } }).catch(() => undefined);
+  await removeTestDiner(prisma, testDinerId);
   await prisma.$disconnect();
 }, 60_000);
 
 describe('the sweeper (doc 05 §4 backstop)', () => {
   it('expires a lapsed hold', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('18:00'), idempotencyKey: randomUUID(),
     });
     expect(await statusOf(hold.id)).toBe('held');
@@ -150,13 +161,13 @@ describe('the sweeper (doc 05 §4 backstop)', () => {
   }, 60_000);
 
   it('RELEASES THE TABLE — the invariant that was broken', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
     });
     // Only table in the house is now taken.
     await expect(
-      reservations.createHold({
-        restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
+      reservations.createHold({ userId: testDinerId,
+      restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
       }),
     ).rejects.toMatchObject({ response: { code: 'slot_taken' } });
 
@@ -166,14 +177,14 @@ describe('the sweeper (doc 05 §4 backstop)', () => {
     // Allocation released...
     expect(await liveAllocations(hold.id)).toBe(0);
     // ...and someone else can actually book it.
-    const next = await reservations.createHold({
+    const next = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
     });
     expect(next.status).toBe('held');
   }, 60_000);
 
   it('puts the slot back on the availability grid', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('21:30'), idempotencyKey: randomUUID(),
     });
     const taken = await availability.getSlots({ restaurantId, date: DATE, partySize: 2 });
@@ -187,7 +198,7 @@ describe('the sweeper (doc 05 §4 backstop)', () => {
   }, 60_000);
 
   it('leaves a hold that is still within its window alone', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('22:00'), idempotencyKey: randomUUID(),
     });
     await expiry.sweep();
@@ -196,7 +207,7 @@ describe('the sweeper (doc 05 §4 backstop)', () => {
   }, 60_000);
 
   it('never touches a confirmed reservation, however old the column is', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('18:30'), idempotencyKey: randomUUID(),
     });
     await reservations.confirmHold({ holdId: hold.id, idempotencyKey: randomUUID() });
@@ -213,7 +224,7 @@ describe('the sweeper (doc 05 §4 backstop)', () => {
   }, 60_000);
 
   it('is idempotent — a second sweep is a no-op', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('20:00'), idempotencyKey: randomUUID(),
     });
     await ageHold(hold.id);
@@ -232,7 +243,7 @@ describe('THE POINT OF HAVING BOTH: the delayed job is lost entirely', () => {
     // Simulates a worker crash, a Redis flush, or a queue that silently
     // dropped the job: NOTHING is ever enqueued for this hold. The only thing
     // that can save the table is the 60s backstop.
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('20:30'), idempotencyKey: randomUUID(),
     });
     expect(await statusOf(hold.id)).toBe('held');
@@ -247,7 +258,7 @@ describe('THE POINT OF HAVING BOTH: the delayed job is lost entirely', () => {
     expect(await liveAllocations(hold.id)).toBe(0);
 
     // The table is genuinely usable again, which is the business outcome.
-    const rebooked = await reservations.createHold({
+    const rebooked = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('20:30'), idempotencyKey: randomUUID(),
     });
     expect(rebooked.status).toBe('held');
@@ -257,7 +268,7 @@ describe('THE POINT OF HAVING BOTH: the delayed job is lost entirely', () => {
 
 describe('sweeper vs confirm (doc 05 §4 race)', () => {
   it('a confirm that lands first wins, and the sweeper does not undo it', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('22:30'), idempotencyKey: randomUUID(),
     });
 
@@ -271,7 +282,7 @@ describe('sweeper vs confirm (doc 05 §4 race)', () => {
   }, 60_000);
 
   it('a confirm arriving after expiry is refused, not silently honoured', async () => {
-    const hold = await reservations.createHold({
+    const hold = await reservations.createHold({ userId: testDinerId,
       restaurantId, partySize: 2, startsAt: at('18:00'), idempotencyKey: randomUUID(),
     });
     await ageHold(hold.id);

@@ -1,6 +1,26 @@
 # SAHRA Blueprint — 04: Database Design
 
-*PostgreSQL 16 (Supabase). Conventions: `id UUID PK DEFAULT gen_random_uuid()`, `created_at/updated_at TIMESTAMPTZ NOT NULL DEFAULT now()` on every table (omitted below for brevity), soft delete via `deleted_at` only where noted, all money as `NUMERIC(12,2)` + `currency CHAR(3) DEFAULT 'EGP'`, all user-facing text bilingual (`name_en`, `name_ar`).*
+*PostgreSQL 16 (Supabase). Conventions: `id UUID PK DEFAULT gen_random_uuid()`, `created_at/updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`, soft delete via `deleted_at` only where noted, all money as `NUMERIC(12,2)` + `currency CHAR(3) DEFAULT 'EGP'`, all user-facing text bilingual (`name_en`, `name_ar`).*
+
+> **These are conventions, not universals, and two of them have named
+> exceptions.** This paragraph used to say "on every table", which was false for
+> seven of twenty and had nothing checking it — the same shape as the RLS lapse
+> found on 2026-08-09. Every one of them is now asserted against the live
+> catalogue by `apps/api/test/schema-invariants.e2e-spec.ts`, which reads
+> `pg_class` rather than these paragraphs.
+>
+> - **No `updated_at`:** `audit_logs` (append-only — a trigger refuses every
+>   UPDATE), `roles` (seeded lookup), `reservation_tables` (its mutable columns
+>   are set by trigger from the parent reservation), `user_roles` (granted once;
+>   a revoke is a DELETE), `favorites` (created or deleted, never updated),
+>   `refresh_tokens` (`revoked_at` is the one mutation), `notifications`
+>   (`read_at` / `sent_at` are the timestamps that matter).
+> - **Not a UUID PK:** `audit_logs` (bigint sequence), `roles` (smallint
+>   lookup), and the two join tables with composite keys.
+>
+> Where `updated_at` DOES exist it is maintained by `trg_touch_updated_at`, not
+> by the statement doing the writing. Two raw UPDATEs used to forget it,
+> including the venue's cancel.
 
 ---
 
@@ -208,7 +228,11 @@ Indexes: `idx_reviews_rest(restaurant_id, status, created_at DESC)`, `idx_review
 ### menus / menu_categories / menu_items
 `menus(id, restaurant_id FK CASCADE, name_en/ar, kind ENUM('food','drinks','ramadan','set'), pdf_url TEXT NULL, position SMALLINT, active BOOL)`
 `menu_categories(id, menu_id FK CASCADE, name_en/ar, position SMALLINT)`
-`menu_items(id, category_id FK CASCADE, name_en/ar, description_en/ar, price NUMERIC(10,2), currency, image_id FK→images NULL, dietary_tags TEXT[], available BOOL, position SMALLINT)`
+`menu_items(id, category_id FK CASCADE, name_en/ar, description_en/ar, price NUMERIC(12,2), currency, image_id FK→images NULL, dietary_tags TEXT[], available BOOL, position SMALLINT)`
+
+> **PRECEDENT — every money column is `NUMERIC(12,2)`.** This line said `(10,2)`, which contradicted CLAUDE.md rule 5. `menu_items.price` was the FIRST money column built, so the width it took is the one `payments.amount`, deposits, settlement and commission are all copied from. Corrected 2026-08-09; the argument is in `docs/decisions/2026-08-09-group-d-schema-proposal.md` §1.2 and does not need making again.
+
+> `dietary_tags` is constrained to a fixed vocabulary by a CHECK — an unconstrained typo does not fail, it disappears at render time. The list is in the migration.
 Indexes: position-ordered fetch per parent: `idx_mi_cat(category_id, position)`.
 
 ### images (polymorphic media)

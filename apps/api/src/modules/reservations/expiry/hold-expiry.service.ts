@@ -1,10 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
+import { WaitlistOfferService } from '../../favorites/waitlist-offer.service';
 
 export interface ExpiredHold {
   id: string;
   restaurant_id: string;
   starts_at: Date;
+  party_size: number;
 }
 
 /**
@@ -27,7 +29,15 @@ export interface ExpiredHold {
 export class HoldExpiryService {
   private readonly logger = new Logger(HoldExpiryService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    /**
+     * C-3.6. doc 05 §3's flowchart ends the expiry branch with "inventory
+     * freed / **check waitlist**", and until Group G nothing checked. This
+     * dependency is that line.
+     */
+    private readonly waitlistOffers: WaitlistOfferService,
+  ) {}
 
   /**
    * Expire every lapsed hold. Returns how many were claimed.
@@ -56,13 +66,26 @@ export class HoldExpiryService {
        WHERE status = 'held'
          AND hold_expires_at IS NOT NULL
          AND hold_expires_at < now()
-      RETURNING id, restaurant_id, starts_at`;
+      RETURNING id, restaurant_id, starts_at, party_size`;
 
     if (expired.length > 0) {
       this.logger.log(`Expired ${expired.length} lapsed hold(s), releasing their tables.`);
-      // doc 05 §4/§5: a freed slot should offer to the waitlist next. The
-      // waitlist is P1 and not built, so the slot returns to public
-      // availability — which is the correct interim behaviour, not a silent gap.
+    }
+
+    // doc 05 §4/§5: a freed slot offers to the waitlist next. It said, until
+    // Group G, "the waitlist is P1 and not built, so the slot returns to public
+    // availability — the correct interim behaviour, not a silent gap." The
+    // waitlist is built now, so the interim is over.
+    //
+    // Sequential, not `Promise.all`: each call takes a row lock with
+    // SKIP LOCKED, and firing a burst of them concurrently would have them skip
+    // each other's candidates and offer fewer tables than there are waiters.
+    for (const hold of expired) {
+      await this.waitlistOffers.onSlotFreed({
+        restaurantId: hold.restaurant_id,
+        startsAt: hold.starts_at,
+        partySize: hold.party_size,
+      });
     }
 
     return expired.length;
@@ -77,7 +100,7 @@ export class HoldExpiryService {
    * which is the normal outcome for a hold that was confirmed on time.
    */
   async expireOne(reservationId: string): Promise<boolean> {
-    const affected = await this.prisma.$executeRaw`
+    const affected = await this.prisma.$queryRaw<ExpiredHold[]>`
       UPDATE reservations
          SET status = 'expired',
              hold_expires_at = NULL,
@@ -86,11 +109,27 @@ export class HoldExpiryService {
        WHERE id = ${reservationId}::uuid
          AND status = 'held'
          AND hold_expires_at IS NOT NULL
-         AND hold_expires_at < now()`;
+         AND hold_expires_at < now()
+      RETURNING id, restaurant_id, starts_at, party_size`;
 
-    if (affected > 0) {
-      this.logger.debug(`Hold ${reservationId} expired by delayed job.`);
-    }
-    return affected > 0;
+    if (affected.length === 0) return false;
+
+    this.logger.debug(`Hold ${reservationId} expired by delayed job.`);
+
+    // THE SAME CALL AS THE SWEEP, because this is the same event.
+    //
+    // The guarded predicate is what makes it safe to have it in both places:
+    // whichever of the two mechanisms wins the race is the only one whose
+    // UPDATE matches a row, so exactly one of them offers the table. A
+    // notification hook placed in only one would fire or not depending on
+    // whether Redis was up, which is precisely the difference the backstop
+    // exists to erase.
+    await this.waitlistOffers.onSlotFreed({
+      restaurantId: affected[0].restaurant_id,
+      startsAt: affected[0].starts_at,
+      partySize: affected[0].party_size,
+    });
+
+    return true;
   }
 }

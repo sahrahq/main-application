@@ -15,3 +15,17 @@ allowBuilds:
   # it falls back to the pure-JS path automatically, and a native build adds a
   # toolchain dependency to CI for a serialization speedup we do not need.
   msgpackr-extract: false
+  # firebase-admin (NOTIFY-1 Stage 2), 2026-08-10. pnpm wrote these as literal
+  # "set this to true or false" placeholders and they are answered here rather
+  # than left for the next `pnpm install` to trip over.
+  #
+  # BOTH FALSE, and it is evidence rather than a guess: with these build scripts
+  # skipped, a probe against the real project authenticated and reached FCM
+  # (recorded in docs/decisions/2026-08-10-fcm-stage-2.md). Neither postinstall
+  # is needed for the one thing we use the SDK for — sending a message.
+  #
+  # `protobufjs`'s postinstall generates CLI helpers we never invoke;
+  # `@firebase/util`'s is trivial. Same posture as msgpackr-extract above: do
+  # not add a native toolchain to CI for something nothing calls.
+  '@firebase/util': false
+  protobufjs: false

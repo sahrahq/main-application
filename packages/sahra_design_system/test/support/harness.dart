@@ -122,10 +122,26 @@ void a11yMatrix(String name, Widget Function(Cell cell) build, {bool interactive
       await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
       // The palette is warm and low-contrast by design; assumption is not
       // enough. Note this guideline SKIPS text drawn over an image.
-      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      await expectContrast(tester, '$name [${cell.slug}]');
 
       handle.dispose();
     });
+  }
+}
+
+/// `textContrastGuideline`, with the explanation attached to the failure.
+///
+/// The guideline samples RENDERED PIXELS and regularly lands on an anti-aliased
+/// glyph edge, where — on our surfaces — no colour at all can clear AA. It has
+/// produced two false colour investigations here. The caveat now travels with
+/// the failure rather than living only in a decision doc, and it sits beside
+/// `bestPossibleEdgeContrast`, which is what proves it
+/// (`test/a11y/palette_contrast_test.dart`).
+Future<void> expectContrast(WidgetTester tester, String where) async {
+  try {
+    await expectLater(tester, meetsGuideline(textContrastGuideline));
+  } on TestFailure catch (e) {
+    throw TestFailure('${e.message}\n\n$where$kEdgeSampledContrastCaveat');
   }
 }
 

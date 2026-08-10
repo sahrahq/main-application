@@ -22,6 +22,8 @@ dev_dependencies:
     sdk: flutter
   sahra_lints:
     path: ../sahra_lints
+  sahra_test_harness:
+    path: ../sahra_test_harness
   flutter_lints: ^5.0.0
 
 flutter:

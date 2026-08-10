@@ -60,14 +60,28 @@ class SahraBadge extends StatelessWidget {
             ),
             SizedBox(width: SahraSpace.s1),
           ],
-          Text(
-            // Arabic has no case, so this is a no-op there — correct, not a gap.
-            label.toUpperCase(),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: palette.foreground,
-                  fontWeight: FontWeight.w700,
-                  fontSize: SahraTypeScale.caption,
-                ),
+          // FLEXIBLE, so a long label wraps instead of overflowing its pill.
+          //
+          // `mainAxisSize.min` sizes this Row to its content, which is right at
+          // normal text sizes. At 200% it is not: "AWAITING CONFIRMATION" is
+          // wider than the card it sits in, and the Row overflowed by 60px on
+          // the bookings list. A badge is a micro-label, so two short lines is
+          // the correct degradation — the alternative is an ellipsis that hides
+          // which status this is, on the screen where the status is the point.
+          //
+          // Flexible binds only when the parent constrains the width, so at 1x
+          // nothing about any existing badge changes.
+          Flexible(
+            child: Text(
+              // Arabic has no case, so this is a no-op there — correct, not a
+              // gap.
+              label.toUpperCase(),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: palette.foreground,
+                    fontWeight: FontWeight.w700,
+                    fontSize: SahraTypeScale.caption,
+                  ),
+            ),
           ),
         ],
       ),

@@ -322,6 +322,190 @@ List<Violation> asyncValueOnlyInSharedView(
   return out;
 }
 
+// ──────────────────────────────────── invisible characters cannot be reviewed ──
+
+/// The bidi isolate constants in `sahra_design_system`, and the corruption
+/// signature that has replaced them.
+///
+/// WHY THIS EXISTS, for whoever finds it later:
+///
+/// `sahra_bidi.dart` holds two constants whose entire value is a single
+/// INVISIBLE Unicode control character — U+2066 LEFT-TO-RIGHT ISOLATE and
+/// U+2069 POP DIRECTIONAL ISOLATE. They are what makes a phone number render
+/// as `+20 2 2735 0000` inside Arabic text instead of `0000 2735 2 20+`.
+///
+/// This file is uniquely dangerous because **its correctness is invisible on
+/// screen**. A human reviewing the diff cannot see the difference between a
+/// correct constant and a corrupted one; both render as an empty-looking
+/// string literal.
+///
+/// It has been corrupted before. A shell substitution intended to convert the
+/// literal control characters into Dart escapes ate the backslash and left:
+///
+/// ```dart
+/// const String _lri = '2066';   // the four-character string "2066"
+/// const String _pdi = '2069';   // NOT the control characters
+/// ```
+///
+/// `flutter analyze` reported **"No issues found!"** on that, because the
+/// warning it had been emitting was about the presence of literal control
+/// characters — and they were gone. The feature was gone with them:
+/// `ltrRun()` would have shipped every phone number, time range and address
+/// as `2066+20 2 2735 00002069`.
+///
+/// **EDIT THIS FILE WITH THE EDIT TOOL ONLY. Never perl, never sed, never a
+/// heredoc.** Shell escaping has destroyed these constants once and came
+/// within two commands of shipping it. That near-miss was caught by luck — a
+/// behavioural test that happened to be re-run — which is not a system.
+const Map<String, int> bidiIsolateConstants = <String, int>{
+  '_lri': 0x2066,
+  '_pdi': 0x2069,
+};
+
+/// Check the two constants are EXACTLY one code point each, and the right one.
+///
+/// Reads the file as bytes and inspects the actual code units rather than
+/// pattern-matching the source text, because the whole problem is that the
+/// source text looks the same either way.
+List<Violation> bidiConstantsIntact(File bidiSource) {
+  final out = <Violation>[];
+  final path = _short(bidiSource);
+
+  if (!bidiSource.existsSync()) {
+    out.add(Violation(path, 0, 'bidi-file-missing', bidiSource.path));
+    return out;
+  }
+
+  final lines = bidiSource.readAsStringSync().split('\n');
+
+  for (final entry in bidiIsolateConstants.entries) {
+    final name = entry.key;
+    final expected = entry.value;
+
+    // `const String _lri = '…';` — capture whatever is between the quotes.
+    final pattern = RegExp("const String $name = '(.*)';");
+    var found = false;
+
+    for (var i = 0; i < lines.length; i++) {
+      final m = pattern.firstMatch(lines[i]);
+      if (m == null) continue;
+      found = true;
+
+      final literal = m.group(1)!;
+
+      // Dart escape form, backslash-u-2066. Correct, and the form the guarded
+      // file uses so its own source does not reorder in an editor. Written
+      // here in words rather than shown, for the same reason.
+      final escape = RegExp(r'^\\u\{?([0-9a-fA-F]{4,6})\}?$').firstMatch(literal);
+      if (escape != null) {
+        final value = int.parse(escape.group(1)!, radix: 16);
+        if (value != expected) {
+          out.add(Violation(path, i + 1, 'bidi-wrong-code-point',
+              '$name is U+${value.toRadixString(16).toUpperCase()}, expected '
+              'U+${expected.toRadixString(16).toUpperCase()}'));
+        }
+        break;
+      }
+
+      // Raw single code point. Also correct, if it is the right one.
+      final units = literal.runes.toList();
+      if (units.length == 1 && units.single == expected) break;
+
+      out.add(Violation(
+        path,
+        i + 1,
+        'bidi-constant-corrupted',
+        '$name is ${_describeLiteral(literal)}, expected exactly one code point '
+        'U+${expected.toRadixString(16).toUpperCase()}',
+      ));
+      break;
+    }
+
+    if (!found) {
+      out.add(Violation(path, 0, 'bidi-constant-missing',
+          "no `const String $name = '…';` in the file"));
+    }
+  }
+
+  return out;
+}
+
+String _describeLiteral(String literal) {
+  if (literal.isEmpty) return 'EMPTY';
+  final runes = literal.runes.toList();
+  final points = runes
+      .map((r) => 'U+${r.toRadixString(16).toUpperCase().padLeft(4, '0')}')
+      .join(' ');
+  return '${runes.length} code point(s) [$points] — the literal text "$literal"';
+}
+
+/// The exact corruption signature, anywhere in the repo.
+///
+/// `'2066'` or `'2069'` inside a Dart string literal is what a swallowed
+/// backslash leaves behind. There is no legitimate reason for either — they
+/// are not years, not ports, not sizes, and if one ever is, this rule wants to
+/// hear about it.
+List<Violation> noBidiCorruptionSignature(
+  Directory dir, {
+  List<String> excludePathContains = const <String>[],
+}) {
+  final out = <Violation>[];
+  final signature = RegExp(r"""['"](2066|2069)['"]""");
+
+  for (final file in dartSources(dir, excludePathContains: excludePathContains)) {
+    // NOT `_scannableLines`: this rule must see the raw source. A corrupted
+    // constant may sit on a line the comment-stripper would touch, and this is
+    // the one rule that cannot afford to be clever about what it reads.
+    final lines = file.readAsStringSync().split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      for (final m in signature.allMatches(lines[i])) {
+        out.add(Violation(_short(file), i + 1, 'bidi-corruption-signature', m.group(0)!));
+      }
+    }
+  }
+  return out;
+}
+
+/// The failure message. Long on purpose: a future session meeting this needs
+/// to know WHY, not just WHAT, or it will "fix" it with the tool that broke it.
+String describeBidi(List<Violation> violations) => '''
+${violations.length} bidi-constant violation(s):
+${violations.join('\n')}
+
+WHAT THESE CONSTANTS ARE
+  U+2066 LEFT-TO-RIGHT ISOLATE and U+2069 POP DIRECTIONAL ISOLATE. They are
+  INVISIBLE control characters. `ltrRun()` wraps phone numbers, time ranges
+  and addresses in them so a Latin run inside Arabic text lays out
+  left-to-right. Without them a Cairo phone number renders as
+  "0000 2735 2 20+" and opening hours as "23:30 - 18:00".
+
+WHY A LINT GUARDS TWO CONSTANTS
+  Their correctness is INVISIBLE ON SCREEN. A reviewer reading the diff cannot
+  tell a correct constant from a corrupted one — both look like an empty
+  string literal. Nothing else in this repo has that property.
+
+HOW THEY BROKE LAST TIME
+  A shell substitution meant to turn the literal control characters into Dart
+  escapes swallowed the backslash and left the four-character strings "2066"
+  and "2069". `flutter analyze` then reported "No issues found!", because the
+  warning it had been emitting was about the CONTROL CHARACTERS BEING PRESENT
+  — and they were gone, along with the feature.
+
+HOW TO FIX IT
+  Edit `packages/sahra_design_system/lib/src/theme/sahra_bidi.dart` so it reads
+  exactly:
+
+      const String _lri = '\\u2066';
+      const String _pdi = '\\u2069';
+
+  USE THE EDIT TOOL. Never perl, never sed, never a heredoc — shell escaping
+  is what destroyed them, three attempts running.
+
+  Then run the BEHAVIOURAL test, not the analyzer:
+
+      cd packages/sahra_design_system && flutter test test/bidi_test.dart
+''';
+
 String _short(File f) {
   final p = f.path.replaceAll(r'\', '/');
   final i = p.indexOf('/lib/');

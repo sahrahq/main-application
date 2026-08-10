@@ -17,6 +17,17 @@ class SahraApi {
 
   final SahraTransport _transport;
 
+  /// `GET /health`
+  ///
+  /// Service health, including which push platforms are reachable
+  Future<HealthResponse> check() async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/health',
+    );
+    return HealthResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `GET /v1/admin/restaurants`
   ///
   /// The pending_review queue, oldest first
@@ -54,6 +65,47 @@ class SahraApi {
       body: body.toJson(),
     );
     return AdminRestaurantResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `GET /v1/admin/restaurants/{restaurantId}/images`
+  ///
+  /// A venue's photos, in order
+  Future<List<ImageResponse>> listImages({
+    required String restaurantId,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/admin/restaurants/$restaurantId/images',
+    );
+    return (response as List<dynamic>).map((e) => ImageResponse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// `DELETE /v1/admin/restaurants/{restaurantId}/images/{imageId}`
+  ///
+  /// Remove a photo and every rendition of it
+  Future<void> remove({
+    required String restaurantId,
+    required String imageId,
+  }) async {
+    await _transport.send(
+      method: 'DELETE',
+      path: '/v1/admin/restaurants/$restaurantId/images/$imageId',
+    );
+    return;
+  }
+
+  /// `POST /v1/auth/complete-registration`
+  ///
+  /// Create the account for a verified challenge
+  Future<TokenPairResponse> completeRegistration({
+    required CompleteRegistrationDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/auth/complete-registration',
+      body: body.toJson(),
+    );
+    return TokenPairResponse.fromJson(response as Map<String, dynamic>);
   }
 
   /// `POST /v1/auth/login`
@@ -95,6 +147,20 @@ class SahraApi {
     return UserResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `PATCH /v1/auth/me`
+  ///
+  /// Edit your own name or language
+  Future<UserResponse> updateMe({
+    required UpdateProfileDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'PATCH',
+      path: '/v1/auth/me',
+      body: body.toJson(),
+    );
+    return UserResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `POST /v1/auth/refresh`
   ///
   /// Rotate the refresh token
@@ -123,10 +189,24 @@ class SahraApi {
     return RegisterResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `POST /v1/auth/request-otp`
+  ///
+  /// Send a code to a phone. No account lookup.
+  Future<OtpChallengeResponse> requestOtp({
+    required RequestOtpDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/auth/request-otp',
+      body: body.toJson(),
+    );
+    return OtpChallengeResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `POST /v1/auth/resend-otp`
   ///
-  /// Re-send the phone code (rate limited)
-  Future<OtpSentResponse> resendOtp({
+  /// Re-send to the number the challenge went to
+  Future<OtpChallengeResponse> resendOtp({
     required ResendOtpDto body,
   }) async {
     final response = await _transport.send(
@@ -134,13 +214,13 @@ class SahraApi {
       path: '/v1/auth/resend-otp',
       body: body.toJson(),
     );
-    return OtpSentResponse.fromJson(response as Map<String, dynamic>);
+    return OtpChallengeResponse.fromJson(response as Map<String, dynamic>);
   }
 
   /// `POST /v1/auth/verify-otp`
   ///
-  /// Verify the phone code; activates the account
-  Future<TokenPairResponse> verifyOtp({
+  /// Answer a challenge; signs in or asks for a name
+  Future<VerifyOtpResponse> verifyOtp({
     required VerifyOtpDto body,
   }) async {
     final response = await _transport.send(
@@ -148,7 +228,80 @@ class SahraApi {
       path: '/v1/auth/verify-otp',
       body: body.toJson(),
     );
-    return TokenPairResponse.fromJson(response as Map<String, dynamic>);
+    return VerifyOtpResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `DELETE /v1/devices`
+  ///
+  /// Revoke this handset — call on sign-out
+  Future<void> revoke({
+    required RevokeDeviceDto body,
+  }) async {
+    await _transport.send(
+      method: 'DELETE',
+      path: '/v1/devices',
+      body: body.toJson(),
+    );
+    return;
+  }
+
+  /// `POST /v1/devices`
+  ///
+  /// Register this handset for push
+  Future<DeviceResponse> registerDevice({
+    required RegisterDeviceDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/devices',
+      body: body.toJson(),
+    );
+    return DeviceResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `GET /v1/notifications`
+  ///
+  /// The notification centre — newest first, with an unread count
+  Future<NotificationListResponse> listNotifications({
+    String? limit,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/notifications',
+      query: <String, String>{
+        if (limit != null) 'limit': limit,
+      },
+    );
+    return NotificationListResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `POST /v1/notifications/read`
+  ///
+  /// Mark notifications read — ids, or all of them
+  Future<MarkReadResponse> markRead({
+    required MarkNotificationsReadDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/notifications/read',
+      body: body.toJson(),
+    );
+    return MarkReadResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `POST /v1/owner/reservations/{id}/cancel`
+  ///
+  /// Cancel a booking, as the restaurant
+  Future<CancelledReservationResponse> cancel({
+    required String id,
+    required CancelReservationDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/owner/reservations/$id/cancel',
+      body: body.toJson(),
+    );
+    return CancelledReservationResponse.fromJson(response as Map<String, dynamic>);
   }
 
   /// `GET /v1/owner/restaurants`
@@ -407,6 +560,22 @@ class SahraApi {
     return TableResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `GET /v1/reservations`
+  ///
+  /// The caller's own reservations
+  Future<List<MyReservationResponse>> listMyReservations({
+    String? status,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/reservations',
+      query: <String, String>{
+        if (status != null) 'status': status,
+      },
+    );
+    return (response as List<dynamic>).map((e) => MyReservationResponse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   /// `POST /v1/reservations/holds`
   ///
   /// Hold a table for 5 minutes
@@ -442,6 +611,81 @@ class SahraApi {
       body: body.toJson(),
     );
     return ReservationResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `GET /v1/reservations/{id}`
+  ///
+  /// One of the caller's own reservations
+  Future<MyReservationResponse> one({
+    required String id,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/reservations/$id',
+    );
+    return MyReservationResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `PATCH /v1/reservations/{id}`
+  ///
+  /// Change the time or party size of your own booking
+  Future<MyReservationResponse> modify({
+    required String id,
+    required ModifyReservationDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'PATCH',
+      path: '/v1/reservations/$id',
+      body: body.toJson(),
+    );
+    return MyReservationResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `POST /v1/reservations/{id}/acknowledge-cancellation`
+  ///
+  /// Mark a restaurant-initiated cancellation as seen
+  Future<void> acknowledge({
+    required String id,
+  }) async {
+    await _transport.send(
+      method: 'POST',
+      path: '/v1/reservations/$id/acknowledge-cancellation',
+    );
+    return;
+  }
+
+  /// `GET /v1/reservations/{id}/available-slots`
+  ///
+  /// Times this booking could be moved to
+  Future<AvailabilityResponse> movableSlots({
+    required String id,
+    String? date,
+    String? partySize,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/reservations/$id/available-slots',
+      query: <String, String>{
+        if (date != null) 'date': date,
+        if (partySize != null) 'party_size': partySize,
+      },
+    );
+    return AvailabilityResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `POST /v1/reservations/{id}/cancel`
+  ///
+  /// Cancel your own booking
+  Future<MyReservationResponse> cancelOwn({
+    required String id,
+    required CancelOwnReservationDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/reservations/$id/cancel',
+      body: body.toJson(),
+    );
+    return MyReservationResponse.fromJson(response as Map<String, dynamic>);
   }
 
   /// `GET /v1/restaurants/search`
@@ -486,6 +730,51 @@ class SahraApi {
     return SearchResponse.fromJson(response as Map<String, dynamic>);
   }
 
+  /// `GET /v1/restaurants/{idOrSlug}`
+  ///
+  /// Public restaurant profile, by id or slug
+  Future<RestaurantProfileResponse> profile({
+    required String idOrSlug,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/restaurants/$idOrSlug',
+    );
+    return RestaurantProfileResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `GET /v1/restaurants/{idOrSlug}/menus`
+  ///
+  /// A venue's menus, with categories and available items
+  Future<List<MenuResponse>> listMenus({
+    required String idOrSlug,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/restaurants/$idOrSlug/menus',
+    );
+    return (response as List<dynamic>).map((e) => MenuResponse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// `GET /v1/restaurants/{idOrSlug}/reviews`
+  ///
+  /// A venue's published reviews, newest first
+  Future<ReviewPageResponse> listReviews({
+    required String idOrSlug,
+    String? cursor,
+    String? limit,
+  }) async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/restaurants/$idOrSlug/reviews',
+      query: <String, String>{
+        if (cursor != null) 'cursor': cursor,
+        if (limit != null) 'limit': limit,
+      },
+    );
+    return ReviewPageResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `GET /v1/restaurants/{id}/availability`
   ///
   /// Bookable slots for a date and party size
@@ -504,4 +793,117 @@ class SahraApi {
     );
     return AvailabilityResponse.fromJson(response as Map<String, dynamic>);
   }
+
+  /// `POST /v1/reviews`
+  ///
+  /// Review a visit that happened
+  Future<ReviewResponse> createReview({
+    required CreateReviewDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/reviews',
+      body: body.toJson(),
+    );
+    return ReviewResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `POST /v1/reviews/{id}/report`
+  ///
+  /// Report a review (recorded; the queue is A-3)
+  Future<void> reportReview({
+    required String id,
+    required ReportReviewDto body,
+  }) async {
+    await _transport.send(
+      method: 'POST',
+      path: '/v1/reviews/$id/report',
+      body: body.toJson(),
+    );
+    return;
+  }
+
+  /// `GET /v1/saved`
+  ///
+  /// The caller's saved venues, newest first
+  Future<List<SavedVenueResponse>> listSaved() async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/saved',
+    );
+    return (response as List<dynamic>).map((e) => SavedVenueResponse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// `POST /v1/saved`
+  ///
+  /// Save a venue (idempotent)
+  Future<void> save({
+    required SaveVenueDto body,
+  }) async {
+    await _transport.send(
+      method: 'POST',
+      path: '/v1/saved',
+      body: body.toJson(),
+    );
+    return;
+  }
+
+  /// `DELETE /v1/saved/{restaurantId}`
+  ///
+  /// Unsave a venue (idempotent)
+  Future<void> unsave({
+    required String restaurantId,
+  }) async {
+    await _transport.send(
+      method: 'DELETE',
+      path: '/v1/saved/$restaurantId',
+    );
+    return;
+  }
+
+  /// `GET /v1/waitlists`
+  ///
+  /// The caller's live waitlist entries
+  Future<List<WaitlistEntryResponse>> listWaitlists() async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/v1/waitlists',
+    );
+    return (response as List<dynamic>).map((e) => WaitlistEntryResponse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// `POST /v1/waitlists`
+  ///
+  /// Join the waitlist for a date and window
+  Future<WaitlistEntryResponse> join({
+    required JoinWaitlistDto body,
+  }) async {
+    final response = await _transport.send(
+      method: 'POST',
+      path: '/v1/waitlists',
+      body: body.toJson(),
+    );
+    return WaitlistEntryResponse.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// `DELETE /v1/waitlists/{id}`
+  ///
+  /// Leave the waitlist
+  Future<void> leave({
+    required String id,
+  }) async {
+    await _transport.send(
+      method: 'DELETE',
+      path: '/v1/waitlists/$id',
+    );
+    return;
+  }
 }
+
+/// Endpoints in the spec that this client deliberately does NOT expose.
+///
+/// Their request body is not JSON, so there is no Dart type to generate.
+/// Skipping is a decision, not a gap — see the generator.
+const List<String> kUngeneratedEndpoints = <String>[
+  'POST /v1/admin/restaurants/{restaurantId}/images — multipart/form-data',
+];

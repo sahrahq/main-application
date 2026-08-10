@@ -53,50 +53,70 @@ class SahraEmptyState extends StatelessWidget {
               fade: true,
             ),
           ),
-          Padding(
-            padding: SahraSpace.symmetric(
-              horizontal: SahraSpace.s6,
-              vertical: SahraSpace.s10,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Container(
-                  width: SahraSpace.s16 - SahraSpace.s2,
-                  height: SahraSpace.s16 - SahraSpace.s2,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: s.surfaceSunken,
-                  ),
-                  alignment: Alignment.center,
-                  child: SahraIcon(icon, size: SahraSpace.s6, color: s.accentOnSurface),
-                ),
-                SizedBox(height: SahraSpace.s4),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                if (message != null) ...<Widget>[
-                  SizedBox(height: SahraSpace.s2),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 300),
-                    child: Text(
-                      message!,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: s.textSoft),
+          // `double.infinity`, and the hard edge in the first Chrome screenshot
+          // is why.
+          //
+          // A `Stack` sizes itself to its NON-POSITIONED children, and the only
+          // one here is this block. The Column is `mainAxisSize.min` and its
+          // widest child is a 300-point text, so the Stack came out ~312 wide —
+          // whatever the screen offered. `Positioned.fill` then filled 312, so
+          // the mashrabiya stopped dead partway across the body with a straight
+          // vertical edge, and because the parent Column aligns to start, the
+          // whole block sat against the leading edge instead of centred.
+          // Measured on a 1440 window: the 560 content column ran x440–1000
+          // and the empty state's title ran x475–753.
+          //
+          // Full width makes the Stack fill what it is given, which centres the
+          // Column inside it and lets the texture reach both edges. The
+          // decorative layer was never the bug — the box it was told to fill
+          // was.
+          SizedBox(
+            width: double.infinity,
+            child: Padding(
+              padding: SahraSpace.symmetric(
+                horizontal: SahraSpace.s6,
+                vertical: SahraSpace.s10,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Container(
+                    width: SahraSpace.s16 - SahraSpace.s2,
+                    height: SahraSpace.s16 - SahraSpace.s2,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: s.surfaceSunken,
                     ),
+                    alignment: Alignment.center,
+                    child: SahraIcon(icon, size: SahraSpace.s6, color: s.accentOnSurface),
                   ),
-                ],
-                if (actionLabel != null) ...<Widget>[
                   SizedBox(height: SahraSpace.s4),
-                  SahraButton(
-                    label: actionLabel!,
-                    size: SahraButtonSize.sm,
-                    onPressed: onAction,
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
+                  if (message != null) ...<Widget>[
+                    SizedBox(height: SahraSpace.s2),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 300),
+                      child: Text(
+                        message!,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: s.textSoft),
+                      ),
+                    ),
+                  ],
+                  if (actionLabel != null) ...<Widget>[
+                    SizedBox(height: SahraSpace.s4),
+                    SahraButton(
+                      label: actionLabel!,
+                      size: SahraButtonSize.sm,
+                      onPressed: onAction,
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],

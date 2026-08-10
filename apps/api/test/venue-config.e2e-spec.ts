@@ -42,6 +42,7 @@ let ownerUserId: string;
 let ownerId: string;
 let otherOwnerId: string;
 let otherOwnerUserId: string;
+let dinerUserId: string;
 let restaurantId: string;
 
 /** +4 days, so this suite cannot collide with the expiry or search suites. */
@@ -75,10 +76,15 @@ beforeAll(async () => {
 
   ownerUserId = randomUUID();
   otherOwnerUserId = randomUUID();
+  // C-1.6: an app booking belongs to a diner, enforced by the DB constraint
+  // `app_booking_has_diner`. These fixtures previously created reservations
+  // with user_id = NULL — the exact shape of the bug that shipped.
+  dinerUserId = randomUUID();
   await prisma.user.createMany({
     data: [
       { id: ownerUserId, phone: `+2030${stamp}`, fullName: 'Config Owner', status: 'active' },
       { id: otherOwnerUserId, phone: `+2031${stamp}`, fullName: 'Rival Owner', status: 'active' },
+      { id: dinerUserId, phone: `+2032${stamp}`, fullName: 'Config Diner', status: 'active' },
     ],
   });
   ownerId = (await prisma.restaurantOwner.create({
@@ -188,7 +194,8 @@ describe('a table edit can never orphan a booking', () => {
       name: 'T1', minCapacity: 1, maxCapacity: 6,
     });
     const hold = await reservations.createHold({
-      restaurantId, partySize, startsAt: at(hhmm), idempotencyKey: randomUUID(),
+      restaurantId, userId: dinerUserId,
+      partySize, startsAt: at(hhmm), idempotencyKey: randomUUID(),
     });
     const confirmed = await reservations.confirmHold({
       holdId: hold.id, idempotencyKey: randomUUID(),
@@ -278,7 +285,7 @@ describe('a table edit can never orphan a booking', () => {
       name: 'T1', minCapacity: 1, maxCapacity: 4,
     });
     const hold = await reservations.createHold({
-      restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
+      restaurantId, userId: dinerUserId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
     });
     const confirmed = await reservations.confirmHold({
       holdId: hold.id, idempotencyKey: randomUUID(),
@@ -314,7 +321,7 @@ describe('a table edit can never orphan a booking', () => {
     expect(slots.slots.length).toBeGreaterThan(0);
     // ...but every offered slot is served by the live table only.
     const hold = await reservations.createHold({
-      restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
+      restaurantId, userId: dinerUserId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
     });
     const alloc = await prisma.$queryRaw<{ table_id: string }[]>`
       SELECT table_id FROM reservation_tables WHERE reservation_id = ${hold.id}::uuid`;
@@ -340,7 +347,7 @@ describe('a table edit can never orphan a booking', () => {
       name: 'OLD', minCapacity: 1, maxCapacity: 4,
     });
     const hold = await reservations.createHold({
-      restaurantId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
+      restaurantId, userId: dinerUserId, partySize: 2, startsAt: at('19:00'), idempotencyKey: randomUUID(),
     });
     await prisma.$executeRaw`
       UPDATE reservations SET starts_at = now() - interval '30 days',
@@ -451,7 +458,7 @@ describe('an hours change can never silently invalidate a confirmed booking', ()
     await tables.create(ownerId, restaurantId, { name: 'T1', minCapacity: 1, maxCapacity: 4 });
     const shift = await freshShift('12:00', '23:00');
     const hold = await reservations.createHold({
-      restaurantId, partySize: 2, startsAt: at(hhmm), idempotencyKey: randomUUID(),
+      restaurantId, userId: dinerUserId, partySize: 2, startsAt: at(hhmm), idempotencyKey: randomUUID(),
     });
     const confirmed = await reservations.confirmHold({
       holdId: hold.id, idempotencyKey: randomUUID(),

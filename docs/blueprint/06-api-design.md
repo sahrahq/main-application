@@ -28,14 +28,59 @@
 | Endpoint | Method | Body (req) | Success | Notes |
 |---|---|---|---|---|
 | `/auth/register` | POST | `{phone, email?, password?, full_name, locale}` | 201 `{user_id, otp_required: true}` | 409 `phone_exists` |
-| `/auth/verify-otp` | POST | `{user_id, code}` | 200 `{access_token, refresh_token, user}` | 5 attempts → 429 |
-| `/auth/login` | POST | `{identifier, password}` or `{phone}` → OTP flow | 200 tokens | 401 `invalid_credentials` |
+| `/auth/verify-otp` | POST | `{user_id, code, purpose?}` | 200 `{access_token, refresh_token, user}` | 5 attempts → 429 + **15-minute lock** |
+| `/auth/login` | POST | `{identifier, password}` | 200 tokens | 401 `invalid_credentials` |
+| `/auth/request-otp` | POST | `{phone}` | 202 `{user_id, otp_required: true}` | 401 `invalid_credentials` \| `account_unavailable`, 429 `otp_rate_limited` |
 | `/auth/social` | POST | `{provider: google\|apple\|facebook, id_token}` | 200 tokens (creates account on first login) | |
 | `/auth/refresh` | POST | `{refresh_token}` | 200 new pair (old refresh revoked) | reuse → revoke family, 401 |
 | `/auth/logout` | POST | `{refresh_token, all_devices?}` | 204 | |
 | `/auth/forgot-password` | POST | `{identifier}` | 202 always (no enumeration) | |
 | `/auth/reset-password` | POST | `{token/otp, new_password}` | 204 | |
 | `/auth/verify-email` | POST | `{token}` | 204 | |
+
+### Why phone-OTP sign-in is its own route
+
+**This table originally put `{phone}` → OTP flow on `/auth/login`. It is
+`/auth/request-otp` in the implementation, and that is deliberate — do not
+"correct" it back.**
+
+The two branches return categorically different things: a **token pair**, or a
+**handle to a challenge nobody has answered yet**. One endpoint returning
+either is a union response, and a union response is a `Map<String, dynamic>` in
+the generated Flutter client — every field optional, nothing checkable at
+compile time. `packages/sahra_api_client` exists specifically to make a backend
+change a Dart compile error at the call site, and `tool/generate_client.dart`
+refuses to emit an untyped map for exactly this reason.
+
+The rule postdates this document. Where they disagree, the rule wins, because
+the doc's shape was written before there was a typed client to break.
+
+`request-otp` returns the same `{user_id, otp_required}` shape as `/register`,
+because it feeds the same next call.
+
+### `purpose` on verify-otp
+
+Challenges are keyed `otp:{purpose}:{user_id}`, so a **registration code cannot
+sign anyone in** and a sign-in code cannot activate an account. `purpose`
+defaults to `phone_verify`, so the registration flow is unchanged.
+
+### The 15-minute lock
+
+doc 11 flow 1 specifies "5 fails → Locked 15 min + resend option". The lock is
+on the **user**, lives in its own key, and **`request-otp` does not reset it** —
+without that, five wrong guesses locked only the challenge and a fresh code
+bought five more, so the real budget was 3 codes × 5 attempts = 15 guesses per
+10 minutes, indefinitely. `retry_after` carries the wait.
+
+### Registration reclaims an UNVERIFIED number
+
+`/auth/register` answers **409 `phone_exists` only for a VERIFIED account.** A
+`pending` registration nobody ever confirmed is replaced and a fresh code
+issued, because the person holding the phone is overwhelmingly likely to be its
+owner — and the previous behaviour told real diners their own number was taken.
+The response is byte-identical in shape and status to a first-time
+registration, so it is not an enumeration oracle. Unverified rows are swept
+after 24 hours (PDPL data minimisation).
 
 Example — login response:
 
@@ -72,10 +117,44 @@ Search response item:
 | `/reservations/holds` | POST | `{restaurant_id, starts_at, party_size, seating_pref?}` + Idempotency-Key | 201 `{hold_id, expires_at}` | 409 `slot_taken` + `alternatives` |
 | `/reservations/holds/:id/confirm` | POST | `{special_requests?, occasion?, coupon_code?}` | 200 reservation | 409 `hold_expired`, 402 `deposit_required` |
 | `/reservations` | GET | `?status=upcoming\|past` | 200 list | |
-| `/reservations/:id` | GET/PATCH | PATCH `{starts_at?, party_size?}` re-runs allocation atomically | 200 | 409 if new slot unavailable (original kept) |
+| `/reservations/:id` | GET/PATCH | PATCH `{starts_at?, party_size?}` re-runs allocation atomically | 200 | 409 if new slot unavailable (original kept). **GET answers 404 for another diner's reservation — never 403** |
+| `/reservations/:id/acknowledge-cancellation` | POST | | 204 (idempotent) | 404 |
 | `/reservations/:id` | DELETE | | 200 `{status, refund?}` | 409 if already seated/completed |
 | `/waitlists` | POST/GET, DELETE `/waitlists/:id` | `{restaurant_id, desired_date, window_start, window_end, party_size}` | 201 `{position}` | 409 duplicate |
 | `/waitlists/:id/claim` | POST | | 201 hold | 409 `offer_expired` |
+
+### A restaurant-initiated cancellation must be SEEN, not merely recorded
+
+**`/reservations/:id/acknowledge-cancellation` is not in the original table.**
+It exists because of an asymmetry the `?status=upcoming|past` split hides:
+
+- a diner who **cancels** knows they cancelled, so the booking can leave their
+  upcoming list immediately;
+- a diner whose **restaurant cancels** does not. If it leaves on a date
+  comparison, the booking silently disappears and they arrive at a venue that
+  is not expecting them, in front of their guests.
+
+So a `cancelled_by_restaurant` reservation stays in **upcoming regardless of
+date** until acknowledged. It leaves because the diner saw it, not because the
+date passed — the person who opens the app three days late is exactly the one
+who most needs telling.
+
+`reservation_status` already distinguishes `cancelled_by_user` from
+`cancelled_by_restaurant`, so nothing is inferred; `cancellation_seen_at`
+(migration `20260802000000`) records the acknowledgement.
+
+Acknowledgement is a POST rather than a side effect of the GET, because a read
+that acknowledged would be acknowledged by a prefetch, a retry or a list
+render — none of which is a human reading the notice.
+
+Responses carry `cancelled_by`, `cancelled_at`, `cancel_reason` and
+`needs_acknowledgement`, the last derived server-side so no client has to
+re-implement the rule.
+
+> **Two P0 gaps this depends on:** nothing yet SETS `cancelled_by_restaurant`
+> (there is no owner cancel endpoint), and nothing can notify a diner who is
+> not looking at the app. Both are tracked in
+> `docs/decisions/2026-08-02-open-p0-gaps.md` as CANCEL-1 and NOTIFY-1.
 
 ### Reviews, payments, profile
 | Endpoint | Method | Notes |
@@ -105,12 +184,34 @@ Search response item:
 | `/owner/restaurants/:id/reservations` | POST | Walk-in/phone entry `{guest_name, guest_phone?, party_size, starts_at}` |
 | `/owner/reservations/:id/accept` / `decline` | POST | request-mode |
 | `/owner/reservations/:id/seat` / `no-show` / `complete` / `transfer` | POST | State machine guarded; 409 invalid transition |
+| `/owner/reservations/:id/cancel` | POST | `{reason}` — **REQUIRED**. Sets `cancelled_by_restaurant`, frees the table. 409 if already settled; 404 for another venue's reservation |
 | `/owner/restaurants/:id/waitlist` | GET, POST `.../offer` | Console view |
 | `/owner/restaurants/:id/staff` | CRUD | Invite by phone; roles manager/host/viewer |
 | `/owner/restaurants/:id/analytics` | GET | `?from&to&metrics=covers,occupancy,no_show_rate,lead_time` (Pro gates depth) |
 | `/owner/restaurants/:id/promotions` | CRUD | |
 | `/owner/restaurants/:id/reviews/:reviewId/reply` | POST | |
 | `/owner/subscription` | GET/POST/PATCH | Plan, invoices |
+
+### The cancel row was missing, and that had a consequence
+
+**This table had no cancel row until 2026-08-02.** `accept`, `decline`, `seat`,
+`no-show`, `complete` and `transfer` were all here; the one action a venue
+takes when a pipe bursts was not.
+
+Its absence is why the diner-side acknowledgement model in §3 — a migration, a
+partial index, an endpoint and six tests — shipped **ahead of anything that
+could set `cancelled_by_restaurant`.** Correct machinery for an event that
+could not occur. Worth recording, because the gap was invisible from either
+side on its own: the diner half was complete and tested, the venue half was
+simply absent, and nothing compares the two.
+
+**The reason is REQUIRED**, which no other action here demands. It is what the
+diner ends up staring at, and "cancelled" with no explanation is worse than a
+phone call: it says something went wrong, gives them nothing to do about it,
+and leaves nobody to be annoyed with except us.
+
+**Cancelling frees the table**, via `trg_resv_propagate` — asserted against the
+availability endpoint and by re-booking the slot, not by reading the trigger.
 
 ## 5. Admin APIs (`/admin/...`, role: admin/support/moderator; every call audit-logged)
 

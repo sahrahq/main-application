@@ -33,6 +33,15 @@ const restaurants = new RestaurantsService(p);
 let ownerUserId: string;
 let ownerId: string;
 let restaurantId: string;
+/**
+ * The diner these bookings belong to.
+ *
+ * Added when C-1.6 was enforced: an app booking must have one, and the DB
+ * constraint `app_booking_has_diner` says so beneath the service. These tests
+ * previously created reservations with `user_id = NULL` — which is precisely
+ * the bug that shipped, and precisely why nothing objected to it.
+ */
+let dinerUserId: string;
 
 /** Tomorrow, in UTC. Shifts below are defined to cover 18:00–23:00. */
 const DATE = (() => {
@@ -58,6 +67,15 @@ beforeAll(async () => {
     data: { userId: ownerUserId, businessName: 'Loop Test Co', verificationStatus: 'verified' },
   });
   ownerId = owner.id;
+
+  const diner = await prisma.user.create({
+    data: {
+      phone: `+2014${Date.now().toString().slice(-8)}`,
+      fullName: 'Loop Test Diner',
+      status: 'active',
+    },
+  });
+  dinerUserId = diner.id;
 }, 60_000);
 
 afterAll(async () => {
@@ -69,6 +87,7 @@ afterAll(async () => {
   }
   if (ownerId) await prisma.restaurantOwner.delete({ where: { id: ownerId } }).catch(() => undefined);
   if (ownerUserId) await prisma.user.delete({ where: { id: ownerUserId } }).catch(() => undefined);
+  if (dinerUserId) await prisma.user.delete({ where: { id: dinerUserId } }).catch(() => undefined);
   await prisma.$disconnect();
 }, 60_000);
 
@@ -201,7 +220,7 @@ describe('availability (doc 06 §3)', () => {
 
     for (let i = 0; i < 3; i++) {
       await reservations.createHold({
-        restaurantId, partySize: 2, startsAt: at('20:00'), idempotencyKey: randomUUID(),
+        restaurantId, userId: dinerUserId, partySize: 2, startsAt: at('20:00'), idempotencyKey: randomUUID(),
       });
     }
 
@@ -218,7 +237,7 @@ describe('availability (doc 06 §3)', () => {
 describe('hold → confirm (doc 06 §3, doc 05 §4)', () => {
   it('confirms a live hold and clears the expiry', async () => {
     const hold = await reservations.createHold({
-      restaurantId, partySize: 2, startsAt: at('18:00'), idempotencyKey: randomUUID(),
+      restaurantId, userId: dinerUserId, partySize: 2, startsAt: at('18:00'), idempotencyKey: randomUUID(),
     });
     expect(hold.status).toBe('held');
 
@@ -237,7 +256,7 @@ describe('hold → confirm (doc 06 §3, doc 05 §4)', () => {
 
   it('keeps the table allocated after confirming', async () => {
     const hold = await reservations.createHold({
-      restaurantId, partySize: 2, startsAt: at('18:30'), idempotencyKey: randomUUID(),
+      restaurantId, userId: dinerUserId, partySize: 2, startsAt: at('18:30'), idempotencyKey: randomUUID(),
     });
     await reservations.confirmHold({ holdId: hold.id, idempotencyKey: randomUUID() });
 
@@ -249,7 +268,7 @@ describe('hold → confirm (doc 06 §3, doc 05 §4)', () => {
 
   it('REFUSES to confirm an expired hold even before the sweeper runs', async () => {
     const hold = await reservations.createHold({
-      restaurantId, partySize: 2, startsAt: at('21:30'), idempotencyKey: randomUUID(),
+      restaurantId, userId: dinerUserId, partySize: 2, startsAt: at('21:30'), idempotencyKey: randomUUID(),
     });
 
     // Age the hold past its window without touching status — exactly the race
@@ -265,7 +284,7 @@ describe('hold → confirm (doc 06 §3, doc 05 §4)', () => {
 
   it('refuses to confirm a reservation that is not held', async () => {
     const hold = await reservations.createHold({
-      restaurantId, partySize: 2, startsAt: at('22:00'), idempotencyKey: randomUUID(),
+      restaurantId, userId: dinerUserId, partySize: 2, startsAt: at('22:00'), idempotencyKey: randomUUID(),
     });
     await reservations.confirmHold({ holdId: hold.id, idempotencyKey: randomUUID() });
 
@@ -282,7 +301,7 @@ describe('hold → confirm (doc 06 §3, doc 05 §4)', () => {
 
   it('replaying the confirm Idempotency-Key returns the same reservation', async () => {
     const hold = await reservations.createHold({
-      restaurantId, partySize: 2, startsAt: at('18:00'), idempotencyKey: randomUUID(),
+      restaurantId, userId: dinerUserId, partySize: 2, startsAt: at('18:00'), idempotencyKey: randomUUID(),
     });
     const key = randomUUID();
 

@@ -92,7 +92,7 @@ export function toSearchDoc(r: RestaurantRowForSearch): RestaurantSearchDoc {
  * anything else rather than throwing: a malformed amenities blob on one venue
  * must not take that venue out of search entirely.
  */
-function amenityKeys(value: unknown): string[] {
+export function amenityKeys(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
   if (value && typeof value === 'object') {
     return Object.entries(value as Record<string, unknown>)

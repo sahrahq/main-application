@@ -56,6 +56,22 @@ jobs:
           flutter test
           flutter test --tags golden
 
+      - name: Customer app
+        working-directory: apps/customer_app
+        run: |
+          flutter pub get
+          # Generated: providers (riverpod_generator), ARB merge, gen-l10n.
+          # All three are COMMITTED and drift-checked, same as tokens.g.dart.
+          dart run tool/merge_arb.dart --check
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
+          git diff --exit-code -- lib/localization lib/**/*.g.dart
+          flutter analyze --fatal-infos --fatal-warnings
+          # `--tags live` is EXCLUDED: those need a running API and a seeded
+          # database. They are the developer's end-to-end check, not CI's.
+          flutter test --exclude-tags live
+          flutter test --tags golden
+
       # Uploaded only on failure, so a golden diff can be LOOKED AT rather than
       # guessed at. A pixel diff nobody can see is a dead end.
       - name: Upload golden failures

@@ -24,7 +24,7 @@ class AdminRestaurantResponse {
         id: json['id'] as String,
         nameAr: json['nameAr'] as String,
         nameEn: json['nameEn'] as String,
-        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as Map<String, dynamic>,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
         slug: json['slug'] as String,
         status: json['status'] as String,
       );
@@ -33,7 +33,7 @@ class AdminRestaurantResponse {
   final String id;
   final String nameAr;
   final String nameEn;
-  final Map<String, dynamic>? neighborhood;
+  final String? neighborhood;
   final String slug;
   final String status;
 
@@ -172,13 +172,13 @@ class BookRowResponse {
 
   factory BookRowResponse.fromJson(Map<String, dynamic> json) => BookRowResponse(
         code: json['code'] as String,
-        guestName: json['guestName'] == null ? null : json['guestName'] as Map<String, dynamic>,
-        guestPhone: json['guestPhone'] == null ? null : json['guestPhone'] as Map<String, dynamic>,
+        guestName: json['guestName'] == null ? null : json['guestName'] as String,
+        guestPhone: json['guestPhone'] == null ? null : json['guestPhone'] as String,
         id: json['id'] as String,
-        occasion: json['occasion'] == null ? null : json['occasion'] as Map<String, dynamic>,
+        occasion: json['occasion'] == null ? null : json['occasion'] as String,
         partySize: (json['partySize'] as num).toInt(),
         source: json['source'] as String,
-        specialRequests: json['specialRequests'] == null ? null : json['specialRequests'] as Map<String, dynamic>,
+        specialRequests: json['specialRequests'] == null ? null : json['specialRequests'] as String,
         startsAt: json['startsAt'] as String,
         status: json['status'] as String,
         tables: (json['tables'] as List<dynamic>).map((e) => e as String).toList(),
@@ -186,14 +186,14 @@ class BookRowResponse {
       );
 
   final String code;
-  final Map<String, dynamic>? guestName;
-  final Map<String, dynamic>? guestPhone;
+  final String? guestName;
+  final String? guestPhone;
   final String id;
-  final Map<String, dynamic>? occasion;
+  final String? occasion;
   final int partySize;
   /// app | walk_in | phone — which door it came through.
   final String source;
-  final Map<String, dynamic>? specialRequests;
+  final String? specialRequests;
   final String startsAt;
   final String status;
   final List<String> tables;
@@ -213,6 +213,116 @@ class BookRowResponse {
         'status': status,
         'tables': tables.map((e) => e).toList(),
         'time': time,
+      };
+}
+
+class CancelOwnReservationDto {
+  const CancelOwnReservationDto({
+    this.reason,
+  });
+
+  factory CancelOwnReservationDto.fromJson(Map<String, dynamic> json) => CancelOwnReservationDto(
+        reason: json['reason'] == null ? null : json['reason'] as String,
+      );
+
+  /// Optional. Free text, for the venue.
+  final String? reason;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (reason != null) 'reason': reason!,
+      };
+}
+
+class CancelReservationDto {
+  const CancelReservationDto({
+    required this.reason,
+  });
+
+  factory CancelReservationDto.fromJson(Map<String, dynamic> json) => CancelReservationDto(
+        reason: json['reason'] as String,
+      );
+
+  /// REQUIRED. Shown to the diner verbatim.
+  final String reason;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'reason': reason,
+      };
+}
+
+class CancelledReservationResponse {
+  const CancelledReservationResponse({
+    required this.cancelReason,
+    required this.cancelledAt,
+    required this.code,
+    required this.id,
+    required this.partySize,
+    required this.startsAt,
+    required this.status,
+    required this.tableReleased,
+  });
+
+  factory CancelledReservationResponse.fromJson(Map<String, dynamic> json) => CancelledReservationResponse(
+        cancelReason: json['cancel_reason'] as String,
+        cancelledAt: json['cancelled_at'] as String,
+        code: json['code'] as String,
+        id: json['id'] as String,
+        partySize: (json['party_size'] as num).toInt(),
+        startsAt: json['starts_at'] as String,
+        status: json['status'] as String,
+        tableReleased: json['table_released'] as bool,
+      );
+
+  /// Shown to the diner verbatim.
+  final String cancelReason;
+  final String cancelledAt;
+  final String code;
+  final String id;
+  final int partySize;
+  final String startsAt;
+  /// Always `cancelled_by_restaurant`.
+  final String status;
+  /// True when the table this booking held is now available again. Released by trg_resv_propagate, which flips reservation_tables.active off for any status outside held|pending|confirmed|seated.
+  final bool tableReleased;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'cancel_reason': cancelReason,
+        'cancelled_at': cancelledAt,
+        'code': code,
+        'id': id,
+        'party_size': partySize,
+        'starts_at': startsAt,
+        'status': status,
+        'table_released': tableReleased,
+      };
+}
+
+class CompleteRegistrationDto {
+  const CompleteRegistrationDto({
+    required this.challengeId,
+    this.email,
+    required this.fullName,
+    this.locale,
+  });
+
+  factory CompleteRegistrationDto.fromJson(Map<String, dynamic> json) => CompleteRegistrationDto(
+        challengeId: json['challengeId'] as String,
+        email: json['email'] == null ? null : json['email'] as String,
+        fullName: json['fullName'] as String,
+        locale: json['locale'] == null ? null : json['locale'] as String,
+      );
+
+  /// A challenge that has already been verified
+  final String challengeId;
+  final String? email;
+  final String fullName;
+  final String? locale;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'challengeId': challengeId,
+        if (email != null) 'email': email!,
+        'fullName': fullName,
+        if (locale != null) 'locale': locale!,
       };
 }
 
@@ -334,6 +444,42 @@ class CreateRestaurantDto {
       };
 }
 
+class CreateReviewDto {
+  const CreateReviewDto({
+    this.ambienceRating,
+    this.body,
+    this.foodRating,
+    required this.rating,
+    required this.reservationId,
+    this.serviceRating,
+  });
+
+  factory CreateReviewDto.fromJson(Map<String, dynamic> json) => CreateReviewDto(
+        ambienceRating: json['ambienceRating'] == null ? null : (json['ambienceRating'] as num).toInt(),
+        body: json['body'] == null ? null : json['body'] as String,
+        foodRating: json['foodRating'] == null ? null : (json['foodRating'] as num).toInt(),
+        rating: (json['rating'] as num).toInt(),
+        reservationId: json['reservationId'] as String,
+        serviceRating: json['serviceRating'] == null ? null : (json['serviceRating'] as num).toInt(),
+      );
+
+  final int? ambienceRating;
+  final String? body;
+  final int? foodRating;
+  final int rating;
+  final String reservationId;
+  final int? serviceRating;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (ambienceRating != null) 'ambienceRating': ambienceRating!,
+        if (body != null) 'body': body!,
+        if (foodRating != null) 'foodRating': foodRating!,
+        'rating': rating,
+        'reservationId': reservationId,
+        if (serviceRating != null) 'serviceRating': serviceRating!,
+      };
+}
+
 class CreateShiftDto {
   const CreateShiftDto({
     this.active,
@@ -352,7 +498,7 @@ class CreateShiftDto {
         active: json['active'] == null ? null : json['active'] as bool,
         closesAt: json['closesAt'] as String,
         dayOfWeek: json['dayOfWeek'] == null ? null : (json['dayOfWeek'] as num).toInt(),
-        defaultTurnMinutes: json['defaultTurnMinutes'] == null ? null : json['defaultTurnMinutes'] as Map<String, dynamic>,
+        defaultTurnMinutes: json['defaultTurnMinutes'] == null ? null : (json['defaultTurnMinutes'] as Map<String, dynamic>).map((k, v) => MapEntry(k, (v as num).toInt())),
         isRamadan: json['isRamadan'] == null ? null : json['isRamadan'] as bool,
         nameAr: json['nameAr'] as String,
         nameEn: json['nameEn'] as String,
@@ -365,7 +511,8 @@ class CreateShiftDto {
   final String closesAt;
   /// 0=Sunday. Exactly one of this or specificDate.
   final int? dayOfWeek;
-  final Map<String, dynamic>? defaultTurnMinutes;
+  /// Party-size band → turn minutes. A bare `type: object` here would generate Map<String, dynamic> in the client, so the value type is declared.
+  final Map<String, int>? defaultTurnMinutes;
   /// Flag only — Maghrib anchoring is not implemented yet
   final bool? isRamadan;
   final String nameAr;
@@ -476,6 +623,27 @@ class CreateWalkInDto {
       };
 }
 
+class DeviceResponse {
+  const DeviceResponse({
+    required this.id,
+    required this.registered,
+  });
+
+  factory DeviceResponse.fromJson(Map<String, dynamic> json) => DeviceResponse(
+        id: json['id'] as String,
+        registered: json['registered'] as bool,
+      );
+
+  final String id;
+  /// Always true; the call is an upsert.
+  final bool registered;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'registered': registered,
+      };
+}
+
 class ErrorDetailResponse {
   const ErrorDetailResponse({
     required this.field,
@@ -496,6 +664,104 @@ class ErrorDetailResponse {
       };
 }
 
+class HealthResponse {
+  const HealthResponse({
+    required this.push,
+    required this.reasons,
+    required this.status,
+  });
+
+  factory HealthResponse.fromJson(Map<String, dynamic> json) => HealthResponse(
+        push: PushHealthResponse.fromJson(json['push'] as Map<String, dynamic>),
+        reasons: (json['reasons'] as List<dynamic>).map((e) => e as String).toList(),
+        status: json['status'] as String,
+      );
+
+  final PushHealthResponse push;
+  /// One line per degradation, for whoever has to fix it. Empty when ok.
+  final List<String> reasons;
+  final String status;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'push': push.toJson(),
+        'reasons': reasons.map((e) => e).toList(),
+        'status': status,
+      };
+}
+
+class ImageResponse {
+  const ImageResponse({
+    required this.height,
+    required this.id,
+    required this.isCover,
+    required this.position,
+    required this.urls,
+    required this.width,
+  });
+
+  factory ImageResponse.fromJson(Map<String, dynamic> json) => ImageResponse(
+        height: (json['height'] as num).toInt(),
+        id: json['id'] as String,
+        isCover: json['is_cover'] as bool,
+        position: (json['position'] as num).toInt(),
+        urls: (json['urls'] as Map<String, dynamic>).map((k, v) => MapEntry(k, v as String)),
+        width: (json['width'] as num).toInt(),
+      );
+
+  final int height;
+  final String id;
+  /// The venue hero. Exactly one per owner.
+  final bool isCover;
+  final int position;
+  /// Width in px → public URL. Pick the smallest that fits.
+  final Map<String, String> urls;
+  /// The ORIGINAL's width, for the aspect box.
+  final int width;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'height': height,
+        'id': id,
+        'is_cover': isCover,
+        'position': position,
+        'urls': urls,
+        'width': width,
+      };
+}
+
+class JoinWaitlistDto {
+  const JoinWaitlistDto({
+    required this.desiredDate,
+    required this.partySize,
+    required this.restaurantId,
+    required this.windowEnd,
+    required this.windowStart,
+  });
+
+  factory JoinWaitlistDto.fromJson(Map<String, dynamic> json) => JoinWaitlistDto(
+        desiredDate: json['desiredDate'] as String,
+        partySize: (json['partySize'] as num).toInt(),
+        restaurantId: json['restaurantId'] as String,
+        windowEnd: json['windowEnd'] as String,
+        windowStart: json['windowStart'] as String,
+      );
+
+  /// The VENUE'S wall-clock day.
+  final String desiredDate;
+  final int partySize;
+  final String restaurantId;
+  final String windowEnd;
+  /// Absolute instant.
+  final String windowStart;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'desiredDate': desiredDate,
+        'partySize': partySize,
+        'restaurantId': restaurantId,
+        'windowEnd': windowEnd,
+        'windowStart': windowStart,
+      };
+}
+
 class LoginDto {
   const LoginDto({
     required this.identifier,
@@ -507,7 +773,7 @@ class LoginDto {
         password: json['password'] as String,
       );
 
-  /// Phone or email
+  /// Phone number, E.164 or local Egyptian. NOT an email.
   final String identifier;
   final String password;
 
@@ -520,41 +786,444 @@ class LoginDto {
 class LogoutDto {
   const LogoutDto({
     this.allDevices,
+    this.deviceToken,
     required this.refreshToken,
   });
 
   factory LogoutDto.fromJson(Map<String, dynamic> json) => LogoutDto(
         allDevices: json['allDevices'] == null ? null : json['allDevices'] as bool,
+        deviceToken: json['deviceToken'] == null ? null : json['deviceToken'] as String,
         refreshToken: json['refreshToken'] as String,
       );
 
   final bool? allDevices;
+  /// FCM token to revoke — send it on sign-out
+  final String? deviceToken;
   final String refreshToken;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         if (allDevices != null) 'allDevices': allDevices!,
+        if (deviceToken != null) 'deviceToken': deviceToken!,
         'refreshToken': refreshToken,
       };
 }
 
-class OtpSentResponse {
-  const OtpSentResponse({
-    required this.retryAfter,
-    required this.sent,
+class MarkNotificationsReadDto {
+  const MarkNotificationsReadDto({
+    this.ids,
   });
 
-  factory OtpSentResponse.fromJson(Map<String, dynamic> json) => OtpSentResponse(
-        retryAfter: (json['retryAfter'] as num).toDouble(),
-        sent: json['sent'] as bool,
+  factory MarkNotificationsReadDto.fromJson(Map<String, dynamic> json) => MarkNotificationsReadDto(
+        ids: json['ids'] == null ? null : (json['ids'] as List<dynamic>).map((e) => e as String).toList(),
       );
 
-  /// Seconds until another code may be requested.
-  final double retryAfter;
-  final bool sent;
+  /// Notification ids to mark read. Omit to mark every unread notification for the caller. Ids belonging to another user are ignored, not refused.
+  final List<String>? ids;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'retryAfter': retryAfter,
-        'sent': sent,
+        if (ids != null) 'ids': ids!.map((e) => e).toList(),
+      };
+}
+
+class MarkReadResponse {
+  const MarkReadResponse({
+    required this.marked,
+    required this.unreadCount,
+  });
+
+  factory MarkReadResponse.fromJson(Map<String, dynamic> json) => MarkReadResponse(
+        marked: (json['marked'] as num).toInt(),
+        unreadCount: (json['unread_count'] as num).toInt(),
+      );
+
+  /// How many rows this call changed. Zero is an ordinary outcome — everything was already read — and is what makes "it did nothing" distinguishable in a test rather than assumed.
+  final int marked;
+  /// Unread remaining, after this call.
+  final int unreadCount;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'marked': marked,
+        'unread_count': unreadCount,
+      };
+}
+
+class MenuCategoryResponse {
+  const MenuCategoryResponse({
+    required this.id,
+    required this.items,
+    required this.nameAr,
+    required this.nameEn,
+  });
+
+  factory MenuCategoryResponse.fromJson(Map<String, dynamic> json) => MenuCategoryResponse(
+        id: json['id'] as String,
+        items: (json['items'] as List<dynamic>).map((e) => MenuItemResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+      );
+
+  final String id;
+  final List<MenuItemResponse> items;
+  final String nameAr;
+  final String nameEn;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'items': items.map((e) => e.toJson()).toList(),
+        'name_ar': nameAr,
+        'name_en': nameEn,
+      };
+}
+
+class MenuItemResponse {
+  const MenuItemResponse({
+    required this.currency,
+    this.descriptionAr,
+    this.descriptionEn,
+    required this.dietaryTags,
+    required this.id,
+    this.image,
+    required this.nameAr,
+    required this.nameEn,
+    required this.price,
+  });
+
+  factory MenuItemResponse.fromJson(Map<String, dynamic> json) => MenuItemResponse(
+        currency: json['currency'] as String,
+        descriptionAr: json['description_ar'] == null ? null : json['description_ar'] as String,
+        descriptionEn: json['description_en'] == null ? null : json['description_en'] as String,
+        dietaryTags: (json['dietary_tags'] as List<dynamic>).map((e) => e as String).toList(),
+        id: json['id'] as String,
+        image: json['image'] == null ? null : ImageResponse.fromJson(json['image'] as Map<String, dynamic>),
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        price: json['price'] as String,
+      );
+
+  final String currency;
+  final String? descriptionAr;
+  final String? descriptionEn;
+  /// From a fixed vocabulary a CHECK constraint enforces. We mark the exception, never the default — there is no `halal` tag, because in Cairo it is the default and marking it would imply the unmarked dishes are not.
+  final List<String> dietaryTags;
+  final String id;
+  final ImageResponse? image;
+  final String nameAr;
+  final String nameEn;
+  /// Decimal string; never a float.
+  final String price;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'currency': currency,
+        if (descriptionAr != null) 'description_ar': descriptionAr!,
+        if (descriptionEn != null) 'description_en': descriptionEn!,
+        'dietary_tags': dietaryTags.map((e) => e).toList(),
+        'id': id,
+        if (image != null) 'image': image!.toJson(),
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        'price': price,
+      };
+}
+
+class MenuResponse {
+  const MenuResponse({
+    required this.categories,
+    required this.id,
+    required this.kind,
+    required this.nameAr,
+    required this.nameEn,
+    this.pdfUrl,
+  });
+
+  factory MenuResponse.fromJson(Map<String, dynamic> json) => MenuResponse(
+        categories: (json['categories'] as List<dynamic>).map((e) => MenuCategoryResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        id: json['id'] as String,
+        kind: json['kind'] as String,
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        pdfUrl: json['pdf_url'] == null ? null : json['pdf_url'] as String,
+      );
+
+  /// Available items only, ordered. A category whose items are all off tonight is omitted rather than sent empty.
+  final List<MenuCategoryResponse> categories;
+  final String id;
+  /// food | drinks | ramadan | set
+  final String kind;
+  final String nameAr;
+  final String nameEn;
+  /// R-2.3 fallback for a venue whose menu is one scanned file. Composed from the stored key; the client hands it to the phone rather than rendering it.
+  final String? pdfUrl;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'categories': categories.map((e) => e.toJson()).toList(),
+        'id': id,
+        'kind': kind,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        if (pdfUrl != null) 'pdf_url': pdfUrl!,
+      };
+}
+
+class ModifyReservationDto {
+  const ModifyReservationDto({
+    this.partySize,
+    this.startsAt,
+  });
+
+  factory ModifyReservationDto.fromJson(Map<String, dynamic> json) => ModifyReservationDto(
+        partySize: json['partySize'] == null ? null : (json['partySize'] as num).toInt(),
+        startsAt: json['startsAt'] == null ? null : json['startsAt'] as String,
+      );
+
+  final int? partySize;
+  /// The new start, ISO-8601 UTC. Must be in the future.
+  final String? startsAt;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (partySize != null) 'partySize': partySize!,
+        if (startsAt != null) 'startsAt': startsAt!,
+      };
+}
+
+class MyReservationResponse {
+  const MyReservationResponse({
+    required this.canReview,
+    this.cancelReason,
+    this.cancelledAt,
+    this.cancelledBy,
+    required this.code,
+    required this.date,
+    required this.endsAt,
+    required this.id,
+    required this.needsAcknowledgement,
+    this.occasion,
+    required this.partySize,
+    required this.restaurant,
+    this.reviewId,
+    required this.source,
+    this.specialRequests,
+    required this.startsAt,
+    required this.status,
+    required this.time,
+  });
+
+  factory MyReservationResponse.fromJson(Map<String, dynamic> json) => MyReservationResponse(
+        canReview: json['can_review'] as bool,
+        cancelReason: json['cancel_reason'] == null ? null : json['cancel_reason'] as String,
+        cancelledAt: json['cancelled_at'] == null ? null : json['cancelled_at'] as String,
+        cancelledBy: json['cancelled_by'] == null ? null : json['cancelled_by'] as String,
+        code: json['code'] as String,
+        date: json['date'] as String,
+        endsAt: json['ends_at'] as String,
+        id: json['id'] as String,
+        needsAcknowledgement: json['needs_acknowledgement'] as bool,
+        occasion: json['occasion'] == null ? null : json['occasion'] as String,
+        partySize: (json['party_size'] as num).toInt(),
+        restaurant: ReservationVenueResponse.fromJson(json['restaurant'] as Map<String, dynamic>),
+        reviewId: json['review_id'] == null ? null : json['review_id'] as String,
+        source: json['source'] as String,
+        specialRequests: json['special_requests'] == null ? null : json['special_requests'] as String,
+        startsAt: json['starts_at'] as String,
+        status: json['status'] as String,
+        time: json['time'] as String,
+      );
+
+  /// Whether POST /reviews would accept this visit right now — seated or completed, the table time is over, and not already reviewed. DERIVED ON THE SERVER from the same function the endpoint enforces, so the control the client draws cannot disagree with the answer it gets.
+  final bool canReview;
+  final String? cancelReason;
+  final String? cancelledAt;
+  /// 'user' | 'restaurant' | null. Derived, so no client parses a status string.
+  final String? cancelledBy;
+  /// Human-readable, quoted at the door. e.g. SAH-7K2M
+  final String code;
+  /// YYYY-MM-DD on the RESTAURANT'S wall clock.
+  final String date;
+  final String endsAt;
+  final String id;
+  /// The RESTAURANT cancelled and the diner has not seen it yet. THE CLIENT MUST SURFACE THIS. It is the only signal that a booking they believe they hold is gone, and a reservation carrying it stays in `upcoming` regardless of date until POST /reservations/{id}/acknowledge-cancellation.
+  final bool needsAcknowledgement;
+  final String? occasion;
+  final int partySize;
+  final ReservationVenueResponse restaurant;
+  /// The review this visit already has. Null is the common case.
+  final String? reviewId;
+  /// app | walk_in | phone — which door it came through.
+  final String source;
+  final String? specialRequests;
+  /// Absolute instant, ISO-8601 UTC.
+  final String startsAt;
+  /// pending | confirmed | seated | completed | no_show | cancelled_*
+  final String status;
+  /// HH:MM on the RESTAURANT'S wall clock.
+  final String time;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'can_review': canReview,
+        if (cancelReason != null) 'cancel_reason': cancelReason!,
+        if (cancelledAt != null) 'cancelled_at': cancelledAt!,
+        if (cancelledBy != null) 'cancelled_by': cancelledBy!,
+        'code': code,
+        'date': date,
+        'ends_at': endsAt,
+        'id': id,
+        'needs_acknowledgement': needsAcknowledgement,
+        if (occasion != null) 'occasion': occasion!,
+        'party_size': partySize,
+        'restaurant': restaurant.toJson(),
+        if (reviewId != null) 'review_id': reviewId!,
+        'source': source,
+        if (specialRequests != null) 'special_requests': specialRequests!,
+        'starts_at': startsAt,
+        'status': status,
+        'time': time,
+      };
+}
+
+class NotificationListResponse {
+  const NotificationListResponse({
+    required this.items,
+    required this.unreadCount,
+  });
+
+  factory NotificationListResponse.fromJson(Map<String, dynamic> json) => NotificationListResponse(
+        items: (json['items'] as List<dynamic>).map((e) => NotificationResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        unreadCount: (json['unread_count'] as num).toInt(),
+      );
+
+  final List<NotificationResponse> items;
+  /// Unread across the WHOLE history, not across `items`. A count of the page would read zero for a diner with more notifications than one page.
+  final int unreadCount;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'items': items.map((e) => e.toJson()).toList(),
+        'unread_count': unreadCount,
+      };
+}
+
+class NotificationResponse {
+  const NotificationResponse({
+    required this.createdAt,
+    required this.data,
+    required this.id,
+    this.readAt,
+    required this.type,
+  });
+
+  factory NotificationResponse.fromJson(Map<String, dynamic> json) => NotificationResponse(
+        createdAt: json['created_at'] as String,
+        data: (json['data'] as Map<String, dynamic>).map((k, v) => MapEntry(k, v as String)),
+        id: json['id'] as String,
+        readAt: json['read_at'] == null ? null : json['read_at'] as String,
+        type: json['type'] as String,
+      );
+
+  /// When we owed them this. ISO 8601, UTC.
+  final String createdAt;
+  /// Substitutions for the copy, and the deep-link target. Keys vary by type; `reservation_id` and `restaurant_id` are what the client routes on when present. Values are always strings.
+  final Map<String, String> data;
+  final String id;
+  /// When they FIRST saw it — never re-stamped on a later read. Null while unread.
+  final String? readAt;
+  /// Machine-readable kind. THE CLIENT OWNS THE COPY, keyed by this — the same rule as the doc 06 §1 error codes. The server renders text only for a lock screen, where there is no client to localise anything.
+  final String type;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'created_at': createdAt,
+        'data': data,
+        'id': id,
+        if (readAt != null) 'read_at': readAt!,
+        'type': type,
+      };
+}
+
+class OpeningHoursResponse {
+  const OpeningHoursResponse({
+    required this.closesAt,
+    this.dayOfWeek,
+    required this.nameAr,
+    required this.nameEn,
+    required this.opensAt,
+    required this.spansMidnight,
+    this.specificDate,
+  });
+
+  factory OpeningHoursResponse.fromJson(Map<String, dynamic> json) => OpeningHoursResponse(
+        closesAt: json['closes_at'] as String,
+        dayOfWeek: json['day_of_week'] == null ? null : (json['day_of_week'] as num).toInt(),
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        opensAt: json['opens_at'] as String,
+        spansMidnight: json['spans_midnight'] as bool,
+        specificDate: json['specific_date'] == null ? null : json['specific_date'] as String,
+      );
+
+  final String closesAt;
+  /// 0=Sunday; null on a one-off date
+  final int? dayOfWeek;
+  final String nameAr;
+  final String nameEn;
+  /// HH:MM on the restaurant's wall clock.
+  final String opensAt;
+  final bool spansMidnight;
+  /// YYYY-MM-DD; null on a weekly row
+  final String? specificDate;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'closes_at': closesAt,
+        if (dayOfWeek != null) 'day_of_week': dayOfWeek!,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        'opens_at': opensAt,
+        'spans_midnight': spansMidnight,
+        if (specificDate != null) 'specific_date': specificDate!,
+      };
+}
+
+class OtpChallengeResponse {
+  const OtpChallengeResponse({
+    required this.challengeId,
+  });
+
+  factory OtpChallengeResponse.fromJson(Map<String, dynamic> json) => OtpChallengeResponse(
+        challengeId: json['challengeId'] as String,
+      );
+
+  /// Opaque. Answer it at /auth/verify-otp.
+  final String challengeId;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'challengeId': challengeId,
+      };
+}
+
+class PushHealthResponse {
+  const PushHealthResponse({
+    required this.configured,
+    required this.deliverable,
+    this.projectId,
+    required this.unreachable,
+  });
+
+  factory PushHealthResponse.fromJson(Map<String, dynamic> json) => PushHealthResponse(
+        configured: json['configured'] as bool,
+        deliverable: (json['deliverable'] as List<dynamic>).map((e) => e as String).toList(),
+        projectId: json['project_id'] == null ? null : json['project_id'] as String,
+        unreachable: (json['unreachable'] as List<dynamic>).map((e) => e as String).toList(),
+      );
+
+  /// True when a real push carrier is bound at all.
+  final bool configured;
+  /// Platforms a handset would actually be reached on.
+  final List<String> deliverable;
+  final String? projectId;
+  /// Platforms a diner can register a token for and never hear from. Non-empty means the service reports 503.
+  final List<String> unreachable;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'configured': configured,
+        'deliverable': deliverable.map((e) => e).toList(),
+        if (projectId != null) 'project_id': projectId!,
+        'unreachable': unreachable.map((e) => e).toList(),
       };
 }
 
@@ -571,6 +1240,31 @@ class RefreshDto {
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'refreshToken': refreshToken,
+      };
+}
+
+class RegisterDeviceDto {
+  const RegisterDeviceDto({
+    this.locale,
+    required this.platform,
+    required this.token,
+  });
+
+  factory RegisterDeviceDto.fromJson(Map<String, dynamic> json) => RegisterDeviceDto(
+        locale: json['locale'] == null ? null : json['locale'] as String,
+        platform: json['platform'] as String,
+        token: json['token'] as String,
+      );
+
+  final String? locale;
+  final String platform;
+  /// FCM registration token
+  final String token;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (locale != null) 'locale': locale!,
+        'platform': platform,
+        'token': token,
       };
 }
 
@@ -610,19 +1304,24 @@ class RegisterDto {
 
 class RegisterResponse {
   const RegisterResponse({
+    required this.challengeId,
     required this.otpRequired,
     required this.userId,
   });
 
   factory RegisterResponse.fromJson(Map<String, dynamic> json) => RegisterResponse(
+        challengeId: json['challengeId'] as String,
         otpRequired: json['otpRequired'] as bool,
         userId: json['userId'] as String,
       );
 
+  /// Answer it at /auth/verify-otp.
+  final String challengeId;
   final bool otpRequired;
   final String userId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
+        'challengeId': challengeId,
         'otpRequired': otpRequired,
         'userId': userId,
       };
@@ -687,19 +1386,58 @@ class RemoveTableResponse {
       };
 }
 
+class ReportReviewDto {
+  const ReportReviewDto({
+    this.note,
+    required this.reason,
+  });
+
+  factory ReportReviewDto.fromJson(Map<String, dynamic> json) => ReportReviewDto(
+        note: json['note'] == null ? null : json['note'] as String,
+        reason: json['reason'] as String,
+      );
+
+  final String? note;
+  /// `not_my_visit` is the one that is about US rather than the reviewer — a review attached to the wrong reservation is a bug in the verified-diner guarantee, not a moderation question.
+  final String reason;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (note != null) 'note': note!,
+        'reason': reason,
+      };
+}
+
+class RequestOtpDto {
+  const RequestOtpDto({
+    required this.phone,
+  });
+
+  factory RequestOtpDto.fromJson(Map<String, dynamic> json) => RequestOtpDto(
+        phone: json['phone'] as String,
+      );
+
+  /// E.164 or local Egyptian (01xxxxxxxxx)
+  final String phone;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'phone': phone,
+      };
+}
+
 class ResendOtpDto {
   const ResendOtpDto({
-    required this.userId,
+    required this.challengeId,
   });
 
   factory ResendOtpDto.fromJson(Map<String, dynamic> json) => ResendOtpDto(
-        userId: json['userId'] as String,
+        challengeId: json['challengeId'] as String,
       );
 
-  final String userId;
+  /// The challenge to re-send. The number comes from it.
+  final String challengeId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'userId': userId,
+        'challengeId': challengeId,
       };
 }
 
@@ -723,9 +1461,9 @@ class ReservationResponse {
   factory ReservationResponse.fromJson(Map<String, dynamic> json) => ReservationResponse(
         code: json['code'] as String,
         endsAt: json['endsAt'] as String,
-        guestName: json['guestName'] == null ? null : json['guestName'] as Map<String, dynamic>,
-        guestPhone: json['guestPhone'] == null ? null : json['guestPhone'] as Map<String, dynamic>,
-        holdExpiresAt: json['holdExpiresAt'] == null ? null : json['holdExpiresAt'] as Map<String, dynamic>,
+        guestName: json['guestName'] == null ? null : json['guestName'] as String,
+        guestPhone: json['guestPhone'] == null ? null : json['guestPhone'] as String,
+        holdExpiresAt: json['holdExpiresAt'] == null ? null : json['holdExpiresAt'] as String,
         id: json['id'] as String,
         partySize: (json['partySize'] as num).toInt(),
         restaurantId: json['restaurantId'] as String,
@@ -733,14 +1471,14 @@ class ReservationResponse {
         startsAt: json['startsAt'] as String,
         status: json['status'] as String,
         tables: json['tables'] == null ? null : (json['tables'] as List<dynamic>).map((e) => ReservationTableResponse.fromJson(e as Map<String, dynamic>)).toList(),
-        userId: json['userId'] == null ? null : json['userId'] as Map<String, dynamic>,
+        userId: json['userId'] == null ? null : json['userId'] as String,
       );
 
   final String code;
   final String endsAt;
-  final Map<String, dynamic>? guestName;
-  final Map<String, dynamic>? guestPhone;
-  final Map<String, dynamic>? holdExpiresAt;
+  final String? guestName;
+  final String? guestPhone;
+  final String? holdExpiresAt;
   final String id;
   final int partySize;
   final String restaurantId;
@@ -748,7 +1486,7 @@ class ReservationResponse {
   final String startsAt;
   final String status;
   final List<ReservationTableResponse>? tables;
-  final Map<String, dynamic>? userId;
+  final String? userId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'code': code,
@@ -783,6 +1521,158 @@ class ReservationTableResponse {
       };
 }
 
+class ReservationVenueResponse {
+  const ReservationVenueResponse({
+    required this.city,
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    this.neighborhood,
+    required this.slug,
+    required this.timezone,
+  });
+
+  factory ReservationVenueResponse.fromJson(Map<String, dynamic> json) => ReservationVenueResponse(
+        city: json['city'] as String,
+        id: json['id'] as String,
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
+        slug: json['slug'] as String,
+        timezone: json['timezone'] as String,
+      );
+
+  final String city;
+  final String id;
+  final String nameAr;
+  final String nameEn;
+  final String? neighborhood;
+  final String slug;
+  /// IANA zone `date` and `time` are expressed in.
+  final String timezone;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'city': city,
+        'id': id,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        if (neighborhood != null) 'neighborhood': neighborhood!,
+        'slug': slug,
+        'timezone': timezone,
+      };
+}
+
+class RestaurantProfileResponse {
+  const RestaurantProfileResponse({
+    this.addressAr,
+    this.addressEn,
+    required this.amenities,
+    required this.bookingMode,
+    required this.city,
+    required this.cuisines,
+    this.descriptionAr,
+    this.descriptionEn,
+    required this.hours,
+    required this.id,
+    required this.images,
+    this.lat,
+    this.lng,
+    required this.nameAr,
+    required this.nameEn,
+    this.neighborhood,
+    this.phone,
+    this.policies,
+    this.priceBand,
+    required this.rating,
+    required this.ratingCount,
+    required this.slug,
+    required this.timezone,
+    this.website,
+  });
+
+  factory RestaurantProfileResponse.fromJson(Map<String, dynamic> json) => RestaurantProfileResponse(
+        addressAr: json['address_ar'] == null ? null : json['address_ar'] as String,
+        addressEn: json['address_en'] == null ? null : json['address_en'] as String,
+        amenities: (json['amenities'] as List<dynamic>).map((e) => e as String).toList(),
+        bookingMode: json['booking_mode'] as String,
+        city: json['city'] as String,
+        cuisines: (json['cuisines'] as List<dynamic>).map((e) => e as String).toList(),
+        descriptionAr: json['description_ar'] == null ? null : json['description_ar'] as String,
+        descriptionEn: json['description_en'] == null ? null : json['description_en'] as String,
+        hours: (json['hours'] as List<dynamic>).map((e) => OpeningHoursResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        id: json['id'] as String,
+        images: (json['images'] as List<dynamic>).map((e) => ImageResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        lat: json['lat'] == null ? null : (json['lat'] as num).toDouble(),
+        lng: json['lng'] == null ? null : (json['lng'] as num).toDouble(),
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
+        phone: json['phone'] == null ? null : json['phone'] as String,
+        policies: json['policies'] == null ? null : json['policies'] as Map<String, dynamic>,
+        priceBand: json['price_band'] == null ? null : (json['price_band'] as num).toInt(),
+        rating: (json['rating'] as num).toDouble(),
+        ratingCount: (json['rating_count'] as num).toInt(),
+        slug: json['slug'] as String,
+        timezone: json['timezone'] as String,
+        website: json['website'] == null ? null : json['website'] as String,
+      );
+
+  final String? addressAr;
+  final String? addressEn;
+  final List<String> amenities;
+  /// instant | request
+  final String bookingMode;
+  final String city;
+  final List<String> cuisines;
+  final String? descriptionAr;
+  final String? descriptionEn;
+  final List<OpeningHoursResponse> hours;
+  final String id;
+  /// The venue gallery, cover first then by position. Empty for a venue with no photos — which the client draws as a designed empty state, never as a broken image.
+  final List<ImageResponse> images;
+  final double? lat;
+  final double? lng;
+  final String nameAr;
+  final String nameEn;
+  final String? neighborhood;
+  final String? phone;
+  final Map<String, dynamic>? policies;
+  final int? priceBand;
+  final double rating;
+  final int ratingCount;
+  final String slug;
+  /// IANA zone every wall-clock time here is in.
+  final String timezone;
+  final String? website;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (addressAr != null) 'address_ar': addressAr!,
+        if (addressEn != null) 'address_en': addressEn!,
+        'amenities': amenities.map((e) => e).toList(),
+        'booking_mode': bookingMode,
+        'city': city,
+        'cuisines': cuisines.map((e) => e).toList(),
+        if (descriptionAr != null) 'description_ar': descriptionAr!,
+        if (descriptionEn != null) 'description_en': descriptionEn!,
+        'hours': hours.map((e) => e.toJson()).toList(),
+        'id': id,
+        'images': images.map((e) => e.toJson()).toList(),
+        if (lat != null) 'lat': lat!,
+        if (lng != null) 'lng': lng!,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        if (neighborhood != null) 'neighborhood': neighborhood!,
+        if (phone != null) 'phone': phone!,
+        if (policies != null) 'policies': policies!,
+        if (priceBand != null) 'price_band': priceBand!,
+        'rating': rating,
+        'rating_count': ratingCount,
+        'slug': slug,
+        'timezone': timezone,
+        if (website != null) 'website': website!,
+      };
+}
+
 class RestaurantResponse {
   const RestaurantResponse({
     required this.city,
@@ -799,24 +1689,24 @@ class RestaurantResponse {
 
   factory RestaurantResponse.fromJson(Map<String, dynamic> json) => RestaurantResponse(
         city: json['city'] as String,
-        descriptionAr: json['descriptionAr'] == null ? null : json['descriptionAr'] as Map<String, dynamic>,
-        descriptionEn: json['descriptionEn'] == null ? null : json['descriptionEn'] as Map<String, dynamic>,
+        descriptionAr: json['descriptionAr'] == null ? null : json['descriptionAr'] as String,
+        descriptionEn: json['descriptionEn'] == null ? null : json['descriptionEn'] as String,
         id: json['id'] as String,
         nameAr: json['nameAr'] as String,
         nameEn: json['nameEn'] as String,
-        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as Map<String, dynamic>,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
         priceBand: json['priceBand'] == null ? null : (json['priceBand'] as num).toInt(),
         slug: json['slug'] as String,
         status: json['status'] as String,
       );
 
   final String city;
-  final Map<String, dynamic>? descriptionAr;
-  final Map<String, dynamic>? descriptionEn;
+  final String? descriptionAr;
+  final String? descriptionEn;
   final String id;
   final String nameAr;
   final String nameEn;
-  final Map<String, dynamic>? neighborhood;
+  final String? neighborhood;
   final int? priceBand;
   final String slug;
   final String status;
@@ -835,6 +1725,205 @@ class RestaurantResponse {
       };
 }
 
+class ReviewPageResponse {
+  const ReviewPageResponse({
+    this.nextCursor,
+    required this.results,
+    required this.summary,
+  });
+
+  factory ReviewPageResponse.fromJson(Map<String, dynamic> json) => ReviewPageResponse(
+        nextCursor: json['next_cursor'] == null ? null : json['next_cursor'] as String,
+        results: (json['results'] as List<dynamic>).map((e) => ReviewResponse.fromJson(e as Map<String, dynamic>)).toList(),
+        summary: ReviewSummaryResponse.fromJson(json['summary'] as Map<String, dynamic>),
+      );
+
+  /// Keyset, not offset — a new review must not shift page two.
+  final String? nextCursor;
+  final List<ReviewResponse> results;
+  final ReviewSummaryResponse summary;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (nextCursor != null) 'next_cursor': nextCursor!,
+        'results': results.map((e) => e.toJson()).toList(),
+        'summary': summary.toJson(),
+      };
+}
+
+class ReviewResponse {
+  const ReviewResponse({
+    this.ambienceRating,
+    required this.author,
+    this.body,
+    required this.createdAt,
+    this.foodRating,
+    required this.id,
+    this.ownerRepliedAt,
+    this.ownerReply,
+    required this.rating,
+    this.serviceRating,
+  });
+
+  factory ReviewResponse.fromJson(Map<String, dynamic> json) => ReviewResponse(
+        ambienceRating: json['ambience_rating'] == null ? null : (json['ambience_rating'] as num).toInt(),
+        author: json['author'] as String,
+        body: json['body'] == null ? null : json['body'] as String,
+        createdAt: json['created_at'] as String,
+        foodRating: json['food_rating'] == null ? null : (json['food_rating'] as num).toInt(),
+        id: json['id'] as String,
+        ownerRepliedAt: json['owner_replied_at'] == null ? null : json['owner_replied_at'] as String,
+        ownerReply: json['owner_reply'] == null ? null : json['owner_reply'] as String,
+        rating: (json['rating'] as num).toInt(),
+        serviceRating: json['service_rating'] == null ? null : (json['service_rating'] as num).toInt(),
+      );
+
+  final int? ambienceRating;
+  /// First name and a surname initial ("Nour H."). Never the full name a diner gave at registration.
+  final String author;
+  /// Nullable — stars alone is a complete review.
+  final String? body;
+  final String createdAt;
+  final int? foodRating;
+  final String id;
+  final String? ownerRepliedAt;
+  final String? ownerReply;
+  final int rating;
+  final int? serviceRating;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (ambienceRating != null) 'ambience_rating': ambienceRating!,
+        'author': author,
+        if (body != null) 'body': body!,
+        'created_at': createdAt,
+        if (foodRating != null) 'food_rating': foodRating!,
+        'id': id,
+        if (ownerRepliedAt != null) 'owner_replied_at': ownerRepliedAt!,
+        if (ownerReply != null) 'owner_reply': ownerReply!,
+        'rating': rating,
+        if (serviceRating != null) 'service_rating': serviceRating!,
+      };
+}
+
+class ReviewSummaryResponse {
+  const ReviewSummaryResponse({
+    required this.breakdown,
+    required this.rating,
+    required this.ratingCount,
+  });
+
+  factory ReviewSummaryResponse.fromJson(Map<String, dynamic> json) => ReviewSummaryResponse(
+        breakdown: (json['breakdown'] as Map<String, dynamic>).map((k, v) => MapEntry(k, (v as num).toInt())),
+        rating: (json['rating'] as num).toDouble(),
+        ratingCount: (json['rating_count'] as num).toInt(),
+      );
+
+  /// Star figure → how many gave it. Always all five keys.
+  final Map<String, int> breakdown;
+  /// Computed from the reviews themselves, not from the cached column.
+  final double rating;
+  final int ratingCount;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'breakdown': breakdown,
+        'rating': rating,
+        'rating_count': ratingCount,
+      };
+}
+
+class RevokeDeviceDto {
+  const RevokeDeviceDto({
+    required this.token,
+  });
+
+  factory RevokeDeviceDto.fromJson(Map<String, dynamic> json) => RevokeDeviceDto(
+        token: json['token'] as String,
+      );
+
+  /// The token to stop pushing to
+  final String token;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'token': token,
+      };
+}
+
+class SaveVenueDto {
+  const SaveVenueDto({
+    required this.restaurantId,
+  });
+
+  factory SaveVenueDto.fromJson(Map<String, dynamic> json) => SaveVenueDto(
+        restaurantId: json['restaurantId'] as String,
+      );
+
+  final String restaurantId;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'restaurantId': restaurantId,
+      };
+}
+
+class SavedVenueResponse {
+  const SavedVenueResponse({
+    required this.city,
+    this.cover,
+    required this.cuisines,
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    this.neighborhood,
+    this.priceBand,
+    required this.rating,
+    required this.ratingCount,
+    required this.savedAt,
+    required this.slug,
+  });
+
+  factory SavedVenueResponse.fromJson(Map<String, dynamic> json) => SavedVenueResponse(
+        city: json['city'] as String,
+        cover: json['cover'] == null ? null : ImageResponse.fromJson(json['cover'] as Map<String, dynamic>),
+        cuisines: (json['cuisines'] as List<dynamic>).map((e) => e as String).toList(),
+        id: json['id'] as String,
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
+        priceBand: json['price_band'] == null ? null : (json['price_band'] as num).toInt(),
+        rating: (json['rating'] as num).toDouble(),
+        ratingCount: (json['rating_count'] as num).toInt(),
+        savedAt: json['saved_at'] as String,
+        slug: json['slug'] as String,
+      );
+
+  final String city;
+  final ImageResponse? cover;
+  final List<String> cuisines;
+  final String id;
+  final String nameAr;
+  final String nameEn;
+  final String? neighborhood;
+  final int? priceBand;
+  final double rating;
+  final int ratingCount;
+  /// When it was saved. Drives the newest-first order.
+  final String savedAt;
+  final String slug;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'city': city,
+        if (cover != null) 'cover': cover!.toJson(),
+        'cuisines': cuisines.map((e) => e).toList(),
+        'id': id,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        if (neighborhood != null) 'neighborhood': neighborhood!,
+        if (priceBand != null) 'price_band': priceBand!,
+        'rating': rating,
+        'rating_count': ratingCount,
+        'saved_at': savedAt,
+        'slug': slug,
+      };
+}
+
 class SearchResponse {
   const SearchResponse({
     required this.availabilityFiltered,
@@ -846,13 +1935,13 @@ class SearchResponse {
   factory SearchResponse.fromJson(Map<String, dynamic> json) => SearchResponse(
         availabilityFiltered: json['availability_filtered'] as bool,
         estimatedTotal: (json['estimated_total'] as num).toInt(),
-        nextCursor: json['next_cursor'] == null ? null : json['next_cursor'] as Map<String, dynamic>,
+        nextCursor: json['next_cursor'] == null ? null : json['next_cursor'] as String,
         results: (json['results'] as List<dynamic>).map((e) => SearchResultResponse.fromJson(e as Map<String, dynamic>)).toList(),
       );
 
   final bool availabilityFiltered;
   final int estimatedTotal;
-  final Map<String, dynamic>? nextCursor;
+  final String? nextCursor;
   final List<SearchResultResponse> results;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -865,6 +1954,7 @@ class SearchResponse {
 
 class SearchResultResponse {
   const SearchResultResponse({
+    this.cover,
     required this.cuisines,
     this.distanceKm,
     required this.id,
@@ -879,12 +1969,13 @@ class SearchResultResponse {
   });
 
   factory SearchResultResponse.fromJson(Map<String, dynamic> json) => SearchResultResponse(
+        cover: json['cover'] == null ? null : ImageResponse.fromJson(json['cover'] as Map<String, dynamic>),
         cuisines: (json['cuisines'] as List<dynamic>).map((e) => e as String).toList(),
         distanceKm: json['distance_km'] == null ? null : (json['distance_km'] as num).toDouble(),
         id: json['id'] as String,
         nameAr: json['name_ar'] as String,
         nameEn: json['name_en'] as String,
-        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as Map<String, dynamic>,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
         nextAvailable: json['next_available'] == null ? null : (json['next_available'] as List<dynamic>).map((e) => e as String).toList(),
         priceBand: json['price_band'] == null ? null : (json['price_band'] as num).toInt(),
         rating: (json['rating'] as num).toDouble(),
@@ -892,12 +1983,14 @@ class SearchResultResponse {
         slug: json['slug'] as String,
       );
 
+  /// The venue hero, or null. Fetched for the whole page in ONE query — a search list that asked per row would issue twenty requests over a Cairo mobile connection to render its first screenful.
+  final ImageResponse? cover;
   final List<String> cuisines;
   final double? distanceKm;
   final String id;
   final String nameAr;
   final String nameEn;
-  final Map<String, dynamic>? neighborhood;
+  final String? neighborhood;
   /// Local HH:MM teasers. A HINT, not an offer — no absolute instant is given precisely so no client can treat one as bookable.
   final List<String>? nextAvailable;
   final int? priceBand;
@@ -906,6 +1999,7 @@ class SearchResultResponse {
   final String slug;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
+        if (cover != null) 'cover': cover!.toJson(),
         'cuisines': cuisines.map((e) => e).toList(),
         if (distanceKm != null) 'distance_km': distanceKm!,
         'id': id,
@@ -939,27 +2033,28 @@ class ShiftResponse {
         active: json['active'] as bool,
         closesAt: json['closesAt'] as String,
         dayOfWeek: json['dayOfWeek'] == null ? null : (json['dayOfWeek'] as num).toInt(),
-        defaultTurnMinutes: json['defaultTurnMinutes'] as Map<String, dynamic>,
+        defaultTurnMinutes: (json['defaultTurnMinutes'] as Map<String, dynamic>).map((k, v) => MapEntry(k, (v as num).toInt())),
         id: json['id'] as String,
         isRamadan: json['isRamadan'] as bool,
         nameAr: json['nameAr'] as String,
         nameEn: json['nameEn'] as String,
         opensAt: json['opensAt'] as String,
         spansMidnight: json['spansMidnight'] as bool,
-        specificDate: json['specificDate'] == null ? null : json['specificDate'] as Map<String, dynamic>,
+        specificDate: json['specificDate'] == null ? null : json['specificDate'] as String,
       );
 
   final bool active;
   final String closesAt;
   final int? dayOfWeek;
-  final Map<String, dynamic> defaultTurnMinutes;
+  /// Party-size band → turn minutes, e.g. {"1-2":90}.
+  final Map<String, int> defaultTurnMinutes;
   final String id;
   final bool isRamadan;
   final String nameAr;
   final String nameEn;
   final String opensAt;
   final bool spansMidnight;
-  final Map<String, dynamic>? specificDate;
+  final String? specificDate;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'active': active,
@@ -1095,6 +2190,27 @@ class TokenPairResponse {
       };
 }
 
+class UpdateProfileDto {
+  const UpdateProfileDto({
+    this.fullName,
+    this.locale,
+  });
+
+  factory UpdateProfileDto.fromJson(Map<String, dynamic> json) => UpdateProfileDto(
+        fullName: json['fullName'] == null ? null : json['fullName'] as String,
+        locale: json['locale'] == null ? null : json['locale'] as String,
+      );
+
+  final String? fullName;
+  /// Language for notifications and copy.
+  final String? locale;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (fullName != null) 'fullName': fullName!,
+        if (locale != null) 'locale': locale!,
+      };
+}
+
 class UpdateRestaurantDto {
   const UpdateRestaurantDto({
     this.bookingMode,
@@ -1165,7 +2281,7 @@ class UpdateShiftDto {
         active: json['active'] == null ? null : json['active'] as bool,
         closesAt: json['closesAt'] == null ? null : json['closesAt'] as String,
         dayOfWeek: json['dayOfWeek'] == null ? null : (json['dayOfWeek'] as num).toInt(),
-        defaultTurnMinutes: json['defaultTurnMinutes'] == null ? null : json['defaultTurnMinutes'] as Map<String, dynamic>,
+        defaultTurnMinutes: json['defaultTurnMinutes'] == null ? null : (json['defaultTurnMinutes'] as Map<String, dynamic>).map((k, v) => MapEntry(k, (v as num).toInt())),
         isRamadan: json['isRamadan'] == null ? null : json['isRamadan'] as bool,
         nameAr: json['nameAr'] == null ? null : json['nameAr'] as String,
         nameEn: json['nameEn'] == null ? null : json['nameEn'] as String,
@@ -1178,7 +2294,8 @@ class UpdateShiftDto {
   final String? closesAt;
   /// 0=Sunday. Exactly one of this or specificDate.
   final int? dayOfWeek;
-  final Map<String, dynamic>? defaultTurnMinutes;
+  /// Party-size band → turn minutes. A bare `type: object` here would generate Map<String, dynamic> in the client, so the value type is declared.
+  final Map<String, int>? defaultTurnMinutes;
   /// Flag only — Maghrib anchoring is not implemented yet
   final bool? isRamadan;
   final String? nameAr;
@@ -1257,7 +2374,7 @@ class UserResponse {
   });
 
   factory UserResponse.fromJson(Map<String, dynamic> json) => UserResponse(
-        email: json['email'] == null ? null : json['email'] as Map<String, dynamic>,
+        email: json['email'] == null ? null : json['email'] as String,
         fullName: json['fullName'] as String,
         id: json['id'] as String,
         locale: json['locale'] as String,
@@ -1266,7 +2383,7 @@ class UserResponse {
         status: json['status'] as String,
       );
 
-  final Map<String, dynamic>? email;
+  final String? email;
   final String fullName;
   final String id;
   final String locale;
@@ -1287,21 +2404,127 @@ class UserResponse {
 
 class VerifyOtpDto {
   const VerifyOtpDto({
+    required this.challengeId,
     required this.code,
-    required this.userId,
   });
 
   factory VerifyOtpDto.fromJson(Map<String, dynamic> json) => VerifyOtpDto(
+        challengeId: json['challengeId'] as String,
         code: json['code'] as String,
-        userId: json['userId'] as String,
       );
 
+  /// The opaque handle returned by /auth/request-otp
+  final String challengeId;
   final String code;
-  final String userId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
+        'challengeId': challengeId,
         'code': code,
-        'userId': userId,
+      };
+}
+
+class VerifyOtpResponse {
+  const VerifyOtpResponse({
+    required this.status,
+    this.tokens,
+  });
+
+  factory VerifyOtpResponse.fromJson(Map<String, dynamic> json) => VerifyOtpResponse(
+        status: json['status'] as String,
+        tokens: json['tokens'] == null ? null : TokenPairResponse.fromJson(json['tokens'] as Map<String, dynamic>),
+      );
+
+  final String status;
+  final TokenPairResponse? tokens;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'status': status,
+        if (tokens != null) 'tokens': tokens!.toJson(),
+      };
+}
+
+class WaitlistEntryResponse {
+  const WaitlistEntryResponse({
+    required this.desiredDate,
+    required this.id,
+    this.offerExpiresAt,
+    required this.partySize,
+    required this.restaurant,
+    required this.status,
+    required this.windowEnd,
+    required this.windowStart,
+  });
+
+  factory WaitlistEntryResponse.fromJson(Map<String, dynamic> json) => WaitlistEntryResponse(
+        desiredDate: json['desired_date'] as String,
+        id: json['id'] as String,
+        offerExpiresAt: json['offer_expires_at'] == null ? null : json['offer_expires_at'] as String,
+        partySize: (json['party_size'] as num).toInt(),
+        restaurant: WaitlistVenueResponse.fromJson(json['restaurant'] as Map<String, dynamic>),
+        status: json['status'] as String,
+        windowEnd: json['window_end'] as String,
+        windowStart: json['window_start'] as String,
+      );
+
+  /// The VENUE'S wall-clock day, YYYY-MM-DD.
+  final String desiredDate;
+  final String id;
+  /// Set only while `offered`. C-3.6 gives a 10-minute claim window, and a CHECK constraint ties the two together in both directions.
+  final String? offerExpiresAt;
+  final int partySize;
+  final WaitlistVenueResponse restaurant;
+  /// waiting | offered | converted | expired | cancelled
+  final String status;
+  /// And the latest. An offer outside this range is worse than none.
+  final String windowEnd;
+  /// Absolute instant. The earliest the diner will accept.
+  final String windowStart;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'desired_date': desiredDate,
+        'id': id,
+        if (offerExpiresAt != null) 'offer_expires_at': offerExpiresAt!,
+        'party_size': partySize,
+        'restaurant': restaurant.toJson(),
+        'status': status,
+        'window_end': windowEnd,
+        'window_start': windowStart,
+      };
+}
+
+class WaitlistVenueResponse {
+  const WaitlistVenueResponse({
+    required this.city,
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    this.neighborhood,
+    required this.slug,
+  });
+
+  factory WaitlistVenueResponse.fromJson(Map<String, dynamic> json) => WaitlistVenueResponse(
+        city: json['city'] as String,
+        id: json['id'] as String,
+        nameAr: json['name_ar'] as String,
+        nameEn: json['name_en'] as String,
+        neighborhood: json['neighborhood'] == null ? null : json['neighborhood'] as String,
+        slug: json['slug'] as String,
+      );
+
+  final String city;
+  final String id;
+  final String nameAr;
+  final String nameEn;
+  final String? neighborhood;
+  final String slug;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'city': city,
+        'id': id,
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        if (neighborhood != null) 'neighborhood': neighborhood!,
+        'slug': slug,
       };
 }
 

@@ -41,6 +41,23 @@ class SahraRatingStars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.sahra;
+
+    // A VENUE NOBODY HAS RATED HAS NO RATING — it does not have a rating of
+    // zero.
+    //
+    // With `reviews: 0` this drew `★ 0.0 (0)`, which reads as "rated zero out
+    // of five" on the hero of a restaurant that simply has not opened long
+    // enough for anyone to review it. Found by looking at the
+    // `Venue/menu-pdf-only` golden, whose fixture is deliberately unrated.
+    //
+    // Same class as the review card that drew one star and no figure: a
+    // control that looks like it is telling you something, and is not. Absent
+    // is the honest state, and the reviews section below says so in words.
+    //
+    // `reviews == null` still draws — that is a caller showing a rating with no
+    // count beside it, which is a different thing from a count of zero.
+    if (reviews == 0) return const SizedBox.shrink();
+
     final numeric = SahraTypography.numeric(
       TextStyle(fontSize: size, fontWeight: FontWeight.w700, color: s.accentOnSurface),
     );

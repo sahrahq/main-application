@@ -102,7 +102,13 @@ export class CreateShiftDto {
   @IsOptional() @IsBoolean()
   spansMidnight?: boolean;
 
-  @ApiPropertyOptional({ example: { '1-2': 90, '3-4': 105, '5+': 120 } })
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: { type: 'integer' },
+    example: { '1-2': 90, '3-4': 105, '5+': 120 },
+    description: 'Party-size band → turn minutes. A bare `type: object` here would '
+      + 'generate Map<String, dynamic> in the client, so the value type is declared.',
+  })
   @IsOptional() @IsObject()
   defaultTurnMinutes?: Record<string, number>;
 
