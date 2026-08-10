@@ -344,15 +344,61 @@ describe('the Data API lockdown, verified rather than assumed', () => {
     expect(leaked).toEqual([]);
   });
 
-  it('the PostGIS exemption is exactly three tables, and they still exist', async () => {
-    // Otherwise the exemption set above is a hole of unknown size.
+  it('the PostGIS exemption never grows, and on Supabase it is exactly three', async () => {
+    /**
+     * THE EXPECTATION IS DERIVED FROM THE DATABASE, NOT FROM AN ASSUMPTION
+     * ABOUT WHICH DATABASE THIS IS.
+     *
+     * This used to assert the set equals the three PostGIS tables, full stop.
+     * That is a fact about SUPABASE, not about PostGIS: those grants exist
+     * because Supabase makes them, and a vanilla `postgis/postgis` image
+     * grants `anon` nothing — because on a plain image `anon` is not even a
+     * role until CI creates it.
+     *
+     * So on 2026-08-10, the first time this suite ran against a database built
+     * from zero, it expected three and got none. The assertion was passing for
+     * weeks by matching one specific environment's furniture.
+     *
+     * Worth recording what creating the roles bought, because it is the
+     * argument for never weakening the lockdown migration to accommodate CI:
+     * it turned THIS test from an accidental pass into an honest failure, and
+     * it turned its sibling above — "anon and authenticated have no privilege
+     * on any table we own" — from a VACUOUS pass into a real assertion.
+     * A privilege check against a role that does not exist is trivially true.
+     *
+     * What is invariant everywhere: the exempt set never grows beyond the
+     * three PostGIS tables. What is Supabase-specific: that all three are
+     * actually granted. Both are asserted, the second only where it applies,
+     * and "where it applies" is observed rather than assumed.
+     */
     const rows = await prisma.$queryRaw<{ table_name: string }[]>`
       SELECT DISTINCT table_name
         FROM information_schema.role_table_grants
        WHERE table_schema = 'public' AND grantee IN ('anon', 'authenticated')`;
-    expect(rows.map((r) => r.table_name).sort()).toEqual(
-      [...POSTGIS].sort(),
-    );
+    const granted = rows.map((r) => r.table_name).sort();
+
+    // TRUE ON EVERY DATABASE: nothing outside the PostGIS three is exposed.
+    // This is the half that would catch a real regression.
+    expect(granted.filter((t) => !POSTGIS.has(t))).toEqual([]);
+
+    // The roles must EXIST, or the line above is vacuously true — the same
+    // trap the sibling test fell into.
+    const roles = await prisma.$queryRaw<{ n: bigint }[]>`
+      SELECT COUNT(*) AS n FROM pg_roles WHERE rolname IN ('anon', 'authenticated')`;
+    expect(Number(roles[0].n)).toBe(2);
+
+    // Supabase-only, and detected rather than assumed: `supabase_admin` is the
+    // role that owns `public` and issues those PostGIS grants.
+    const supabase = await prisma.$queryRaw<{ n: bigint }[]>`
+      SELECT COUNT(*) AS n FROM pg_roles WHERE rolname = 'supabase_admin'`;
+    if (Number(supabase[0].n) > 0) {
+      expect(granted).toEqual([...POSTGIS].sort());
+    } else {
+      // A vanilla image. Assert the *reason* the set is empty, so this branch
+      // cannot quietly become the one that always runs on a misconfigured
+      // Supabase database.
+      expect(granted).toEqual([]);
+    }
   });
 
   it('schema USAGE for anon is STILL GRANTED, and that is recorded rather than fixed', async () => {
