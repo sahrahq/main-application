@@ -51,9 +51,12 @@ void main() {
         if (!f.existsSync()) missing.add('$name [${cell.slug}]');
       }
     }
-    expect(missing, isEmpty,
-        reason: 'No golden for:\n  ${missing.join('\n  ')}\n'
-            'Run: flutter test --update-goldens --tags golden',);
+    expect(
+      missing,
+      isEmpty,
+      reason: 'No golden for:\n  ${missing.join('\n  ')}\n'
+          'Run: flutter test --update-goldens --tags golden',
+    );
   });
 
   test('no orphaned goldens — a rename left pictures behind', () {
@@ -80,15 +83,21 @@ void main() {
       final widths = <double>[];
       for (final text in <String>['حجز', 'مطعم القاهرة الكبير']) {
         await tester.pumpWidget(
-          screenHarness(Cell.arLight, Center(child: Text(text, style: const TextStyle(fontSize: 24))),
-              overrides: const <Override>[],),
+          screenHarness(
+            Cell.arLight,
+            Center(child: Text(text, style: const TextStyle(fontSize: 24))),
+            overrides: const <Override>[],
+          ),
         );
         await stabilise(tester);
         widths.add(tester.getSize(find.text(text)).width);
       }
-      expect(widths[1], greaterThan(widths[0]),
-          reason: 'Arabic is not measuring — the fonts did not load, and every '
-              'screen golden is a picture of boxes',);
+      expect(
+        widths[1],
+        greaterThan(widths[0]),
+        reason: 'Arabic is not measuring — the fonts did not load, and every '
+            'screen golden is a picture of boxes',
+      );
     });
 
     testWidgets('the Material icon font is loaded', (tester) async {

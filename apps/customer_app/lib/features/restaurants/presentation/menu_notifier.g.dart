@@ -104,8 +104,7 @@ class VenueMenusFamily extends Family<AsyncValue<List<Menu>>> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'venueMenusProvider';
@@ -144,12 +143,9 @@ class VenueMenusProvider extends AutoDisposeFutureProvider<List<Menu>> {
           from: venueMenusProvider,
           name: r'venueMenusProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$venueMenusHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$venueMenusHash,
           dependencies: VenueMenusFamily._dependencies,
-          allTransitiveDependencies:
-              VenueMenusFamily._allTransitiveDependencies,
+          allTransitiveDependencies: VenueMenusFamily._allTransitiveDependencies,
           idOrSlug: idOrSlug,
         );
 
@@ -209,8 +205,8 @@ mixin VenueMenusRef on AutoDisposeFutureProviderRef<List<Menu>> {
   String get idOrSlug;
 }
 
-class _VenueMenusProviderElement
-    extends AutoDisposeFutureProviderElement<List<Menu>> with VenueMenusRef {
+class _VenueMenusProviderElement extends AutoDisposeFutureProviderElement<List<Menu>>
+    with VenueMenusRef {
   _VenueMenusProviderElement(super.provider);
 
   @override
@@ -278,8 +274,7 @@ class VenueReviewsFamily extends Family<AsyncValue<ReviewPage>> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'venueReviewsProvider';
@@ -310,12 +305,9 @@ class VenueReviewsProvider extends AutoDisposeFutureProvider<ReviewPage> {
           from: venueReviewsProvider,
           name: r'venueReviewsProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$venueReviewsHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$venueReviewsHash,
           dependencies: VenueReviewsFamily._dependencies,
-          allTransitiveDependencies:
-              VenueReviewsFamily._allTransitiveDependencies,
+          allTransitiveDependencies: VenueReviewsFamily._allTransitiveDependencies,
           idOrSlug: idOrSlug,
         );
 
@@ -375,8 +367,8 @@ mixin VenueReviewsRef on AutoDisposeFutureProviderRef<ReviewPage> {
   String get idOrSlug;
 }
 
-class _VenueReviewsProviderElement
-    extends AutoDisposeFutureProviderElement<ReviewPage> with VenueReviewsRef {
+class _VenueReviewsProviderElement extends AutoDisposeFutureProviderElement<ReviewPage>
+    with VenueReviewsRef {
   _VenueReviewsProviderElement(super.provider);
 
   @override
@@ -385,8 +377,7 @@ class _VenueReviewsProviderElement
 
 String _$reviewFeedHash() => r'43bbfaac20cadcc96102167778e053739368053b';
 
-abstract class _$ReviewFeed
-    extends BuildlessAutoDisposeAsyncNotifier<ReviewPage> {
+abstract class _$ReviewFeed extends BuildlessAutoDisposeAsyncNotifier<ReviewPage> {
   late final String idOrSlug;
 
   FutureOr<ReviewPage> build(
@@ -453,8 +444,7 @@ class ReviewFeedFamily extends Family<AsyncValue<ReviewPage>> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'reviewFeedProvider';
@@ -467,8 +457,7 @@ class ReviewFeedFamily extends Family<AsyncValue<ReviewPage>> {
 /// somebody scrolls the sheet behind it.
 ///
 /// Copied from [ReviewFeed].
-class ReviewFeedProvider
-    extends AutoDisposeAsyncNotifierProviderImpl<ReviewFeed, ReviewPage> {
+class ReviewFeedProvider extends AutoDisposeAsyncNotifierProviderImpl<ReviewFeed, ReviewPage> {
   /// Every review loaded so far, for the sheet that pages through them.
   ///
   /// A separate notifier from [venueReviews] rather than a `copyWith` on it: the
@@ -483,12 +472,9 @@ class ReviewFeedProvider
           from: reviewFeedProvider,
           name: r'reviewFeedProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$reviewFeedHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$reviewFeedHash,
           dependencies: ReviewFeedFamily._dependencies,
-          allTransitiveDependencies:
-              ReviewFeedFamily._allTransitiveDependencies,
+          allTransitiveDependencies: ReviewFeedFamily._allTransitiveDependencies,
           idOrSlug: idOrSlug,
         );
 
@@ -530,8 +516,7 @@ class ReviewFeedProvider
   }
 
   @override
-  AutoDisposeAsyncNotifierProviderElement<ReviewFeed, ReviewPage>
-      createElement() {
+  AutoDisposeAsyncNotifierProviderElement<ReviewFeed, ReviewPage> createElement() {
     return _ReviewFeedProviderElement(this);
   }
 
@@ -557,8 +542,7 @@ mixin ReviewFeedRef on AutoDisposeAsyncNotifierProviderRef<ReviewPage> {
 }
 
 class _ReviewFeedProviderElement
-    extends AutoDisposeAsyncNotifierProviderElement<ReviewFeed, ReviewPage>
-    with ReviewFeedRef {
+    extends AutoDisposeAsyncNotifierProviderElement<ReviewFeed, ReviewPage> with ReviewFeedRef {
   _ReviewFeedProviderElement(super.provider);
 
   @override

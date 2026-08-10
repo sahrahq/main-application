@@ -24,10 +24,12 @@ void main() {
         home: Builder(
           builder: (BuildContext c) => MediaQuery(
             data: MediaQuery.of(c).copyWith(alwaysUse24HourFormat: use24),
-            child: Builder(builder: (BuildContext c2) {
-              body(c2);
-              return const SizedBox();
-            }),
+            child: Builder(
+              builder: (BuildContext c2) {
+                body(c2);
+                return const SizedBox();
+              },
+            ),
           ),
         ),
       );
@@ -43,8 +45,11 @@ void main() {
     final String ar = DateFormat('jm', 'ar').format(DateTime(2000, 1, 1, 20, 0));
     expect(en.contains('\u202F'), isTrue, reason: 'en lost its narrow no-break space');
     expect(ar.contains('\u0020'), isTrue, reason: 'ar lost its plain space');
-    expect(en.contains('\u202F'), isNot(ar.contains('\u202F')),
-        reason: 'The two locales must NOT use the same separator.');
+    expect(
+      en.contains('\u202F'),
+      isNot(ar.contains('\u202F')),
+      reason: 'The two locales must NOT use the same separator.',
+    );
   });
 
   testWidgets('ar uses LATIN digits — ar_EG would not, which is why it is not used', (t) async {
@@ -56,8 +61,11 @@ void main() {
     // Guards the guard: if ar_EG ever stopped forcing Arabic-Indic, the
     // reasoning in `timeOfDay` would need revisiting rather than silently
     // becoming untrue.
-    expect(RegExp('[٠-٩]').hasMatch(arEg), isTrue,
-        reason: 'ar_EG no longer forces Arabic-Indic — revisit timeOfDay.');
+    expect(
+      RegExp('[٠-٩]').hasMatch(arEg),
+      isTrue,
+      reason: 'ar_EG no longer forces Arabic-Indic — revisit timeOfDay.',
+    );
   });
 
   testWidgets('12 vs 24 follows the DEVICE, and the result is bidi-isolated', (t) async {

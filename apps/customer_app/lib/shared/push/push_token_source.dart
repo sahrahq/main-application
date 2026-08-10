@@ -182,6 +182,5 @@ class FakePushTokenSource implements PushTokenSource {
   }
 
   @override
-  Future<String?> currentToken() async =>
-      state == PushPermission.granted ? tokenValue : null;
+  Future<String?> currentToken() async => state == PushPermission.granted ? tokenValue : null;
 }

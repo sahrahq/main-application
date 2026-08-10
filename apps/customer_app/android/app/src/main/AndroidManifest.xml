@@ -7,6 +7,24 @@
          absent: nothing in this product follows anybody around. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- ANDROID 13+ (API 33) MAKES NOTIFICATIONS A RUNTIME PERMISSION, and
+         without this line the prompt CANNOT BE SHOWN. Not "is denied" —
+         cannot be shown: `requestPermission()` returns denied immediately and
+         no dialog ever appears.
+
+         Everything NOTIFY-1 built and verified would have reached nobody on a
+         modern handset: the FCM adapter, `POST /devices` registration, the
+         send path's platform gate, the ask-after-booking prompt. All correct,
+         all tested, all silent. That is the shape this repo keeps finding — a
+         capability that is never reachable is indistinguishable from one that
+         does not exist.
+
+         Guarded by `test/architecture/manifest_permissions_test.dart`, which
+         reads the runtime requests OUT OF THE DART SOURCE and fails if any of
+         them has no matching `uses-permission`. A list beside the manifest
+         would drift; the source is the catalogue. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:label="sahra_customer_app"
         android:name="${applicationName}"

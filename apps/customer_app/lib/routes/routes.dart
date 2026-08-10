@@ -244,8 +244,7 @@ GoRouter buildRouter() => GoRouter(
               routes: <RouteBase>[
                 GoRoute(
                   path: ':id',
-                  builder: (_, state) =>
-                      ReservationScreen(id: state.pathParameters['id']!),
+                  builder: (_, state) => ReservationScreen(id: state.pathParameters['id']!),
                 ),
               ],
             ),
@@ -265,8 +264,7 @@ GoRouter buildRouter() => GoRouter(
         ),
         GoRoute(
           path: VenueRoute.path,
-          builder: (_, state) =>
-              VenueScreen(idOrSlug: state.pathParameters['idOrSlug']!),
+          builder: (_, state) => VenueScreen(idOrSlug: state.pathParameters['idOrSlug']!),
           routes: <RouteBase>[
             GoRoute(
               path: 'book',
@@ -286,9 +284,8 @@ GoRouter buildRouter() => GoRouter(
             // a booking there is something to pop back to and something to tell
             // it; opened from the bookings tab there is neither.
             onClose: context.canPop() ? () => context.pop(false) : null,
-            onSignedIn: () => context.canPop()
-                ? context.pop(true)
-                : const BookingsRoute().go(context),
+            onSignedIn: () =>
+                context.canPop() ? context.pop(true) : const BookingsRoute().go(context),
           ),
         ),
         GoRoute(

@@ -106,14 +106,16 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
       timezone: r.timezone,
       images: r.images.map(_image).toList(),
       hours: r.hours
-          .map((h) => OpeningHours(
-                name: _isArabic ? h.nameAr : h.nameEn,
-                opensAt: h.opensAt,
-                closesAt: h.closesAt,
-                spansMidnight: h.spansMidnight,
-                dayOfWeek: h.dayOfWeek,
-                specificDate: h.specificDate,
-              ),)
+          .map(
+            (h) => OpeningHours(
+              name: _isArabic ? h.nameAr : h.nameEn,
+              opensAt: h.opensAt,
+              closesAt: h.closesAt,
+              spansMidnight: h.spansMidnight,
+              dayOfWeek: h.dayOfWeek,
+              specificDate: h.specificDate,
+            ),
+          )
           .toList(),
     );
   }
@@ -123,34 +125,39 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
     final menus = await guarded(() => _api.listMenus(idOrSlug: idOrSlug));
 
     return menus
-        .map((m) => Menu(
-              id: m.id,
-              name: _isArabic ? m.nameAr : m.nameEn,
-              kind: m.kind,
-              pdfUrl: m.pdfUrl,
-              categories: m.categories
-                  .map((c) => MenuCategory(
-                        id: c.id,
-                        name: _isArabic ? c.nameAr : c.nameEn,
-                        items: c.items
-                            .map((i) => MenuItem(
-                                  id: i.id,
-                                  name: _isArabic ? i.nameAr : i.nameEn,
-                                  description:
-                                      _isArabic ? i.descriptionAr : i.descriptionEn,
-                                  // NOT parsed. The API sends '320.00' and the
-                                  // screen prints '320.00'; turning it into a
-                                  // double on the way past is the one step that
-                                  // could round it.
-                                  price: i.price,
-                                  currency: i.currency,
-                                  dietaryTags: i.dietaryTags,
-                                  image: i.image == null ? null : _image(i.image!),
-                                ),)
-                            .toList(),
-                      ),)
-                  .toList(),
-            ),)
+        .map(
+          (m) => Menu(
+            id: m.id,
+            name: _isArabic ? m.nameAr : m.nameEn,
+            kind: m.kind,
+            pdfUrl: m.pdfUrl,
+            categories: m.categories
+                .map(
+                  (c) => MenuCategory(
+                    id: c.id,
+                    name: _isArabic ? c.nameAr : c.nameEn,
+                    items: c.items
+                        .map(
+                          (i) => MenuItem(
+                            id: i.id,
+                            name: _isArabic ? i.nameAr : i.nameEn,
+                            description: _isArabic ? i.descriptionAr : i.descriptionEn,
+                            // NOT parsed. The API sends '320.00' and the
+                            // screen prints '320.00'; turning it into a
+                            // double on the way past is the one step that
+                            // could round it.
+                            price: i.price,
+                            currency: i.currency,
+                            dietaryTags: i.dietaryTags,
+                            image: i.image == null ? null : _image(i.image!),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                )
+                .toList(),
+          ),
+        )
         .toList();
   }
 
@@ -211,8 +218,7 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
         serviceRating: r.serviceRating,
         ambienceRating: r.ambienceRating,
         ownerReply: r.ownerReply,
-        ownerRepliedAt:
-            r.ownerRepliedAt == null ? null : DateTime.parse(r.ownerRepliedAt!),
+        ownerRepliedAt: r.ownerRepliedAt == null ? null : DateTime.parse(r.ownerRepliedAt!),
       );
 
   /// One mapping for every image the API returns, so a size key or a

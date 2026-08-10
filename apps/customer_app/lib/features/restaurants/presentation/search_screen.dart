@@ -57,87 +57,86 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       // with three ideas of "wide".
       body: SahraPageWidth(
         child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Padding(
-              padding: SahraSpace.inset(
-                start: SahraSpace.s5,
-                end: SahraSpace.s5,
-                top: SahraSpace.s5,
-                bottom: SahraSpace.s3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Padding(
+                padding: SahraSpace.inset(
+                  start: SahraSpace.s5,
+                  end: SahraSpace.s5,
+                  top: SahraSpace.s5,
+                  bottom: SahraSpace.s3,
+                ),
+                child: Column(
+                  children: <Widget>[
+                    SahraSearchBar(
+                      hint: l10n.searchHint,
+                      location: l10n.searchLocation,
+                      locationSemanticLabel: l10n.searchLocationSemantic(l10n.searchLocation),
+                      controller: _controller,
+                      onChanged: ref.read(searchCriteriaProvider.notifier).setText,
+                      semanticLabel: l10n.searchHint,
+                    ),
+                    const SizedBox(height: SahraSpace.s3),
+                    // Tonight stays its own chip — it is the one filter that is
+                    // a mode rather than a narrowing, and burying it in the
+                    // sheet would hide the availability post-filter that makes
+                    // this search worth anything.
+                    Row(
+                      children: <Widget>[
+                        SahraChip(
+                          label: l10n.searchFilterTonight,
+                          active: criteria.tonightOnly,
+                          onPressed: ref.read(searchCriteriaProvider.notifier).toggleTonight,
+                        ),
+                        const SizedBox(width: SahraSpace.s2),
+                        SahraChip(
+                          // THE COUNT IS ON THE BUTTON. A diner has to be able
+                          // to see they have filters on without opening the
+                          // sheet; a forgotten filter is the commonest way
+                          // somebody decides an app is broken.
+                          label: criteria.activeFilterCount == 0
+                              ? l10n.filterOpen
+                              : l10n.filterOpenWithCount(criteria.activeFilterCount),
+                          active: criteria.activeFilterCount > 0,
+                          onPressed: () => showFilterSheet(context, ref),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              child: Column(
-                children: <Widget>[
-                  SahraSearchBar(
-                    hint: l10n.searchHint,
-                    location: l10n.searchLocation,
-                    locationSemanticLabel:
-                        l10n.searchLocationSemantic(l10n.searchLocation),
-                    controller: _controller,
-                    onChanged: ref.read(searchCriteriaProvider.notifier).setText,
-                    semanticLabel: l10n.searchHint,
-                  ),
-                  const SizedBox(height: SahraSpace.s3),
-                  // Tonight stays its own chip — it is the one filter that is
-                  // a mode rather than a narrowing, and burying it in the
-                  // sheet would hide the availability post-filter that makes
-                  // this search worth anything.
-                  Row(
-                    children: <Widget>[
-                      SahraChip(
-                        label: l10n.searchFilterTonight,
-                        active: criteria.tonightOnly,
-                        onPressed: ref.read(searchCriteriaProvider.notifier).toggleTonight,
-                      ),
-                      const SizedBox(width: SahraSpace.s2),
-                      SahraChip(
-                        // THE COUNT IS ON THE BUTTON. A diner has to be able
-                        // to see they have filters on without opening the
-                        // sheet; a forgotten filter is the commonest way
-                        // somebody decides an app is broken.
-                        label: criteria.activeFilterCount == 0
-                            ? l10n.filterOpen
-                            : l10n.filterOpenWithCount(criteria.activeFilterCount),
-                        active: criteria.activeFilterCount > 0,
-                        onPressed: () => showFilterSheet(context, ref),
-                      ),
-                    ],
-                  ),
-                ],
+              Expanded(
+                child: SahraAsyncView<SearchPage>(
+                  value: results,
+                  onRetry: () => ref.invalidate(searchResultsProvider),
+                  isEmpty: (page) => page.results.isEmpty,
+                  loading: (_) => const _SearchSkeleton(),
+                  empty: (context) => criteria.isBlank
+                      // Two different empty states, because they mean different
+                      // things. "Nothing matched" after a search is a dead end
+                      // that needs a way out; "you haven't searched yet" is an
+                      // invitation.
+                      ? SahraEmptyState(
+                          icon: 'search',
+                          title: l10n.searchStartTitle,
+                          message: l10n.searchStartMessage,
+                        )
+                      : SahraEmptyState(
+                          icon: 'lantern',
+                          title: l10n.searchEmptyTitle,
+                          message: l10n.searchEmptyMessage,
+                          actionLabel: l10n.searchEmptyAction,
+                          onAction: () {
+                            _controller.clear();
+                            ref.read(searchCriteriaProvider.notifier).setText('');
+                          },
+                        ),
+                  content: (context, page) => _Results(page: page, tonight: criteria.tonightOnly),
+                ),
               ),
-            ),
-            Expanded(
-              child: SahraAsyncView<SearchPage>(
-                value: results,
-                onRetry: () => ref.invalidate(searchResultsProvider),
-                isEmpty: (page) => page.results.isEmpty,
-                loading: (_) => const _SearchSkeleton(),
-                empty: (context) => criteria.isBlank
-                    // Two different empty states, because they mean different
-                    // things. "Nothing matched" after a search is a dead end
-                    // that needs a way out; "you haven't searched yet" is an
-                    // invitation.
-                    ? SahraEmptyState(
-                        icon: 'search',
-                        title: l10n.searchStartTitle,
-                        message: l10n.searchStartMessage,
-                      )
-                    : SahraEmptyState(
-                        icon: 'lantern',
-                        title: l10n.searchEmptyTitle,
-                        message: l10n.searchEmptyMessage,
-                        actionLabel: l10n.searchEmptyAction,
-                        onAction: () {
-                          _controller.clear();
-                          ref.read(searchCriteriaProvider.notifier).setText('');
-                        },
-                      ),
-                content: (context, page) => _Results(page: page, tonight: criteria.tonightOnly),
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );

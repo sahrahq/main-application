@@ -9,6 +9,7 @@ import 'routes/routes.dart';
 import 'shared/providers/app_providers.dart';
 import 'shared/widgets/device_frame.dart';
 import 'shared/providers/locale_override.dart';
+import 'shared/push/push_tap_listener.dart';
 
 /// ── FIREBASE IS INITIALISED, AND ITS FAILURE IS NOT FATAL ────────────────
 ///
@@ -99,12 +100,18 @@ class SahraApp extends ConsumerWidget {
       builder: (context, child) {
         final locale = Localizations.localeOf(context);
         final dark = Theme.of(context).brightness == Brightness.dark;
+        // WHERE A TAPPED NOTIFICATION IS ROUTED. This builder is the only
+        // position both UNDER the router — so `context.go` resolves — and
+        // ABOVE every screen, so the destination never depends on where the
+        // diner happened to be. Wrapped here rather than added as a second
+        // `builder:`, which `MaterialApp` does not allow.
+        child = PushTapListener(child: child ?? const SizedBox.shrink());
         return Theme(
           data: dark ? SahraTheme.dark(locale: locale) : SahraTheme.light(locale: locale),
           // The frame is OUTSIDE LocaleSync and inside Theme: it is chrome
           // around the app, not part of it, and it is off in every real build.
           child: SahraDeviceFrame(
-            child: LocaleSync(child: child ?? const SizedBox.shrink()),
+            child: LocaleSync(child: child),
           ),
         );
       },

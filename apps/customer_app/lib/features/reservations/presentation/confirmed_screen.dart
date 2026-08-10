@@ -88,50 +88,50 @@ class _ConfirmedScreenState extends ConsumerState<ConfirmedScreen> {
     return Scaffold(
       body: SahraPageWidth(
         child: SafeArea(
-        // Centred when it fits, scrolled when it does not.
-        //
-        // Two Spacers around a fixed ticket overflowed by 191px at 320x568
-        // with 200% text — the single worst of the five, and on the screen a
-        // diner is most likely to show someone at the door.
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Padding(
-          padding: SahraSpace.all(SahraSpace.s5),
-          child: Column(
-            children: <Widget>[
-              const Spacer(),
-              _Sparkle(),
-              const SizedBox(height: SahraSpace.s3),
-              SahraSectionLabel(l10n.confirmedOverline),
-              const SizedBox(height: SahraSpace.s2),
-              Text(
-                l10n.confirmedMessage(widget.venueName),
-                textAlign: TextAlign.center,
-                style: text.bodyMedium?.copyWith(color: s.textSoft),
-              ),
-              const SizedBox(height: SahraSpace.s5),
-              _Ticket(
-                venueName: widget.venueName,
-                code: widget.code,
-                startsAt: widget.startsAt,
-                wallClock: widget.wallClock,
-                partySize: widget.partySize,
-              ),
-              const Spacer(),
-              SahraButton(
-                label: l10n.confirmedDone,
-                onPressed: () => const SearchRoute().go(context),
-              ),
-            ],
-          ),
+          // Centred when it fits, scrolled when it does not.
+          //
+          // Two Spacers around a fixed ticket overflowed by 191px at 320x568
+          // with 200% text — the single worst of the five, and on the screen a
+          // diner is most likely to show someone at the door.
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: SahraSpace.all(SahraSpace.s5),
+                    child: Column(
+                      children: <Widget>[
+                        const Spacer(),
+                        _Sparkle(),
+                        const SizedBox(height: SahraSpace.s3),
+                        SahraSectionLabel(l10n.confirmedOverline),
+                        const SizedBox(height: SahraSpace.s2),
+                        Text(
+                          l10n.confirmedMessage(widget.venueName),
+                          textAlign: TextAlign.center,
+                          style: text.bodyMedium?.copyWith(color: s.textSoft),
+                        ),
+                        const SizedBox(height: SahraSpace.s5),
+                        _Ticket(
+                          venueName: widget.venueName,
+                          code: widget.code,
+                          startsAt: widget.startsAt,
+                          wallClock: widget.wallClock,
+                          partySize: widget.partySize,
+                        ),
+                        const Spacer(),
+                        SahraButton(
+                          label: l10n.confirmedDone,
+                          onPressed: () => const SearchRoute().go(context),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
         ),
       ),
     );
@@ -264,19 +264,38 @@ class _Ticket extends StatelessWidget {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     return '${when.day} ${_months[ar ? 'ar' : 'en']![when.month - 1]}';
   }
-
 }
 
 /// Month names in both locales. See `_date` above for why these are not read
 /// from `intl`'s CLDR data.
 const Map<String, List<String>> _months = <String, List<String>>{
   'en': <String>[
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ],
   'ar': <String>[
-    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+    'يناير',
+    'فبراير',
+    'مارس',
+    'أبريل',
+    'مايو',
+    'يونيو',
+    'يوليو',
+    'أغسطس',
+    'سبتمبر',
+    'أكتوبر',
+    'نوفمبر',
+    'ديسمبر',
   ],
 };
 

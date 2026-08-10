@@ -167,9 +167,7 @@ class BookingFlow extends _$BookingFlow {
       // The two 409s mean different things to a diner and get different
       // screens. `slot_taken`: somebody else was faster, here are other times.
       // `hold_expired`: you were, here is the picker again.
-      state = f.code == 'hold_expired'
-          ? BookingHoldExpired(f)
-          : BookingSlotTaken(f);
+      state = f.code == 'hold_expired' ? BookingHoldExpired(f) : BookingSlotTaken(f);
 
       // Either way the board on screen is now known to be wrong. Refresh it
       // BEFORE the diner looks, so the alternatives they are offered are real
@@ -181,7 +179,6 @@ class BookingFlow extends _$BookingFlow {
       // between signing in and confirming) still lands here with something to
       // come back to rather than dropping the diner into a generic error.
       state = BookingNeedsSignIn(selection);
-
     } on Failure catch (f) {
       state = BookingFailed(f);
     }

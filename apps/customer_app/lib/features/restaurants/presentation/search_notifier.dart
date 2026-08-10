@@ -144,8 +144,7 @@ class SearchQuery {
   /// A FILTER COUNTS AS ASKING FOR SOMETHING. Without this, picking "Levantine
   /// · $$" and no text would render the "where are you eating tonight?" start
   /// state — a screen that ignored the filters the diner had just set.
-  bool get isBlank =>
-      text.trim().isEmpty && !tonightOnly && activeFilterCount == 0;
+  bool get isBlank => text.trim().isEmpty && !tonightOnly && activeFilterCount == 0;
 }
 
 @riverpod
@@ -211,9 +210,7 @@ Future<SearchPage> searchResults(Ref ref) async {
   // position — the honest response is an unfiltered, relevance-ordered list
   // plus a line on the screen saying why, not a 400.
   final SearchSort sort =
-      criteria.sort == SearchSort.distance && !positioned
-          ? SearchSort.relevance
-          : criteria.sort;
+      criteria.sort == SearchSort.distance && !positioned ? SearchSort.relevance : criteria.sort;
 
   return ref.watch(restaurantRepositoryProvider).search(
         query: criteria.text.trim().isEmpty ? null : criteria.text.trim(),

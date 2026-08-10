@@ -52,34 +52,34 @@ class VenueScreen extends ConsumerWidget {
       // SahraPageWidth for why the decision lives in one place.
       body: SahraPageWidth(
         child: SahraAsyncView<VenueProfile>(
-        value: ref.watch(venueProfileProvider(idOrSlug)),
-        onRetry: () => ref.invalidate(venueProfileProvider(idOrSlug)),
-        // A profile is one object; it is never "empty". Required by the
-        // signature anyway, which is the point — the alternative is a screen
-        // silently rendering nothing under a heading.
-        isEmpty: (_) => false,
-        empty: (_) => const SizedBox.shrink(),
-        loading: (_) => const _VenueSkeleton(),
-        error: (context, failure) => Center(
-          child: Padding(
-            padding: SahraSpace.all(SahraSpace.s5),
-            child: failure.code == 'restaurant_not_found'
-                // A venue that has stopped taking bookings is not an error to
-                // retry — it is a fact, and the way forward is elsewhere.
-                ? SahraEmptyState(
-                    icon: 'lantern',
-                    title: l10n.venueNotFoundTitle,
-                    message: l10n.venueNotFoundMessage,
-                    actionLabel: l10n.venueNotFoundAction,
-                    onAction: () => const SearchRoute().go(context),
-                  )
-                : SahraFailureView(
-                    failure: failure,
-                    onRetry: () => ref.invalidate(venueProfileProvider(idOrSlug)),
-                  ),
+          value: ref.watch(venueProfileProvider(idOrSlug)),
+          onRetry: () => ref.invalidate(venueProfileProvider(idOrSlug)),
+          // A profile is one object; it is never "empty". Required by the
+          // signature anyway, which is the point — the alternative is a screen
+          // silently rendering nothing under a heading.
+          isEmpty: (_) => false,
+          empty: (_) => const SizedBox.shrink(),
+          loading: (_) => const _VenueSkeleton(),
+          error: (context, failure) => Center(
+            child: Padding(
+              padding: SahraSpace.all(SahraSpace.s5),
+              child: failure.code == 'restaurant_not_found'
+                  // A venue that has stopped taking bookings is not an error to
+                  // retry — it is a fact, and the way forward is elsewhere.
+                  ? SahraEmptyState(
+                      icon: 'lantern',
+                      title: l10n.venueNotFoundTitle,
+                      message: l10n.venueNotFoundMessage,
+                      actionLabel: l10n.venueNotFoundAction,
+                      onAction: () => const SearchRoute().go(context),
+                    )
+                  : SahraFailureView(
+                      failure: failure,
+                      onRetry: () => ref.invalidate(venueProfileProvider(idOrSlug)),
+                    ),
+            ),
           ),
-        ),
-        content: (context, venue) => _Content(venue: venue),
+          content: (context, venue) => _Content(venue: venue),
         ),
       ),
     );
@@ -248,9 +248,8 @@ class _Hero extends ConsumerWidget {
                   // from the reference. A second way to say "saved" here would
                   // be a fifth heart that drifts from the other four.
                   active: saved,
-                  semanticLabel: saved
-                      ? l10n.savedRemoveLabel(venue.name)
-                      : l10n.savedAddLabel(venue.name),
+                  semanticLabel:
+                      saved ? l10n.savedRemoveLabel(venue.name) : l10n.savedAddLabel(venue.name),
                   onPressed: () => toggleSavedAndReport(context, ref, restaurantId: venue.id),
                 ),
               ),

@@ -97,8 +97,7 @@ void main() {
             //
             // Zamalek, which is where the seeded venues are, so the distances
             // in the picture are the ones a diner standing there would see.
-            locationSourceProvider
-                .overrideWithValue(const FixedLocationSource.zamalek()),
+            locationSourceProvider.overrideWithValue(const FixedLocationSource.zamalek()),
             // The confirmation screen asks for notification permission — that
             // is the one place in the app that does. Faked here for the same
             // reason the position is: a platform channel that is not there.
@@ -166,9 +165,9 @@ void main() {
                 if (path.endsWith('/confirm')) return _reservation('confirmed');
                 if (path == '/v1/reservations') return <Object>[_myReservation];
                 if (path == '/v1/reservations/$_reservationId') return _myReservation;
-              // C-2.7. Empty is the honest state for a diner who signed up
-              // during this very walk-through.
-              if (path == '/v1/saved') return <Object>[];
+                // C-2.7. Empty is the honest state for a diner who signed up
+                // during this very walk-through.
+                if (path == '/v1/saved') return <Object>[];
                 // The move picker reads its OWN grid, not the public one.
                 if (path == '/v1/reservations/$_reservationId/available-slots') {
                   return _availability;
@@ -402,7 +401,6 @@ void main() {
   }
 }
 
-
 /// C-4.7 — what the centre shows in the walk-through.
 ///
 /// Three unread and two read, so the picture contains BOTH states: an unread
@@ -435,21 +433,29 @@ final Map<String, Object?> _notifications = <String, Object?>{
       'date': kFutureDate,
       'time': '19:00',
     }),
-    _notification('reservation_confirmed', <String, String>{
-      'reservation_id': _reservationId,
-      'venue': 'Layali Lounge',
-      'venue_ar': 'ليالي لاونج',
-      'date': kFutureDate,
-      'time': '21:00',
-      'party': '2',
-      'code': 'SAH-8241',
-    }, read: true,),
-    _notification('waitlist_offer_expired', <String, String>{
-      'waitlist_id': '33333333-3333-4333-8333-333333333334',
-      'venue': 'El Fishawy',
-      'venue_ar': 'الفيشاوي',
-      'date': kFutureDate,
-    }, read: true,),
+    _notification(
+      'reservation_confirmed',
+      <String, String>{
+        'reservation_id': _reservationId,
+        'venue': 'Layali Lounge',
+        'venue_ar': 'ليالي لاونج',
+        'date': kFutureDate,
+        'time': '21:00',
+        'party': '2',
+        'code': 'SAH-8241',
+      },
+      read: true,
+    ),
+    _notification(
+      'waitlist_offer_expired',
+      <String, String>{
+        'waitlist_id': '33333333-3333-4333-8333-333333333334',
+        'venue': 'El Fishawy',
+        'venue_ar': 'الفيشاوي',
+        'date': kFutureDate,
+      },
+      read: true,
+    ),
   ],
   'unread_count': 3,
 };

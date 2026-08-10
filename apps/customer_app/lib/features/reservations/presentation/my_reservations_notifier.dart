@@ -91,8 +91,7 @@ class MoveSelection {
   /// The chosen slot, or null while they are still looking.
   final String? startsAt;
 
-  MoveSelection copyWith({String? date, int? partySize, String? startsAt}) =>
-      MoveSelection(
+  MoveSelection copyWith({String? date, int? partySize, String? startsAt}) => MoveSelection(
         date: date ?? this.date,
         partySize: partySize ?? this.partySize,
         startsAt: startsAt ?? this.startsAt,
@@ -111,11 +110,9 @@ class MoveDraft extends _$MoveDraft {
   /// across a change would let the diner submit Tuesday's 8pm having switched
   /// to Wednesday — the server would accept it, because it is a valid instant,
   /// and they would be booked on the wrong day.
-  void setDate(String value) =>
-      state = MoveSelection(date: value, partySize: state.partySize);
+  void setDate(String value) => state = MoveSelection(date: value, partySize: state.partySize);
 
-  void setPartySize(int value) =>
-      state = MoveSelection(date: state.date, partySize: value);
+  void setPartySize(int value) => state = MoveSelection(date: state.date, partySize: value);
 
   void choose(String startsAt) => state = state.copyWith(startsAt: startsAt);
 }

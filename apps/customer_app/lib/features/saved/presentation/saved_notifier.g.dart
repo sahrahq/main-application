@@ -18,8 +18,7 @@ String _$savedVenuesHash() => r'dcf8e32ec8c68c02f0934f71f36e3c482b07d43d';
 ///
 /// Copied from [savedVenues].
 @ProviderFor(savedVenues)
-final savedVenuesProvider =
-    AutoDisposeFutureProvider<List<SavedVenue>>.internal(
+final savedVenuesProvider = AutoDisposeFutureProvider<List<SavedVenue>>.internal(
   savedVenues,
   name: r'savedVenuesProvider',
   debugGetCreateSourceHash:
@@ -45,9 +44,8 @@ String _$savedVenueIdsHash() => r'c325d61e054282dee7969eb2f3086caad18c8f49';
 final savedVenueIdsProvider = AutoDisposeProvider<Set<String>>.internal(
   savedVenueIds,
   name: r'savedVenueIdsProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$savedVenueIdsHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$savedVenueIdsHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -169,8 +167,7 @@ class SaveToggleFamily extends Family<bool> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'saveToggleProvider';
@@ -189,8 +186,7 @@ class SaveToggleFamily extends Family<bool> {
 /// when the list is empty. So the failure path puts the list back.
 ///
 /// Copied from [SaveToggle].
-class SaveToggleProvider
-    extends AutoDisposeNotifierProviderImpl<SaveToggle, bool> {
+class SaveToggleProvider extends AutoDisposeNotifierProviderImpl<SaveToggle, bool> {
   /// Save and unsave, for one venue.
   ///
   /// ── OPTIMISTIC, AND IT ROLLS BACK ────────────────────────────────────────
@@ -211,12 +207,9 @@ class SaveToggleProvider
           from: saveToggleProvider,
           name: r'saveToggleProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$saveToggleHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$saveToggleHash,
           dependencies: SaveToggleFamily._dependencies,
-          allTransitiveDependencies:
-              SaveToggleFamily._allTransitiveDependencies,
+          allTransitiveDependencies: SaveToggleFamily._allTransitiveDependencies,
           restaurantId: restaurantId,
         );
 
@@ -283,8 +276,7 @@ mixin SaveToggleRef on AutoDisposeNotifierProviderRef<bool> {
   String get restaurantId;
 }
 
-class _SaveToggleProviderElement
-    extends AutoDisposeNotifierProviderElement<SaveToggle, bool>
+class _SaveToggleProviderElement extends AutoDisposeNotifierProviderElement<SaveToggle, bool>
     with SaveToggleRef {
   _SaveToggleProviderElement(super.provider);
 

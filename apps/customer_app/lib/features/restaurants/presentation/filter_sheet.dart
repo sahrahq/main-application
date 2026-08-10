@@ -141,8 +141,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
       _refused = null;
     });
 
-    final LocationResult result =
-        await ref.read(dinerLocationProvider.notifier).request();
+    final LocationResult result = await ref.read(dinerLocationProvider.notifier).request();
     if (!mounted) return;
 
     setState(() {
@@ -158,8 +157,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
   /// three of them cannot be fixed by tapping again. `deniedForever`
   /// especially: the OS will not show the dialog, so "try again" would be an
   /// instruction that cannot work.
-  String _refusalMessage(LocationOutcome outcome, AppLocalizations l10n) =>
-      switch (outcome) {
+  String _refusalMessage(LocationOutcome outcome, AppLocalizations l10n) => switch (outcome) {
         LocationOutcome.denied => l10n.locationDenied,
         LocationOutcome.deniedForever => l10n.locationDeniedForever,
         LocationOutcome.serviceDisabled => l10n.locationServiceDisabled,
@@ -299,8 +297,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                           )
                         : l10n.filterNearMe,
                 active: _nearMe,
-                onPressed:
-                    _locating ? null : () => unawaited(_toggleNearMe()),
+                onPressed: _locating ? null : () => unawaited(_toggleNearMe()),
               ),
               if (_refused != null) ...<Widget>[
                 const SizedBox(height: SahraSpace.s2),

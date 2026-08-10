@@ -19,9 +19,8 @@ String _$searchResultsHash() => r'df242a220f61ba75d00412f91e298aad22a696a4';
 final searchResultsProvider = AutoDisposeFutureProvider<SearchPage>.internal(
   searchResults,
   name: r'searchResultsProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$searchResultsHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$searchResultsHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -33,13 +32,11 @@ String _$searchCriteriaHash() => r'23a5665d4450fc366ee0de539c3408745081131e';
 
 /// See also [SearchCriteria].
 @ProviderFor(SearchCriteria)
-final searchCriteriaProvider =
-    AutoDisposeNotifierProvider<SearchCriteria, SearchQuery>.internal(
+final searchCriteriaProvider = AutoDisposeNotifierProvider<SearchCriteria, SearchQuery>.internal(
   SearchCriteria.new,
   name: r'searchCriteriaProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$searchCriteriaHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$searchCriteriaHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

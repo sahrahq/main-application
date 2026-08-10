@@ -48,6 +48,5 @@ class SupportContact {
   /// previous version compared against `SUPPORT_CONTACT_NOT_SET`, which stops
   /// meaning anything the moment somebody types a half-finished value; an
   /// address that cannot be written to is not a contact, whatever it is called.
-  static bool get isConfigured =>
-      value.contains('@') && value.split('@').last.contains('.');
+  static bool get isConfigured => value.contains('@') && value.split('@').last.contains('.');
 }

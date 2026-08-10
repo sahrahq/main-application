@@ -432,7 +432,7 @@ void main() {
     expect(find.text('Change your booking'), findsOneWidget);
     // The grid is still there, so the next choice is one tap away rather than
     // behind a re-open.
-    expect(find.text('⁨7:00 PM⁩'), findsOneWidget);
+    expect(find.text('\u20687:00 PM\u2069'), findsOneWidget);
   });
 
   testWidgets('NO MOVE BUTTON ON A BOOKING THAT HAS ALREADY STARTED', (tester) async {

@@ -16,8 +16,7 @@ import '../domain/my_reservation.dart';
 /// that gains an eighth status must not produce a blank badge on a screen a
 /// diner is trying to read, and a raw `seated_late` on screen is at least a
 /// reportable bug rather than an invisible one.
-String reservationStatusLabel(MyReservation r, AppLocalizations l10n) =>
-    switch (r.status) {
+String reservationStatusLabel(MyReservation r, AppLocalizations l10n) => switch (r.status) {
       'pending' => l10n.statusPending,
       'confirmed' => l10n.statusConfirmed,
       'seated' => l10n.statusSeated,
@@ -147,11 +146,31 @@ String dayAndMonth(String isoDate, BuildContext context) {
 
 const Map<String, List<String>> monthNames = <String, List<String>>{
   'en': <String>[
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ],
   'ar': <String>[
-    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+    'يناير',
+    'فبراير',
+    'مارس',
+    'أبريل',
+    'مايو',
+    'يونيو',
+    'يوليو',
+    'أغسطس',
+    'سبتمبر',
+    'أكتوبر',
+    'نوفمبر',
+    'ديسمبر',
   ],
 };

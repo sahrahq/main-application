@@ -53,9 +53,8 @@ class ReviewFeed extends _$ReviewFeed {
     // NOT `state = AsyncLoading()`. That would blank the list the diner is
     // reading. The extra rows arrive or they do not; the ones already on
     // screen stay either way.
-    final next = await ref
-        .read(restaurantRepositoryProvider)
-        .reviews(idOrSlug, cursor: current.nextCursor);
+    final next =
+        await ref.read(restaurantRepositoryProvider).reviews(idOrSlug, cursor: current.nextCursor);
 
     state = AsyncData<ReviewPage>(
       ReviewPage(

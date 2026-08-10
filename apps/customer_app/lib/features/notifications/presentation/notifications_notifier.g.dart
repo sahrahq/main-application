@@ -6,8 +6,7 @@ part of 'notifications_notifier.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$unreadNotificationCountHash() =>
-    r'14ff18e1648cf09200f91e777c4735448d161fd2';
+String _$unreadNotificationCountHash() => r'14ff18e1648cf09200f91e777c4735448d161fd2';
 
 /// The dot on the Account row.
 ///
@@ -29,9 +28,8 @@ String _$unreadNotificationCountHash() =>
 final unreadNotificationCountProvider = AutoDisposeProvider<int>.internal(
   unreadNotificationCount,
   name: r'unreadNotificationCountProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$unreadNotificationCountHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$unreadNotificationCountHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -39,8 +37,7 @@ final unreadNotificationCountProvider = AutoDisposeProvider<int>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef UnreadNotificationCountRef = AutoDisposeProviderRef<int>;
-String _$notificationFeedNotifierHash() =>
-    r'553815d4afaeb57745e9019a860f1c72107f157b';
+String _$notificationFeedNotifierHash() => r'553815d4afaeb57745e9019a860f1c72107f157b';
 
 /// C-4.7 — the centre's contents.
 ///
@@ -54,20 +51,18 @@ String _$notificationFeedNotifierHash() =>
 ///
 /// Copied from [NotificationFeedNotifier].
 @ProviderFor(NotificationFeedNotifier)
-final notificationFeedNotifierProvider = AutoDisposeAsyncNotifierProvider<
-    NotificationFeedNotifier, NotificationFeed>.internal(
+final notificationFeedNotifierProvider =
+    AutoDisposeAsyncNotifierProvider<NotificationFeedNotifier, NotificationFeed>.internal(
   NotificationFeedNotifier.new,
   name: r'notificationFeedNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$notificationFeedNotifierHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$notificationFeedNotifierHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 typedef _$NotificationFeedNotifier = AutoDisposeAsyncNotifier<NotificationFeed>;
-String _$markNotificationsReadHash() =>
-    r'5d7af8d40062f43d50685c42a2d57bf9d1355dfd';
+String _$markNotificationsReadHash() => r'5d7af8d40062f43d50685c42a2d57bf9d1355dfd';
 
 /// Marking read, which the centre does on open.
 ///
@@ -84,9 +79,8 @@ final markNotificationsReadProvider =
     AutoDisposeNotifierProvider<MarkNotificationsRead, bool>.internal(
   MarkNotificationsRead.new,
   name: r'markNotificationsReadProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$markNotificationsReadHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$markNotificationsReadHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

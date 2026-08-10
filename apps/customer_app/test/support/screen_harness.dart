@@ -80,20 +80,24 @@ void screenGoldens(
   Size surface = const Size(390, 844),
 }) {
   for (final cell in Cell.values) {
-    testWidgets('golden: $name [${cell.slug}]', (tester) async {
-      tester.view.physicalSize = surface;
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
+    testWidgets(
+      'golden: $name [${cell.slug}]',
+      (tester) async {
+        tester.view.physicalSize = surface;
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(screenHarness(cell, build(cell), overrides: overrides(cell)));
-      await stabilise(tester);
-      if (after != null) await after(tester);
+        await tester.pumpWidget(screenHarness(cell, build(cell), overrides: overrides(cell)));
+        await stabilise(tester);
+        if (after != null) await after(tester);
 
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/${name.replaceAll('/', '_')}.${cell.slug}.png'),
-      );
-    }, tags: 'golden',);
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile('goldens/${name.replaceAll('/', '_')}.${cell.slug}.png'),
+        );
+      },
+      tags: 'golden',
+    );
   }
 }
 

@@ -19,8 +19,7 @@ part 'venue_image_provider.g.dart';
 /// stops meaning what its name says. Overridden in `screen_registry.dart` with
 /// a real decodable image so the wiring is actually pictured.
 @Riverpod(keepAlive: true)
-ImageProvider Function(String url) networkImageFactory(Ref ref) =>
-    CachedNetworkImageProvider.new;
+ImageProvider Function(String url) networkImageFactory(Ref ref) => CachedNetworkImageProvider.new;
 
 /// Turn a [VenueImage] into something `SahraPhoto` can draw.
 ///

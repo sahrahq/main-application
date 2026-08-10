@@ -57,9 +57,8 @@ class ApiException implements Exception {
     }
 
     final rawAlternatives = error['alternatives'];
-    final alternatives = rawAlternatives is List
-        ? rawAlternatives.whereType<String>().toList()
-        : const <String>[];
+    final alternatives =
+        rawAlternatives is List ? rawAlternatives.whereType<String>().toList() : const <String>[];
 
     return ApiException(
       statusCode: statusCode,

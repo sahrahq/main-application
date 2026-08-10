@@ -10,12 +10,10 @@ String _$editNameHash() => r'adcc6abb4dad24d1b1c8734076c0e970b42e37fd';
 
 /// See also [EditName].
 @ProviderFor(EditName)
-final editNameProvider =
-    AutoDisposeNotifierProvider<EditName, EditNameState>.internal(
+final editNameProvider = AutoDisposeNotifierProvider<EditName, EditNameState>.internal(
   EditName.new,
   name: r'editNameProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$editNameHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product') ? null : _$editNameHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

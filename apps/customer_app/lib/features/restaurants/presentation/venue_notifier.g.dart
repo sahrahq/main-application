@@ -88,8 +88,7 @@ class VenueProfileFamily extends Family<AsyncValue<VenueProfile>> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'venueProfileProvider';
@@ -120,12 +119,9 @@ class VenueProfileProvider extends AutoDisposeFutureProvider<VenueProfile> {
           from: venueProfileProvider,
           name: r'venueProfileProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$venueProfileHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$venueProfileHash,
           dependencies: VenueProfileFamily._dependencies,
-          allTransitiveDependencies:
-              VenueProfileFamily._allTransitiveDependencies,
+          allTransitiveDependencies: VenueProfileFamily._allTransitiveDependencies,
           idOrSlug: idOrSlug,
         );
 
@@ -185,8 +181,7 @@ mixin VenueProfileRef on AutoDisposeFutureProviderRef<VenueProfile> {
   String get idOrSlug;
 }
 
-class _VenueProfileProviderElement
-    extends AutoDisposeFutureProviderElement<VenueProfile>
+class _VenueProfileProviderElement extends AutoDisposeFutureProviderElement<VenueProfile>
     with VenueProfileRef {
   _VenueProfileProviderElement(super.provider);
 

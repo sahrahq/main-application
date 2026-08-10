@@ -13,9 +13,8 @@ String _$pushTokenSourceHash() => r'89c886ec1219ba2bf4fa9874a9e7c945b8aa0f02';
 final pushTokenSourceProvider = Provider<PushTokenSource>.internal(
   pushTokenSource,
   name: r'pushTokenSourceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$pushTokenSourceHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$pushTokenSourceHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -23,6 +22,25 @@ final pushTokenSourceProvider = Provider<PushTokenSource>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PushTokenSourceRef = ProviderRef<PushTokenSource>;
+String _$pushTapsHash() => r'049e59e2c7454177dcedce59dde726d83275ae71';
+
+/// The tap channel. Overridden in tests with `FakePushTaps`, for the same
+/// reason `pushTokenSource` is — `FirebaseMessaging` is a platform channel and
+/// is not there on a test runner.
+///
+/// Copied from [pushTaps].
+@ProviderFor(pushTaps)
+final pushTapsProvider = Provider<PushTaps>.internal(
+  pushTaps,
+  name: r'pushTapsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product') ? null : _$pushTapsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PushTapsRef = ProviderRef<PushTaps>;
 String _$pushRegistrarHash() => r'904c1b2a251c339be2aa90f9441299bc09224ae0';
 
 /// `POST /devices` and `DELETE /devices` FINALLY HAVE A CALLER.
@@ -62,9 +80,8 @@ String _$pushRegistrarHash() => r'904c1b2a251c339be2aa90f9441299bc09224ae0';
 final pushRegistrarProvider = NotifierProvider<PushRegistrar, bool>.internal(
   PushRegistrar.new,
   name: r'pushRegistrarProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$pushRegistrarHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$pushRegistrarHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

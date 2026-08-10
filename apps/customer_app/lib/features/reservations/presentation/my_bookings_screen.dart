@@ -234,8 +234,7 @@ class _List extends ConsumerWidget {
           onAction: past ? null : () => const SearchRoute().go(context),
         ),
       ),
-      content: (context, list) =>
-          past ? _PastTrail(list: list) : _UpcomingList(list: list),
+      content: (context, list) => past ? _PastTrail(list: list) : _UpcomingList(list: list),
     );
   }
 }
@@ -407,9 +406,8 @@ class _CancelledNotice extends ConsumerWidget {
             size: SahraButtonSize.sm,
             onPressed: busy
                 ? null
-                : () => ref
-                    .read(acknowledgeCancellationProvider.notifier)
-                    .acknowledge(reservation.id),
+                : () =>
+                    ref.read(acknowledgeCancellationProvider.notifier).acknowledge(reservation.id),
           ),
         ],
       ),

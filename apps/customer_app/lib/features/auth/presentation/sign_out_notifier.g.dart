@@ -24,8 +24,7 @@ String _$signOutHash() => r'd16ed531b6c9a6959ae68a8ac83a603343b932d3';
 final signOutProvider = AutoDisposeNotifierProvider<SignOut, bool>.internal(
   SignOut.new,
   name: r'signOutProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$signOutHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product') ? null : _$signOutHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

@@ -15,9 +15,8 @@ String _$locationSourceHash() => r'e937c5fa89506eb97b74a283d61d18744f9083ba';
 final locationSourceProvider = Provider<LocationSource>.internal(
   locationSource,
   name: r'locationSourceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$locationSourceHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$locationSourceHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -52,13 +51,11 @@ String _$dinerLocationHash() => r'6ade8d8382ac2f22d3e47c4bb10166d194f9b9b2';
 ///
 /// Copied from [DinerLocation].
 @ProviderFor(DinerLocation)
-final dinerLocationProvider =
-    NotifierProvider<DinerLocation, LocationResult?>.internal(
+final dinerLocationProvider = NotifierProvider<DinerLocation, LocationResult?>.internal(
   DinerLocation.new,
   name: r'dinerLocationProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$dinerLocationHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$dinerLocationHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

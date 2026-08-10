@@ -154,7 +154,6 @@ void main() {
       '${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
 
-
   /// The first date in the next week with a bookable slot, and its board.
   ///
   /// ── WHY NOT JUST "TOMORROW" ─────────────────────────────────────────────
@@ -218,12 +217,14 @@ void main() {
     }
 
     // 3. NEAREST FIRST ACTUALLY MEANS NEAREST FIRST.
-    final List<double> distances =
-        page.results.map((v) => v.distanceKm!).toList();
+    final List<double> distances = page.results.map((v) => v.distanceKm!).toList();
     final List<double> ascending = <double>[...distances]..sort();
-    expect(distances, ascending,
-        reason: 'sort=distance returned $distances — not ascending, so either '
-            'Meilisearch ignored the sort or the geo point is wrong',);
+    expect(
+      distances,
+      ascending,
+      reason: 'sort=distance returned $distances — not ascending, so either '
+          'Meilisearch ignored the sort or the geo point is wrong',
+    );
 
     // 4. AND THE RADIUS EXCLUDES SOMETHING. Maadi is ~10km from Zamalek, so a
     //    filter that works must drop Kazoku — without this the three
@@ -261,8 +262,11 @@ void main() {
     // by the client.
     final reviews = await restaurants.reviews('layali-lounge-zamalek');
     expect(reviews.results, isNotEmpty);
-    expect(reviews.summary.ratingCount, reviews.summary.breakdown.values.reduce((a, b) => a + b),
-        reason: 'the histogram and the count disagree',);
+    expect(
+      reviews.summary.ratingCount,
+      reviews.summary.breakdown.values.reduce((a, b) => a + b),
+      reason: 'the histogram and the count disagree',
+    );
 
     // The verified-diner rule, visible from the outside: every author is a
     // first name and an initial, never the full name on the account.
@@ -277,250 +281,274 @@ void main() {
     );
   });
 
-  test('search → detail → slots → hold → confirm, against the real engine', () async {
-    // 1. SEARCH. Meilisearch decides WHICH, Postgres decides WHAT.
-    final page = await restaurants.search(query: 'layali');
-    expect(page.results, isNotEmpty, reason: 'run `pnpm seed` first');
-    final venue = page.results.first;
-    expect(venue.name, isNotEmpty);
+  test(
+    'search → detail → slots → hold → confirm, against the real engine',
+    () async {
+      // 1. SEARCH. Meilisearch decides WHICH, Postgres decides WHAT.
+      final page = await restaurants.search(query: 'layali');
+      expect(page.results, isNotEmpty, reason: 'run `pnpm seed` first');
+      final venue = page.results.first;
+      expect(venue.name, isNotEmpty);
 
-    // 2. DETAIL, BY SLUG — the deep-link path, not the id one.
-    final profile = await restaurants.profile(venue.slug);
-    expect(profile.id, venue.id);
-    expect(profile.timezone, 'Africa/Cairo');
-    expect(profile.hours, isNotEmpty, reason: 'a venue with no shifts cannot be booked');
+      // 2. DETAIL, BY SLUG — the deep-link path, not the id one.
+      final profile = await restaurants.profile(venue.slug);
+      expect(profile.id, venue.id);
+      expect(profile.timezone, 'Africa/Cairo');
+      expect(profile.hours, isNotEmpty, reason: 'a venue with no shifts cannot be booked');
 
-    // 3. SLOTS. The only source of a bookable instant.
-    final (date, board) = await firstBookable(profile.id);
+      // 3. SLOTS. The only source of a bookable instant.
+      final (date, board) = await firstBookable(profile.id);
 
-    // The two time fields are DIFFERENT things, and against a real Cairo venue
-    // the difference is visible: UTC+3, so a 19:00 wall clock is 16:00Z.
-    final slot = board.slots.first;
-    expect(slot.startsAt, endsWith('Z'));
-    expect(slot.label, matches(RegExp(r'^\d{2}:\d{2}$')));
+      // The two time fields are DIFFERENT things, and against a real Cairo venue
+      // the difference is visible: UTC+3, so a 19:00 wall clock is 16:00Z.
+      final slot = board.slots.first;
+      expect(slot.startsAt, endsWith('Z'));
+      expect(slot.label, matches(RegExp(r'^\d{2}:\d{2}$')));
 
-    // 4. HOLD, then 5. CONFIRM — two mutations, two idempotency keys.
-    final held = await reservations.hold(
-      restaurantId: profile.id,
-      startsAt: slot.startsAt,
-      partySize: 2,
-    );
-    booked.add(held.id);
-    expect(held.status, 'held');
-    expect(held.holdExpiresAt, isNotNull);
-    expect(held.code, startsWith('SAH-'));
+      // 4. HOLD, then 5. CONFIRM — two mutations, two idempotency keys.
+      final held = await reservations.hold(
+        restaurantId: profile.id,
+        startsAt: slot.startsAt,
+        partySize: 2,
+      );
+      booked.add(held.id);
+      expect(held.status, 'held');
+      expect(held.holdExpiresAt, isNotNull);
+      expect(held.code, startsWith('SAH-'));
 
-    final confirmed = await reservations.confirm(holdId: held.id);
-    expect(confirmed.status, 'confirmed');
-    expect(confirmed.code, held.code);
+      final confirmed = await reservations.confirm(holdId: held.id);
+      expect(confirmed.status, 'confirmed');
+      expect(confirmed.code, held.code);
 
-    // 6. AND IT COMES BACK. The screens the diner opens next read this list,
-    // and until now nothing had ever proved the booking that was just made
-    // appears in it — the write path and the read path were tested apart.
-    final mine = await reservations.myReservations(view: 'upcoming');
-    expect(
-      mine.map((r) => r.code),
-      contains(confirmed.code),
-      reason: 'the reservation just confirmed is not in GET /reservations',
-    );
+      // 6. AND IT COMES BACK. The screens the diner opens next read this list,
+      // and until now nothing had ever proved the booking that was just made
+      // appears in it — the write path and the read path were tested apart.
+      final mine = await reservations.myReservations(view: 'upcoming');
+      expect(
+        mine.map((r) => r.code),
+        contains(confirmed.code),
+        reason: 'the reservation just confirmed is not in GET /reservations',
+      );
 
-    final one = await reservations.reservation(
-      mine.firstWhere((r) => r.code == confirmed.code).id,
-    );
-    expect(one.status, 'confirmed');
-    expect(one.needsAcknowledgement, isFalse);
-    // The venue's wall clock, computed server-side — not derived here from the
-    // UTC instant, which is the whole reason these two fields exist.
-    expect(one.time, matches(RegExp(r'^\d{2}:\d{2}$')));
-    expect(one.venue.timezone, 'Africa/Cairo');
-  }, timeout: const Timeout(Duration(seconds: 60)),);
+      final one = await reservations.reservation(
+        mine.firstWhere((r) => r.code == confirmed.code).id,
+      );
+      expect(one.status, 'confirmed');
+      expect(one.needsAcknowledgement, isFalse);
+      // The venue's wall clock, computed server-side — not derived here from the
+      // UTC instant, which is the whole reason these two fields exist.
+      expect(one.time, matches(RegExp(r'^\d{2}:\d{2}$')));
+      expect(one.venue.timezone, 'Africa/Cairo');
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
 
-  test('GROUP A over a real socket — move it, then call it off', () async {
-    // The three new endpoints had no live coverage at all: everything about
-    // them was proved either in-process by the API's e2e suite or against a
-    // fake transport in Flutter. Neither of those exercises the GENERATED
-    // CLIENT against the real server — the layer where a wrong path, a
-    // snake_case field or a missing body silently becomes a 404.
-    final page = await restaurants.search(query: 'layali');
-    expect(page.results, isNotEmpty, reason: 'run `pnpm seed` first');
-    final profile = await restaurants.profile(page.results.first.slug);
+  test(
+    'GROUP A over a real socket — move it, then call it off',
+    () async {
+      // The three new endpoints had no live coverage at all: everything about
+      // them was proved either in-process by the API's e2e suite or against a
+      // fake transport in Flutter. Neither of those exercises the GENERATED
+      // CLIENT against the real server — the layer where a wrong path, a
+      // snake_case field or a missing body silently becomes a 404.
+      final page = await restaurants.search(query: 'layali');
+      expect(page.results, isNotEmpty, reason: 'run `pnpm seed` first');
+      final profile = await restaurants.profile(page.results.first.slug);
 
-    final (date, board) = await firstBookable(profile.id);
+      final (date, board) = await firstBookable(profile.id);
 
-    final held = await reservations.hold(
-      restaurantId: profile.id,
-      startsAt: board.slots.first.startsAt,
-      partySize: 2,
-    );
-    booked.add(held.id);
-    final booking = await reservations.confirm(holdId: held.id);
-    final mine = await reservations.myReservations(view: 'upcoming');
-    final id = mine.firstWhere((r) => r.code == booking.code).id;
+      final held = await reservations.hold(
+        restaurantId: profile.id,
+        startsAt: board.slots.first.startsAt,
+        partySize: 2,
+      );
+      booked.add(held.id);
+      final booking = await reservations.confirm(holdId: held.id);
+      final mine = await reservations.myReservations(view: 'upcoming');
+      final id = mine.firstWhere((r) => r.code == booking.code).id;
 
-    // 1. THE PICKER ANSWERS, AND OFFERS THE BOOKING'S OWN SLOT.
-    //
-    // WHAT THIS CAN AND CANNOT PROVE HERE. The seeded venue has several
-    // tables, so one booking does not exhaust a slot — the public grid keeps
-    // offering the same time, and from out here the EXCLUSION is invisible.
-    // Asserting it against this venue would be asserting nothing.
-    //
-    // The exclusion and the release are proved in `diner-actions.e2e-spec.ts`
-    // against a venue built with exactly ONE table, where free and taken
-    // are unambiguous. What is worth proving over a real socket is what that
-    // suite cannot reach: that the GENERATED CLIENT calls the right path and
-    // decodes the answer.
-    final movable = await reservations.movableSlots(id: id, date: date);
-    expect(movable.slots, isNotEmpty);
-    expect(movable.partySize, 2, reason: "the picker ignored the booking's own party size");
-    expect(
-      movable.slots.map((s) => s.startsAt),
-      contains(board.slots.first.startsAt),
-      reason: 'the move picker does not offer the time this booking holds',
-    );
+      // 1. THE PICKER ANSWERS, AND OFFERS THE BOOKING'S OWN SLOT.
+      //
+      // WHAT THIS CAN AND CANNOT PROVE HERE. The seeded venue has several
+      // tables, so one booking does not exhaust a slot — the public grid keeps
+      // offering the same time, and from out here the EXCLUSION is invisible.
+      // Asserting it against this venue would be asserting nothing.
+      //
+      // The exclusion and the release are proved in `diner-actions.e2e-spec.ts`
+      // against a venue built with exactly ONE table, where free and taken
+      // are unambiguous. What is worth proving over a real socket is what that
+      // suite cannot reach: that the GENERATED CLIENT calls the right path and
+      // decodes the answer.
+      final movable = await reservations.movableSlots(id: id, date: date);
+      expect(movable.slots, isNotEmpty);
+      expect(movable.partySize, 2, reason: "the picker ignored the booking's own party size");
+      expect(
+        movable.slots.map((s) => s.startsAt),
+        contains(board.slots.first.startsAt),
+        reason: 'the move picker does not offer the time this booking holds',
+      );
 
-    // 2. CHANGE THE PARTY SIZE. Absolute value, through the real engine, with
-    //    the advisory lock and the re-check that a new booking gets.
-    final moved = await reservations.modify(id: id, partySize: 3);
-    expect(moved.partySize, 3);
-    expect(moved.code, booking.code, reason: 'a modify created a new booking');
-    expect(moved.status, 'confirmed');
+      // 2. CHANGE THE PARTY SIZE. Absolute value, through the real engine, with
+      //    the advisory lock and the re-check that a new booking gets.
+      final moved = await reservations.modify(id: id, partySize: 3);
+      expect(moved.partySize, 3);
+      expect(moved.code, booking.code, reason: 'a modify created a new booking');
+      expect(moved.status, 'confirmed');
 
-    // 3. REPLAY IT. The argument for carrying no Idempotency-Key is that the
-    //    body names absolute values — asserted here against the real database
-    //    rather than reasoned about in a comment.
-    final again = await reservations.modify(id: id, partySize: 3);
-    expect(again.partySize, 3);
-    expect(again.code, booking.code);
+      // 3. REPLAY IT. The argument for carrying no Idempotency-Key is that the
+      //    body names absolute values — asserted here against the real database
+      //    rather than reasoned about in a comment.
+      final again = await reservations.modify(id: id, partySize: 3);
+      expect(again.partySize, 3);
+      expect(again.code, booking.code);
 
-    // 4. CANCEL, as the DINER.
-    final cancelled = await reservations.cancel(id: id, reason: 'Live suite');
-    expect(cancelled.status, 'cancelled_by_user');
-    expect(cancelled.cancelledBy, CancelledBy.user);
-    expect(cancelled.cancelReason, 'Live suite');
-    // The diner did this themselves, so there is nothing to acknowledge.
-    expect(cancelled.needsAcknowledgement, isFalse);
+      // 4. CANCEL, as the DINER.
+      final cancelled = await reservations.cancel(id: id, reason: 'Live suite');
+      expect(cancelled.status, 'cancelled_by_user');
+      expect(cancelled.cancelledBy, CancelledBy.user);
+      expect(cancelled.cancelReason, 'Live suite');
+      // The diner did this themselves, so there is nothing to acknowledge.
+      expect(cancelled.needsAcknowledgement, isFalse);
 
-    // 5. AND IT IS GONE FROM UPCOMING, WHICH IS THE SCREEN THE DINER RETURNS
-    //    TO. The table release is a one-table property and lives in the e2e
-    //    suite; this is the part a diner can actually see.
-    final upcoming = await reservations.myReservations(view: 'upcoming');
-    expect(
-      upcoming.map((r) => r.code),
-      isNot(contains(booking.code)),
-      reason: 'a cancelled booking is still listed as upcoming',
-    );
+      // 5. AND IT IS GONE FROM UPCOMING, WHICH IS THE SCREEN THE DINER RETURNS
+      //    TO. The table release is a one-table property and lives in the e2e
+      //    suite; this is the part a diner can actually see.
+      final upcoming = await reservations.myReservations(view: 'upcoming');
+      expect(
+        upcoming.map((r) => r.code),
+        isNot(contains(booking.code)),
+        reason: 'a cancelled booking is still listed as upcoming',
+      );
 
-    final past = await reservations.myReservations(view: 'past');
-    expect(
-      past.map((r) => r.code),
-      contains(booking.code),
-      reason: 'a cancelled booking vanished instead of moving to history',
-    );
-  }, timeout: const Timeout(Duration(seconds: 90)),);
+      final past = await reservations.myReservations(view: 'past');
+      expect(
+        past.map((r) => r.code),
+        contains(booking.code),
+        reason: 'a cancelled booking vanished instead of moving to history',
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 90)),
+  );
 
-  test('PATCH /auth/me over a real socket, and it REFUSES an email', () async {
-    // The refusal matters more than the success. `users.email` is reachable
-    // the moment this endpoint accepts one, and the verification flow that
-    // decides what an unverified address may be used for is not built.
-    final renamed = await guarded(
-      () => api.updateMe(body: const UpdateProfileDto(fullName: 'Live Suite Diner')),
-    );
-    expect(renamed.fullName, 'Live Suite Diner');
-    expect(renamed.email, isNull);
+  test(
+    'PATCH /auth/me over a real socket, and it REFUSES an email',
+    () async {
+      // The refusal matters more than the success. `users.email` is reachable
+      // the moment this endpoint accepts one, and the verification flow that
+      // decides what an unverified address may be used for is not built.
+      final renamed = await guarded(
+        () => api.updateMe(body: const UpdateProfileDto(fullName: 'Live Suite Diner')),
+      );
+      expect(renamed.fullName, 'Live Suite Diner');
+      expect(renamed.email, isNull);
 
-    // `UpdateProfileDto` has no email field, so this goes out as a raw body —
-    // the only way to prove the SERVER refuses it rather than the client
-    // merely declining to offer it.
-    await expectLater(
-      guarded(
-        () => DioTransport(
-          baseUrl: base,
-          localeCode: () => 'en',
-          accessToken: () => accessToken,
-        ).send(
-          method: 'PATCH',
-          path: '/v1/auth/me',
-          body: <String, Object?>{'fullName': 'X Y', 'email': 'nobody@example.com'},
-        ),
-      ),
-      throwsA(
-        isA<ValidationFailure>().having((f) => f.code, 'code', 'validation_failed'),
-      ),
-    );
-
-    // And nothing was written.
-    final me = await guarded(() => api.me());
-    expect(me.email, isNull);
-    expect(me.fullName, 'Live Suite Diner');
-  }, timeout: const Timeout(Duration(seconds: 30)),);
-
-  test('C-1.6: an anonymous hold is refused, and typed as an AuthFailure', () async {
-    // The enforcement itself, over a real socket. The screens depend on this
-    // arriving as an `AuthFailure` specifically — that is what routes a guest
-    // to sign-in instead of showing them an error they cannot act on.
-    final anon = SahraApi(DioTransport(baseUrl: base, localeCode: () => 'en'));
-    final page = await restaurants.search(query: 'layali');
-    final venue = page.results.first;
-    // A REAL, BOOKABLE slot — the refusal has to be about the missing account
-    // and nothing else. Asking for one on a full day would refuse for the wrong
-    // reason and the assertion would still pass.
-    final (_, board) = await firstBookable(venue.id);
-
-    await expectLater(
-      guarded(
-        () => anon.createHold(
-          body: CreateHoldDto(
-            restaurantId: venue.id,
-            startsAt: board.slots.first.startsAt,
-            partySize: 2,
+      // `UpdateProfileDto` has no email field, so this goes out as a raw body —
+      // the only way to prove the SERVER refuses it rather than the client
+      // merely declining to offer it.
+      await expectLater(
+        guarded(
+          () => DioTransport(
+            baseUrl: base,
+            localeCode: () => 'en',
+            accessToken: () => accessToken,
+          ).send(
+            method: 'PATCH',
+            path: '/v1/auth/me',
+            body: <String, Object?>{'fullName': 'X Y', 'email': 'nobody@example.com'},
           ),
-          idempotencyKey: newIdempotencyKey(),
         ),
-      ),
-      throwsA(isA<AuthFailure>()),
-    );
-  }, timeout: const Timeout(Duration(seconds: 30)),);
+        throwsA(
+          isA<ValidationFailure>().having((f) => f.code, 'code', 'validation_failed'),
+        ),
+      );
 
-  test('a replayed idempotency key returns the SAME reservation', () async {
-    // The guarantee that makes a retry on a bad Cairo connection safe. Driven
-    // at the client level because the repository generates a fresh key per
-    // attempt by design — which is correct, and also means the repository
-    // cannot demonstrate a replay.
-    final page = await restaurants.search(query: 'layali');
-    final venue = page.results.first;
+      // And nothing was written.
+      final me = await guarded(() => api.me());
+      expect(me.email, isNull);
+      expect(me.fullName, 'Live Suite Diner');
+    },
+    timeout: const Timeout(Duration(seconds: 30)),
+  );
 
-    final date = isoDate(DateTime.now().add(const Duration(days: 2)));
-    final board = await reservations.slots(
-      restaurantId: venue.id,
-      date: date,
-      partySize: 2,
-    );
-    final slot = board.slots.last;
+  test(
+    'C-1.6: an anonymous hold is refused, and typed as an AuthFailure',
+    () async {
+      // The enforcement itself, over a real socket. The screens depend on this
+      // arriving as an `AuthFailure` specifically — that is what routes a guest
+      // to sign-in instead of showing them an error they cannot act on.
+      final anon = SahraApi(DioTransport(baseUrl: base, localeCode: () => 'en'));
+      final page = await restaurants.search(query: 'layali');
+      final venue = page.results.first;
+      // A REAL, BOOKABLE slot — the refusal has to be about the missing account
+      // and nothing else. Asking for one on a full day would refuse for the wrong
+      // reason and the assertion would still pass.
+      final (_, board) = await firstBookable(venue.id);
 
-    final key = newIdempotencyKey();
-    final body = CreateHoldDto(
-      restaurantId: venue.id,
-      startsAt: slot.startsAt,
-      partySize: 2,
-    );
+      await expectLater(
+        guarded(
+          () => anon.createHold(
+            body: CreateHoldDto(
+              restaurantId: venue.id,
+              startsAt: board.slots.first.startsAt,
+              partySize: 2,
+            ),
+            idempotencyKey: newIdempotencyKey(),
+          ),
+        ),
+        throwsA(isA<AuthFailure>()),
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 30)),
+  );
 
-    final first = await guarded(() => api.createHold(body: body, idempotencyKey: key));
-    final replay = await guarded(() => api.createHold(body: body, idempotencyKey: key));
-    // One id, because the replay must not have made a second — registered so
-    // the teardown returns the table either way.
-    booked.add(first.id);
+  test(
+    'a replayed idempotency key returns the SAME reservation',
+    () async {
+      // The guarantee that makes a retry on a bad Cairo connection safe. Driven
+      // at the client level because the repository generates a fresh key per
+      // attempt by design — which is correct, and also means the repository
+      // cannot demonstrate a replay.
+      final page = await restaurants.search(query: 'layali');
+      final venue = page.results.first;
 
-    expect(replay.id, first.id, reason: 'a replay created a SECOND reservation');
-  }, timeout: const Timeout(Duration(seconds: 60)),);
+      final date = isoDate(DateTime.now().add(const Duration(days: 2)));
+      final board = await reservations.slots(
+        restaurantId: venue.id,
+        date: date,
+        partySize: 2,
+      );
+      final slot = board.slots.last;
 
-  test('the doc 06 §1 envelope arrives as a typed Failure, not a DioException', () async {
-    // The end of the error chain, over a real socket: envelope → ApiException
-    // → Failure. No screen ever sees anything else.
-    await expectLater(
-      restaurants.profile('no-such-venue-anywhere-at-all'),
-      throwsA(
-        isA<Failure>().having((f) => f.code, 'code', 'restaurant_not_found'),
-      ),
-    );
-  }, timeout: const Timeout(Duration(seconds: 30)),);
+      final key = newIdempotencyKey();
+      final body = CreateHoldDto(
+        restaurantId: venue.id,
+        startsAt: slot.startsAt,
+        partySize: 2,
+      );
+
+      final first = await guarded(() => api.createHold(body: body, idempotencyKey: key));
+      final replay = await guarded(() => api.createHold(body: body, idempotencyKey: key));
+      // One id, because the replay must not have made a second — registered so
+      // the teardown returns the table either way.
+      booked.add(first.id);
+
+      expect(replay.id, first.id, reason: 'a replay created a SECOND reservation');
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
+
+  test(
+    'the doc 06 §1 envelope arrives as a typed Failure, not a DioException',
+    () async {
+      // The end of the error chain, over a real socket: envelope → ApiException
+      // → Failure. No screen ever sees anything else.
+      await expectLater(
+        restaurants.profile('no-such-venue-anywhere-at-all'),
+        throwsA(
+          isA<Failure>().having((f) => f.code, 'code', 'restaurant_not_found'),
+        ),
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 30)),
+  );
 }

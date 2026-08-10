@@ -20,9 +20,12 @@ void main() {
     // opened is asserted first. This exact failure has happened twice in this
     // repo, both times in a census.
     final files = dartSources(lib, excludePathContains: generated);
-    expect(files.length, greaterThan(15),
-        reason: 'Only ${files.length} sources scanned — the scanner is looking '
-            'in the wrong place, and every check below is vacuous.',);
+    expect(
+      files.length,
+      greaterThan(15),
+      reason: 'Only ${files.length} sources scanned — the scanner is looking '
+          'in the wrong place, and every check below is vacuous.',
+    );
   });
 
   test('no hardcoded colours, spacing, radii or font families', () {

@@ -61,7 +61,9 @@ void main() {
       });
       final c = containerWith(transport);
 
-      await c.read(bookingFlowProvider(venueId).notifier).book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
+      await c
+          .read(bookingFlowProvider(venueId).notifier)
+          .book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
 
       final state = c.read(bookingFlowProvider(venueId));
       expect(state, isA<BookingDone>());
@@ -85,7 +87,9 @@ void main() {
       });
       final c = containerWith(transport);
 
-      await c.read(bookingFlowProvider(venueId).notifier).book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
+      await c
+          .read(bookingFlowProvider(venueId).notifier)
+          .book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
 
       expect(keys, hasLength(2));
       // Reusing the hold's key on the confirm would make the confirm look like
@@ -103,16 +107,22 @@ void main() {
     test('becomes a state with alternatives, never a thrown exception', () async {
       final transport = FakeTransport((method, path, _) {
         if (path == '/v1/reservations/holds') {
-          throw envelope(409, 'slot_taken', alternatives: <String>[
-            '${kFutureDate}T18:30:00.000Z',
-            '${kFutureDate}T19:00:00.000Z',
-          ],);
+          throw envelope(
+            409,
+            'slot_taken',
+            alternatives: <String>[
+              '${kFutureDate}T18:30:00.000Z',
+              '${kFutureDate}T19:00:00.000Z',
+            ],
+          );
         }
         throw StateError('confirm must never be reached after a failed hold');
       });
       final c = containerWith(transport);
 
-      await c.read(bookingFlowProvider(venueId).notifier).book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
+      await c
+          .read(bookingFlowProvider(venueId).notifier)
+          .book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
 
       final state = c.read(bookingFlowProvider(venueId));
       expect(state, isA<BookingSlotTaken>());
@@ -139,7 +149,9 @@ void main() {
       });
       final c = containerWith(transport);
 
-      await c.read(bookingFlowProvider(venueId).notifier).book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
+      await c
+          .read(bookingFlowProvider(venueId).notifier)
+          .book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
 
       expect(
         transport.calls.where((call) => call.endsWith('/confirm')),
@@ -176,7 +188,9 @@ void main() {
       await c.read(availableSlotsProvider(venueId).future);
       expect(slotCalls, 1);
 
-      await c.read(bookingFlowProvider(venueId).notifier).book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
+      await c
+          .read(bookingFlowProvider(venueId).notifier)
+          .book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
       await c.read(availableSlotsProvider(venueId).future);
 
       // The board on screen is known-wrong the moment the hold 409s. Offering
@@ -193,7 +207,9 @@ void main() {
       });
       final c = containerWith(transport);
 
-      await c.read(bookingFlowProvider(venueId).notifier).book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
+      await c
+          .read(bookingFlowProvider(venueId).notifier)
+          .book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
 
       // "Somebody else was faster" and "you were" are both 409s and both send
       // the diner back to the picker, but telling them the wrong one is the
@@ -207,7 +223,9 @@ void main() {
       final transport = FakeTransport((method, path, _) => throw offline);
       final c = containerWith(transport);
 
-      await c.read(bookingFlowProvider(venueId).notifier).book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
+      await c
+          .read(bookingFlowProvider(venueId).notifier)
+          .book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
 
       final state = c.read(bookingFlowProvider(venueId));
       expect(state, isA<BookingFailed>());
@@ -229,7 +247,9 @@ void main() {
       });
       final c = containerWith(transport);
 
-      await c.read(bookingFlowProvider(venueId).notifier).book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
+      await c
+          .read(bookingFlowProvider(venueId).notifier)
+          .book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
 
       expect(holds, 1);
       expect(c.read(bookingFlowProvider(venueId)), isA<BookingFailed>());
@@ -247,7 +267,9 @@ void main() {
       });
       final c = containerWith(transport);
 
-      await c.read(bookingFlowProvider(venueId).notifier).book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
+      await c
+          .read(bookingFlowProvider(venueId).notifier)
+          .book(startsAt: startsAt, partySize: 2, selection: _selection(startsAt, venueId));
 
       // `21:00` would book the wrong hour, and in Cairo that is a 2–3 hour
       // error depending on the date (sahra_api_client/README.md §2).

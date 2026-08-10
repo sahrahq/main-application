@@ -175,9 +175,7 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
               SizedBox(
                 width: double.infinity,
                 child: SahraButton(
-                  label: _submitting
-                      ? l10n.writeReviewSubmitting
-                      : l10n.writeReviewSubmit,
+                  label: _submitting ? l10n.writeReviewSubmitting : l10n.writeReviewSubmit,
                   // DISABLED, not enabled-and-refused. Null is how
                   // `SahraButton` renders its disabled state, and a screen
                   // reader announces it.

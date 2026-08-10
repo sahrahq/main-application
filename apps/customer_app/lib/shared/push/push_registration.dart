@@ -8,6 +8,7 @@ import 'package:sahra_api_client/sahra_api_client.dart';
 import '../providers/app_providers.dart';
 import '../providers/session_providers.dart';
 import 'push_token_source.dart';
+import 'push_taps.dart';
 
 part 'push_registration.g.dart';
 
@@ -142,3 +143,9 @@ class PushRegistrar extends _$PushRegistrar {
 
 @Riverpod(keepAlive: true)
 PushTokenSource pushTokenSource(Ref ref) => const FirebasePushTokenSource();
+
+/// The tap channel. Overridden in tests with `FakePushTaps`, for the same
+/// reason `pushTokenSource` is — `FirebaseMessaging` is a platform channel and
+/// is not there on a test runner.
+@Riverpod(keepAlive: true)
+PushTaps pushTaps(Ref ref) => FirebasePushTaps();

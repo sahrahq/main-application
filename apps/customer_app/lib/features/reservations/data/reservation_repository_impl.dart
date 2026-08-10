@@ -38,9 +38,8 @@ class ReservationRepositoryImpl implements ReservationRepository {
         date: r.date,
         partySize: r.partySize,
         timezone: r.timezone,
-        slots: r.slots
-            .map((s) => Slot(label: s.time, startsAt: s.startsAt, zones: s.zones))
-            .toList(),
+        slots:
+            r.slots.map((s) => Slot(label: s.time, startsAt: s.startsAt, zones: s.zones)).toList(),
       );
 
   @override
@@ -187,8 +186,7 @@ class ReservationRepositoryImpl implements ReservationRepository {
       serviceRating: r.serviceRating,
       ambienceRating: r.ambienceRating,
       ownerReply: r.ownerReply,
-      ownerRepliedAt:
-          r.ownerRepliedAt == null ? null : DateTime.parse(r.ownerRepliedAt!),
+      ownerRepliedAt: r.ownerRepliedAt == null ? null : DateTime.parse(r.ownerRepliedAt!),
     );
   }
 

@@ -6,17 +6,15 @@ part of 'onboarding_seen.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$onboardingSeenStoreHash() =>
-    r'9804d94b9de354680088ba97237027295bda931f';
+String _$onboardingSeenStoreHash() => r'9804d94b9de354680088ba97237027295bda931f';
 
 /// See also [onboardingSeenStore].
 @ProviderFor(onboardingSeenStore)
 final onboardingSeenStoreProvider = Provider<OnboardingSeenStore>.internal(
   onboardingSeenStore,
   name: r'onboardingSeenStoreProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$onboardingSeenStoreHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$onboardingSeenStoreHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -38,9 +36,8 @@ String _$onboardingSeenHash() => r'6e23fcbba5b43ab74b969845391e314e00b3cd4b';
 final onboardingSeenProvider = NotifierProvider<OnboardingSeen, bool?>.internal(
   OnboardingSeen.new,
   name: r'onboardingSeenProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$onboardingSeenHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$onboardingSeenHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

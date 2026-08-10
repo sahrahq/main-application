@@ -48,8 +48,10 @@ void main() {
 
       test('an UNRECOGNISED code falls back rather than crashing', () {
         // A server deployed ahead of the app is normal in mobile.
-        expect(failureMessage(const ServerFailure(code: 'kitchen_on_fire'), l10n),
-            l10n.errUnknown,);
+        expect(
+          failureMessage(const ServerFailure(code: 'kitchen_on_fire'), l10n),
+          l10n.errUnknown,
+        );
       });
 
       test('offline has its own copy, not the generic one', () {
