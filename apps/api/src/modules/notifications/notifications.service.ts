@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { PUSH_DELIVERY, type NotificationType, type PushDelivery } from './notification.ports';
-import { PUSH_READINESS, type PushReadiness } from './push-readiness';
+import { PUSH_READINESS, platformSupported, type PushReadiness } from './push-readiness';
 import { renderPush } from './notification-copy';
 
 export interface NotifyInput {
@@ -260,9 +260,14 @@ export class NotificationsService {
       // The adapter keeps its own check. That is deliberate belt-and-braces,
       // not duplication with drift risk: both read `PUSH_READINESS`, so there
       // is one source and two places that refuse.
-      const support = this.readiness.platforms.find((p) => p.platform === device.platform);
-      if (support && !support.deliverable) {
-        failures.push(`${device.platform}: ${device.platform}_not_configured — ${support.reason}`);
+      // `platformSupported`, NOT `readiness.deliverable`. The latter folds in
+      // "is a carrier configured", which is an ENVIRONMENT fact — gating on it
+      // refused Android whenever no credential was present, i.e. in CI and
+      // every local run, and nothing was ever recorded as sent. See the long
+      // note on `platformSupported`.
+      const support = platformSupported(device.platform);
+      if (!support.supported) {
+        failures.push(`${device.platform}: ${support.reason}`);
         continue;
       }
 

@@ -143,3 +143,47 @@ export function pushReadinessBanner(readiness: PushReadiness): string[] {
     '════════════════════════════════════════════════════════════════════',
   ];
 }
+
+/**
+ * Is this platform reachable AT ALL, ignoring whether a carrier is configured?
+ *
+ * ── PLATFORM SUPPORT IS A PRODUCT FACT; CARRIER CONFIG IS AN ENVIRONMENT ONE ──
+ *
+ * `PushReadiness.platforms[].deliverable` answers "can we deliver right now",
+ * which folds both together — correct for `/health` and the boot banner, and
+ * WRONG for the send path. Gating the send on it made a missing credential
+ * refuse ANDROID too, so in CI and every local run nothing was ever recorded
+ * as sent and `venue-cancellation`'s "delivery is attempted" went red.
+ *
+ * The two tests name the distinction between them:
+ *
+ *   - an iOS-only diner must get a recorded FAILURE even with the stub bound,
+ *     because no APNs key exists anywhere — that is true of the product, not
+ *     of this machine.
+ *   - an Android diner must get a recorded DELIVERY with the stub bound,
+ *     because Android is reachable in principle and the stub is standing in
+ *     for the carrier.
+ *
+ * So the send path asks THIS, and lets the bound adapter decide the rest.
+ * `FIREBASE_IOS_CONFIGURED=1` flips iOS the day an Apple account exists.
+ */
+export function platformSupported(
+  platform: string,
+  env: NodeJS.ProcessEnv = process.env,
+): { supported: boolean; reason: string } {
+  if (platform === 'android') return { supported: true, reason: '' };
+  if (platform === 'ios') {
+    return env.FIREBASE_IOS_CONFIGURED === '1'
+      ? { supported: true, reason: '' }
+      : {
+          supported: false,
+          reason:
+            'ios_not_configured — no APNs key is registered with the Firebase ' +
+            'project, so FCM accepts the send and no iPhone is reached',
+        };
+  }
+  return {
+    supported: false,
+    reason: 'web push is not in scope (doc 02 — iOS and Android only)',
+  };
+}
