@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { PUSH_DELIVERY, type NotificationType, type PushDelivery } from './notification.ports';
+import { PUSH_READINESS, type PushReadiness } from './push-readiness';
 import { renderPush } from './notification-copy';
 
 export interface NotifyInput {
@@ -91,6 +92,8 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PUSH_DELIVERY) private readonly push: PushDelivery,
+    // The SAME answer the boot banner and `/health` read. See the send loop.
+    @Inject(PUSH_READINESS) private readonly readiness: PushReadiness,
   ) {}
 
   /**
@@ -237,6 +240,32 @@ export class NotificationsService {
 
     const failures: string[] = [];
     for (const device of devices) {
+      // ── PLATFORM SUPPORT IS A PROPERTY OF THE SYSTEM, NOT OF THE ADAPTER ──
+      //
+      // This check used to live only inside `FcmPushDelivery`, which meant the
+      // guarantee "the database never claims an iPhone was reached" evaporated
+      // the moment a different adapter was bound — including in CI and in
+      // every local run, where `LoggingPushDelivery` is bound and cheerfully
+      // "delivers" to iOS, setting `sent_at` on a delivery that never happened.
+      //
+      // Found on 2026-08-10 when the e2e suite ran on a machine with no
+      // Firebase credentials. It is the mirror image of the `venue-cancellation`
+      // defect fixed the same week, where a test asserted the STUB's behaviour
+      // and broke once a real carrier appeared. Both say the same thing:
+      // A GUARANTEE THAT DEPENDS ON WHICH IMPLEMENTATION IS BOUND IS NOT A
+      // GUARANTEE. Asking the readiness answer here makes it one, and it is
+      // the same answer `/health` and the boot banner read, so the three
+      // cannot disagree.
+      //
+      // The adapter keeps its own check. That is deliberate belt-and-braces,
+      // not duplication with drift risk: both read `PUSH_READINESS`, so there
+      // is one source and two places that refuse.
+      const support = this.readiness.platforms.find((p) => p.platform === device.platform);
+      if (support && !support.deliverable) {
+        failures.push(`${device.platform}: ${device.platform}_not_configured — ${support.reason}`);
+        continue;
+      }
+
       const copy = renderPush(input.type, input.data, device.locale);
       try {
         await this.push.send({
