@@ -261,6 +261,54 @@ The general rule at the top of this section is the one this incident argues
 for: the harness was never once observed producing a red. Nobody made it fail
 on purpose, so nobody learned it could not.
 
+### Incident 7 — a later step that silently undid an earlier one
+
+**This one adds a question the first six do not ask.** They are all "does this
+do what it says". This one did exactly what it said, and something that ran
+afterwards took it back.
+
+`20260801000000_lock_down_data_api` pins `search_path = ''` on both reservation
+trigger functions, closing the advisor's "Function Search Path Mutable"
+finding — without it, a role able to create objects in an earlier schema can
+shadow `tstzrange` or the table names and hijack the trigger.
+
+`prisma/sql/01_guards.sql` carried its own copies of those two functions,
+inherited from `20260731000000_init`, and CI runs it **immediately after**
+`prisma migrate deploy`. `CREATE OR REPLACE FUNCTION` replaces the *entire*
+definition, SET clauses included. So the guards file silently un-pinned both
+functions every single time it ran.
+
+**Any environment provisioned in the documented order — `migrate deploy`, then
+the guards file — shipped with mutable `search_path` on both reservation
+triggers. That includes production.** The dev database passes only by an
+accident of the order its own history happened to run in: the guards were
+applied there *before* the lockdown migration, so the pin survived on top.
+
+`schema-invariants.e2e-spec.ts` has asserted this correctly for weeks. It had
+simply never run against a database built in the documented order, because the
+pipeline had never run at all. **A correct assertion against the wrong
+starting state is not a check.**
+
+Two rules:
+
+1. **Ask what runs AFTER.** "Does this statement do what it says" is not
+   sufficient for anything whose effect can be overwritten — a function
+   definition, a grant, a config value, a generated file. The full question is
+   *does anything later in the documented sequence undo it*, and the only
+   reliable way to answer it is to run the whole sequence from zero and look at
+   the end state.
+2. **One definition, one owner.** The fix was to DELETE the duplicates, not to
+   synchronise them. Two files owning one definition IS the defect; making the
+   copies match repairs today and guarantees the identical divergence the first
+   time somebody edits one and not the other. `01_guards.sql` now *asserts* the
+   functions exist and are pinned, and refuses with a named error if they are
+   not — verified by un-pinning one on purpose and watching `psql` exit 3.
+
+And the thing that closes it permanently: **CI now builds the schema in the
+documented order on every PR**, so this invariant is tested against a
+from-zero database rather than against whatever a long-lived development
+database has accumulated.
+
 The mechanism is always the same, and it is worse than being wrong. A
 declaration that *reads as correct* **ends the investigation**. Nobody checks
 twice something they have just satisfied themselves about, so the gap survives
