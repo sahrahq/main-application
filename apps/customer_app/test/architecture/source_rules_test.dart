@@ -64,6 +64,71 @@ void main() {
     expect(v, isEmpty, reason: describeBidi(v));
   });
 
+  test('NO SHOWN BOOKING TIME IS DERIVED FROM startsAt VIA toLocal()', () {
+    /// The rule existed as prose and was violated anyway.
+    ///
+    /// `my_reservation.dart` has said this since the field was added:
+    ///
+    ///   > USE THESE, not `DateTime.parse(startsAt).toLocal()`. A diner in
+    ///   > Cairo gets the same answer either way; a diner who booked from
+    ///   > Dubai and is reading the list on the plane does not, and the number
+    ///   > they need is the one the restaurant will be looking at.
+    ///
+    /// `confirmed_screen.dart` did exactly that anyway, and carried a comment
+    /// asserting it was "the ONE place a local rendering is right" — the wrong
+    /// belief, written down, sitting three files from the right one. The
+    /// result: the ticket a diner screenshots and shows at the door displayed
+    /// a different hour from the same booking in their bookings list, whenever
+    /// their phone timezone differed from the venue's. Invisible in Egypt,
+    /// because there the two agree.
+    ///
+    /// A RULE IN A COMMENT IS NOT A CONTROL. This is the control.
+    ///
+    /// `startsAt`/`endsAt` are absolute instants and exist for arithmetic —
+    /// "is this in the future", "how long until the hold expires". `date` and
+    /// `time` are the venue's wall clock and are the only things a diner may
+    /// be SHOWN. The distinction is doc 06 §4 and it must not blur.
+    ///
+    /// SCOPED TO BOOKING INSTANTS. `toLocal()` on `createdAt`/`readAt` in the
+    /// notifications repository is correct and stays: "2 hours ago" is a fact
+    /// about the reader, not about a restaurant. The scan therefore keys on
+    /// startsAt/endsAt rather than banning the method outright — a blanket ban
+    /// would have to be exempted immediately, and an exemption list is how a
+    /// rule starts drifting.
+    final List<String> offenders = <String>[];
+    for (final File f in dartSources(lib, excludePathContains: generated)) {
+      final List<String> lines = f.readAsLinesSync();
+      for (int i = 0; i < lines.length; i++) {
+        final String line = lines[i];
+        if (line.trimLeft().startsWith('//') || line.trimLeft().startsWith('///')) continue;
+        if (!line.contains('toLocal()')) continue;
+        if (RegExp(r'(startsAt|endsAt|starts_at|ends_at)').hasMatch(line)) {
+          offenders.add('${f.path}:${i + 1}: ${line.trim()}');
+        }
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'A shown time was derived from an absolute instant via toLocal(): '
+          '${offenders.join(' | ')}'
+          '  ——  Show the wall clock the server computed in the venue timezone '
+          '(date / time / Slot.label), not the device clock of whoever is '
+          'reading. See my_reservation.dart and doc 06 section 4.',
+    );
+  });
+
+  test('AND THE SCAN CATCHES ONE — guards the guard', () {
+    // Without this, a regex that silently stopped matching would report a
+    // clean bill of health for a tree it never checked.
+    const String planted = 'final when = DateTime.parse(startsAt).toLocal();';
+    expect(planted.contains('toLocal()'), isTrue);
+    expect(RegExp(r'(startsAt|endsAt|starts_at|ends_at)').hasMatch(planted), isTrue);
+    // And a legitimate use is NOT caught.
+    const String allowed = 'createdAt: DateTime.parse(r.createdAt).toLocal(),';
+    expect(RegExp(r'(startsAt|endsAt|starts_at|ends_at)').hasMatch(allowed), isFalse);
+  });
+
   test('AsyncValue is unwrapped ONLY inside SahraAsyncView', () {
     // A screen with its own `.when(` is a screen with its own loading and
     // error handling, which is how a product ends up with three different

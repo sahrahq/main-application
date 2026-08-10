@@ -65,7 +65,17 @@ class BookingInFlight extends BookingProgress {
 }
 
 class BookingDone extends BookingProgress {
-  const BookingDone(this.booking);
+  const BookingDone(this.booking, this.wallClock);
+
+  /// `HH:MM` on the RESTAURANT's clock — the label of the slot the diner
+  /// tapped, carried through rather than recomputed.
+  ///
+  /// `Booking` returns only absolute instants, so the confirmation ticket has
+  /// no correct time to show without this. It used to render
+  /// `DateTime.parse(startsAt).toLocal()`, which showed a diner in another
+  /// timezone one hour on the ticket and a different one in their bookings
+  /// list. Banned now by `source_rules_test.dart`.
+  final String wallClock;
   final Booking booking;
 }
 
@@ -129,7 +139,12 @@ class BookingFlow extends _$BookingFlow {
     required int partySize,
     String? specialRequests,
     String? occasion,
-    PendingSelection? selection,
+    // REQUIRED, where it used to be optional. It is the only carrier of the
+    // venue-clock label, and both call sites already build one — see the
+    // comment at the confirm button for why the label cannot be recovered
+    // afterwards. Optional here would mean a ticket that silently shows no
+    // time on some paths.
+    required PendingSelection selection,
   }) async {
     state = const BookingInFlight();
     final repo = ref.read(reservationRepositoryProvider);
@@ -147,7 +162,7 @@ class BookingFlow extends _$BookingFlow {
         occasion: occasion,
       );
 
-      state = BookingDone(confirmed);
+      state = BookingDone(confirmed, selection.slotLabel);
     } on ConflictFailure catch (f) {
       // The two 409s mean different things to a diner and get different
       // screens. `slot_taken`: somebody else was faster, here are other times.
@@ -165,9 +180,8 @@ class BookingFlow extends _$BookingFlow {
       // sign-in always passes one, so a second 401 (a token that expired
       // between signing in and confirming) still lands here with something to
       // come back to rather than dropping the diner into a generic error.
-      state = selection == null
-          ? const BookingFailed(AuthFailure())
-          : BookingNeedsSignIn(selection);
+      state = BookingNeedsSignIn(selection);
+
     } on Failure catch (f) {
       state = BookingFailed(f);
     }

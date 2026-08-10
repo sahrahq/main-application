@@ -165,11 +165,29 @@ class ReservationRoute {
 }
 
 class ConfirmedRoute {
-  const ConfirmedRoute(this.code, this.venueName, this.startsAt, this.partySize);
+  const ConfirmedRoute(
+    this.code,
+    this.venueName,
+    this.startsAt,
+    this.partySize,
+    this.wallClock,
+  );
   final String code;
   final String venueName;
+
+  /// The absolute instant. Carried for ARITHMETIC only — "is this in the
+  /// future" — and never rendered. See [wallClock].
   final String startsAt;
   final int partySize;
+
+  /// `HH:MM` on the RESTAURANT's clock, as the server computed it.
+  ///
+  /// Added 2026-08-10. The ticket used to render
+  /// `DateTime.parse(startsAt).toLocal()`, so a diner whose phone sat in
+  /// another timezone saw one hour on the ticket they screenshot and show at
+  /// the door, and a different one for the same booking in their bookings
+  /// list. Invisible in Egypt, where the two agree.
+  final String wallClock;
   static const String path = '/booked/:code';
 
   /// `go`, not `push`: a confirmed booking is the end of the flow, and a diner
@@ -179,7 +197,8 @@ class ConfirmedRoute {
         '/booked/$code'
         '?name=${Uri.encodeComponent(venueName)}'
         '&at=${Uri.encodeComponent(startsAt)}'
-        '&party=$partySize',
+        '&party=$partySize'
+        '&at_local=${Uri.encodeComponent(wallClock)}',
       );
 }
 
@@ -279,6 +298,7 @@ GoRouter buildRouter() => GoRouter(
             venueName: state.uri.queryParameters['name'] ?? '',
             startsAt: state.uri.queryParameters['at'] ?? '',
             partySize: int.tryParse(state.uri.queryParameters['party'] ?? '') ?? 2,
+            wallClock: state.uri.queryParameters['at_local'] ?? '',
           ),
         ),
       ],

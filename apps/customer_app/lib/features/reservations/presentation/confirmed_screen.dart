@@ -47,15 +47,20 @@ class ConfirmedScreen extends ConsumerStatefulWidget {
     required this.venueName,
     required this.startsAt,
     required this.partySize,
+    required this.wallClock,
     super.key,
   });
 
   final String code;
   final String venueName;
 
-  /// ISO-8601 UTC, as the API returned it.
+  /// ISO-8601 UTC, as the API returned it. For the DATE and for arithmetic —
+  /// never for a shown time. See [wallClock].
   final String startsAt;
   final int partySize;
+
+  /// `HH:MM` on the RESTAURANT's clock. The only thing a diner is shown.
+  final String wallClock;
 
   @override
   ConsumerState<ConfirmedScreen> createState() => _ConfirmedScreenState();
@@ -111,6 +116,7 @@ class _ConfirmedScreenState extends ConsumerState<ConfirmedScreen> {
                 venueName: widget.venueName,
                 code: widget.code,
                 startsAt: widget.startsAt,
+                wallClock: widget.wallClock,
                 partySize: widget.partySize,
               ),
               const Spacer(),
@@ -153,12 +159,14 @@ class _Ticket extends StatelessWidget {
     required this.code,
     required this.startsAt,
     required this.partySize,
+    required this.wallClock,
   });
 
   final String venueName;
   final String code;
   final String startsAt;
   final int partySize;
+  final String wallClock;
 
   @override
   Widget build(BuildContext context) {
@@ -166,10 +174,19 @@ class _Ticket extends StatelessWidget {
     final s = Theme.of(context).sahra;
     final text = Theme.of(context).textTheme;
 
-    // The instant comes back UTC; a diner reads it in their own clock. This is
-    // the ONE place a local rendering is right — it is describing a moment
-    // that has already been committed, not asking for one.
-    final when = DateTime.parse(startsAt).toLocal();
+    // THE VENUE'S CLOCK, never the device's.
+    //
+    // This used to be `DateTime.parse(startsAt).toLocal()`, under a comment
+    // claiming it was "the ONE place a local rendering is right". It was the
+    // wrong belief written down: a booking is read AT THE VENUE, and the
+    // ticket is the thing a diner screenshots and shows at the door. A phone
+    // in another timezone showed one hour here and a different one for the
+    // same booking in the bookings list. Invisible in Egypt, where they agree.
+    //
+    // `startsAt` is still parsed — for the DATE, which needs a calendar day
+    // and no arithmetic on the hour. Banned as a source of a shown TIME by
+    // `source_rules_test.dart`.
+    final when = DateTime.parse(startsAt);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -198,7 +215,7 @@ class _Ticket extends StatelessWidget {
             child: Row(
               children: <Widget>[
                 _Cell(label: l10n.confirmedDate, value: _date(context, when)),
-                _Cell(label: l10n.confirmedTime, value: _time(context, when)),
+                _Cell(label: l10n.confirmedTime, value: ltrRun(wallClock)),
                 _Cell(label: l10n.confirmedGuests, value: '$partySize'),
               ],
             ),
@@ -247,8 +264,6 @@ class _Ticket extends StatelessWidget {
     return '${when.day} ${_months[ar ? 'ar' : 'en']![when.month - 1]}';
   }
 
-  String _time(BuildContext context, DateTime when) =>
-      '${when.hour.toString().padLeft(2, '0')}:${when.minute.toString().padLeft(2, '0')}';
 }
 
 /// Month names in both locales. See `_date` above for why these are not read

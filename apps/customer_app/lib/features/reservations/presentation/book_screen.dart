@@ -50,6 +50,10 @@ class BookScreen extends ConsumerWidget {
           venueName,
           next.booking.startsAt,
           next.booking.partySize,
+          // The WALL CLOCK, carried out of the flow rather than recomputed.
+          // `Booking` returns only absolute instants, so deriving it here from
+          // `startsAt` is precisely the defect this argument exists to close.
+          next.wallClock,
         ).go(context);
       }
       if (next is BookingNeedsSignIn) _signInRoundTrip(context, ref, next.selection);

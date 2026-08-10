@@ -121,6 +121,7 @@ void main() {
             venueName: 'Layali Lounge',
             startsAt: '2027-08-05T18:00:00.000Z',
             partySize: 2,
+            wallClock: '20:00',
           ),
           overrides: overrides(<Override>[...signedIn, ...deviceTransport()]),
         ),

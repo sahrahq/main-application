@@ -111,6 +111,11 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
       venueName: 'Layali Lounge',
       startsAt: '${kFutureDate}T18:00:00.000Z',
       partySize: 2,
+      // DELIBERATELY NOT what `startsAt.toLocal()` would produce on any
+      // machine. The ticket must show the venue's clock, and a fixture that
+      // happened to agree with the device would make the golden unable to
+      // show the difference.
+      wallClock: '20:00',
     ),
     overrides: (_) => _transport((_, __, ___) => throw offline),
   ),
