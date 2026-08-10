@@ -6,7 +6,7 @@ part of 'sign_out_notifier.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$signOutHash() => r'42d7231bc645c36de5838fa5f40874fc1cabbc1d';
+String _$signOutHash() => r'd16ed531b6c9a6959ae68a8ac83a603343b932d3';
 
 /// Signing out. The state is "is it in flight", because that is all a screen
 /// needs to know.

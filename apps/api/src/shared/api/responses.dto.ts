@@ -713,6 +713,41 @@ export class NotificationListResponse {
   unread_count!: number;
 }
 
+// ─────────────────────────────────────────────────────────────────── health ──
+
+export class PushHealthResponse {
+  @ApiProperty({ description: 'True when a real push carrier is bound at all.' })
+  configured!: boolean;
+
+  @ApiPropertyOptional({ nullable: true, type: 'string' })
+  project_id?: string | null;
+
+  @ApiProperty({ type: [String], description: 'Platforms a handset would actually be reached on.' })
+  deliverable!: string[];
+
+  @ApiProperty({
+    type: [String],
+    description:
+      'Platforms a diner can register a token for and never hear from. ' +
+      'Non-empty means the service reports 503.',
+  })
+  unreachable!: string[];
+}
+
+export class HealthResponse {
+  @ApiProperty({ enum: ['ok', 'degraded'] })
+  status!: string;
+
+  @ApiProperty({ type: PushHealthResponse })
+  push!: PushHealthResponse;
+
+  @ApiProperty({
+    type: [String],
+    description: 'One line per degradation, for whoever has to fix it. Empty when ok.',
+  })
+  reasons!: string[];
+}
+
 export class MarkReadResponse {
   @ApiProperty({
     type: 'integer',

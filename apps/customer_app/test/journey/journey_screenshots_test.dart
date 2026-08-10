@@ -10,6 +10,8 @@ import 'package:sahra_customer_app/localization/generated/app_localizations.dart
 import 'package:sahra_customer_app/main.dart';
 import 'package:sahra_customer_app/shared/location/location_notifier.dart';
 import 'package:sahra_customer_app/shared/location/location_source.dart';
+import 'package:sahra_customer_app/shared/push/push_registration.dart';
+import 'package:sahra_customer_app/shared/push/push_token_source.dart';
 import 'package:sahra_customer_app/shared/providers/app_providers.dart';
 import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 
@@ -97,6 +99,10 @@ void main() {
             // in the picture are the ones a diner standing there would see.
             locationSourceProvider
                 .overrideWithValue(const FixedLocationSource.zamalek()),
+            // The confirmation screen asks for notification permission — that
+            // is the one place in the app that does. Faked here for the same
+            // reason the position is: a platform channel that is not there.
+            pushTokenSourceProvider.overrideWithValue(FakePushTokenSource()),
             transportProvider.overrideWithValue(
               FakeTransport((method, path, query) {
                 if (path.contains('/restaurants/search')) {
@@ -133,6 +139,18 @@ void main() {
                   return <String, Object?>{'status': 'profile_needed'};
                 }
                 if (path == '/v1/auth/complete-registration') return _tokenPair;
+                // NOTIFY-1 Stage 2. The confirmation screen asks for
+                // notification permission and, on yes, registers the token —
+                // so this walk genuinely calls `POST /devices`, which nothing
+                // in this app did until 2026-08-10.
+                //
+                // It was unstubbed on the first run and the app logged
+                // "Device registration failed", which is the registrar's
+                // never-throw contract working: a diner whose token fails to
+                // register still gets their booking and their centre.
+                if (path == '/v1/devices') {
+                  return <String, Object?>{'id': 'journey-device', 'registered': true};
+                }
                 // C-4.7. BEFORE the `/read` branch would matter — the centre
                 // marks read on open, so this handler answers two calls, and a
                 // single-response stub would hand the POST a notification LIST

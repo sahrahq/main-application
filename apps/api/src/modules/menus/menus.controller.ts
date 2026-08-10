@@ -14,7 +14,7 @@ import { MenuResponse } from '../../shared/api/responses.dto';
  * is a one-segment wildcard on the same base path. Two segments do not collide
  * with one in Express, so this is belt and braces rather than a fix — but the
  * ordering rule in `app.module.ts` exists because that reasoning is easy to get
- * wrong, and `menus.e2e-spec.ts` asserts the route actually resolves rather
+ * wrong, and `menus-reviews.e2e-spec.ts` asserts the route actually resolves rather
  * than trusting this comment.
  */
 @ApiTags('menus')

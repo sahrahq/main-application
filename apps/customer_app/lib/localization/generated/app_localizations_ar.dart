@@ -1246,10 +1246,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get notificationsEarlier => 'قبل كده';
 
   @override
-  String get notificationsNoPushNote =>
-      'لسه مش بنقدر ننبّه موبايلك، فارجع لهنا من وقت للتاني.';
-
-  @override
   String notifCancelledTitle(String venue) {
     return '$venue ألغى حجزك';
   }

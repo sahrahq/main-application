@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
 
 import '../../../localization/generated/app_localizations.dart';
 import '../../../routes/routes.dart';
+import '../../../shared/push/push_registration.dart';
 
 /// `docs/design/ui_kits/app/ConfirmationScreen.jsx` — the perforated ticket.
 ///
@@ -20,7 +22,26 @@ import '../../../routes/routes.dart';
 ///
 /// The three cells that DO show — date, time, guests — come from the confirmed
 /// reservation, plus the code a diner quotes at the door.
-class ConfirmedScreen extends StatelessWidget {
+///
+/// ── AND THIS IS WHERE THE NOTIFICATION PERMISSION IS ASKED ───────────────
+///
+/// doc 11 §1: "asked with context ('so we can remind you before your
+/// reservation'), not immediately on app open — asking cold gets rejected
+/// more." This screen IS that context, and it is the only place in the app
+/// that asks.
+///
+/// A diner looking at a confirmed booking has something to be reminded about,
+/// thirty seconds after agreeing this app is useful. Every other candidate is
+/// worse: launch is before we have shown them anything, sign-in is not a reason
+/// to want notifications, and the notification centre is a screen you only
+/// reach by already caring.
+///
+/// It matters because **a denial is the one state the app cannot undo.** The OS
+/// shows the dialog once; after that Settings is the only way back.
+///
+/// A `ConsumerStatefulWidget` only for the post-frame hook — nothing here
+/// watches anything.
+class ConfirmedScreen extends ConsumerStatefulWidget {
   const ConfirmedScreen({
     required this.code,
     required this.venueName,
@@ -35,6 +56,22 @@ class ConfirmedScreen extends StatelessWidget {
   /// ISO-8601 UTC, as the API returned it.
   final String startsAt;
   final int partySize;
+
+  @override
+  ConsumerState<ConfirmedScreen> createState() => _ConfirmedScreenState();
+}
+
+class _ConfirmedScreenState extends ConsumerState<ConfirmedScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // AFTER THE FIRST FRAME, so the diner sees their confirmed booking BEFORE
+    // the system dialog appears over it. An OS prompt that arrives on a blank
+    // screen has no context, which is the whole thing doc 11 warns about.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(pushRegistrarProvider.notifier).askAfterBooking();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,16 +102,16 @@ class ConfirmedScreen extends StatelessWidget {
               SahraSectionLabel(l10n.confirmedOverline),
               const SizedBox(height: SahraSpace.s2),
               Text(
-                l10n.confirmedMessage(venueName),
+                l10n.confirmedMessage(widget.venueName),
                 textAlign: TextAlign.center,
                 style: text.bodyMedium?.copyWith(color: s.textSoft),
               ),
               const SizedBox(height: SahraSpace.s5),
               _Ticket(
-                venueName: venueName,
-                code: code,
-                startsAt: startsAt,
-                partySize: partySize,
+                venueName: widget.venueName,
+                code: widget.code,
+                startsAt: widget.startsAt,
+                partySize: widget.partySize,
               ),
               const Spacer(),
               SahraButton(

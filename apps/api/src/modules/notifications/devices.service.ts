@@ -73,4 +73,26 @@ export class DevicesService {
       data: { revokedAt: new Date() },
     });
   }
+
+  /**
+   * Revoke a token FCM has told us is dead.
+   *
+   * ── NO `userId`, AND THAT IS THE DIFFERENCE FROM `revoke` ───────────────
+   *
+   * `revoke` demands both predicates because its caller is a REQUEST, and
+   * without the user check anyone could silence a diner by guessing a token.
+   * This caller is FCM answering
+   * `messaging/registration-token-not-registered` — the authority on whether a
+   * token exists at all, which no attacker can impersonate, and we may not know
+   * or care which account it was attached to.
+   *
+   * Not deleted: "this handset stopped being reachable at 19:04" is the answer
+   * to "why did my notifications stop", and a deleted row cannot give it.
+   */
+  async revokeDeadToken(token: string): Promise<void> {
+    await this.prisma.device.updateMany({
+      where: { token, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
 }

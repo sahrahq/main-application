@@ -4,9 +4,16 @@ import type { PushDelivery, PushMessage } from '../notification.ports';
 /**
  * STUB DELIVERY — writes the push to the application log instead of sending it.
  *
- * NOTIFY-1 Stage 2 replaces this with an FCM adapter, which needs a Firebase
- * project and a service-account key. Replacing this class is the entire
- * integration surface; `NotificationsService` does not change.
+ * ── STILL HERE AFTER STAGE 2, AND STILL LOAD-BEARING ────────────────────
+ *
+ * `FcmPushDelivery` took over on 2026-08-10 **when a credential is present.**
+ * This is what the module binds when `loadFirebaseConfig()` returns null, which
+ * is every local run, every CI run and every test — none of which has a service
+ * account, and all of which must boot.
+ *
+ * So it is not dead code waiting to be deleted; it is the "no carrier
+ * configured" branch, and the production guard below is what stops that branch
+ * from being reached by accident on a real deployment.
  *
  * THIS ADAPTER REFUSES TO RUN IN PRODUCTION — the same guard as
  * `LoggingOtpDelivery`, for a weaker but real reason. An OTP in a log is a

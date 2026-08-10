@@ -635,6 +635,33 @@
         ],
         "type": "object"
       },
+      "HealthResponse": {
+        "properties": {
+          "push": {
+            "$ref": "#/components/schemas/PushHealthResponse"
+          },
+          "reasons": {
+            "description": "One line per degradation, for whoever has to fix it. Empty when ok.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "push",
+          "reasons"
+        ],
+        "type": "object"
+      },
       "ImageResponse": {
         "properties": {
           "height": {
@@ -1104,6 +1131,38 @@
         },
         "required": [
           "challengeId"
+        ],
+        "type": "object"
+      },
+      "PushHealthResponse": {
+        "properties": {
+          "configured": {
+            "description": "True when a real push carrier is bound at all.",
+            "type": "boolean"
+          },
+          "deliverable": {
+            "description": "Platforms a handset would actually be reached on.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "project_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "unreachable": {
+            "description": "Platforms a diner can register a token for and never hear from. Non-empty means the service reports 503.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "configured",
+          "deliverable",
+          "unreachable"
         ],
         "type": "object"
       },
@@ -2335,6 +2394,38 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Degraded — at least one push platform a diner can register for cannot be reached. The process is healthy; the capability is not."
+          }
+        },
+        "summary": "Service health, including which push platforms are reachable",
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/v1/admin/restaurants": {
       "get": {
         "operationId": "AdminRestaurantsController_list",

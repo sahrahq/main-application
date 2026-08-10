@@ -17,6 +17,17 @@ class SahraApi {
 
   final SahraTransport _transport;
 
+  /// `GET /health`
+  ///
+  /// Service health, including which push platforms are reachable
+  Future<HealthResponse> check() async {
+    final response = await _transport.send(
+      method: 'GET',
+      path: '/health',
+    );
+    return HealthResponse.fromJson(response as Map<String, dynamic>);
+  }
+
   /// `GET /v1/admin/restaurants`
   ///
   /// The pending_review queue, oldest first

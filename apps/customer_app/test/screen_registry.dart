@@ -20,6 +20,8 @@ import 'package:sahra_customer_app/features/restaurants/presentation/venue_scree
 import 'package:sahra_customer_app/localization/generated/app_localizations.dart';
 import 'package:sahra_customer_app/shared/location/location_notifier.dart';
 import 'package:sahra_customer_app/shared/location/location_source.dart';
+import 'package:sahra_customer_app/shared/push/push_registration.dart';
+import 'package:sahra_customer_app/shared/push/push_token_source.dart';
 import 'package:sahra_customer_app/shared/providers/app_providers.dart';
 import 'package:sahra_customer_app/shared/providers/session_providers.dart';
 
@@ -1098,6 +1100,18 @@ List<Override> _transport(
       locationSourceProvider.overrideWithValue(
         const FixedLocationSource.refused(LocationOutcome.denied),
       ),
+      // AND A FAKE PUSH SOURCE, here for the same reason as the clock and the
+      // position: `firebase_messaging` is a platform channel that does not
+      // exist in a test binding. The real one degrades to `unavailable` rather
+      // than throwing, so nothing broke — it just printed two lines of
+      // "No Firebase App '[DEFAULT]'" into every run that reached the
+      // confirmation screen, which is noise that trains people to ignore
+      // output.
+      //
+      // Centralised rather than per case so a screen added tomorrow cannot
+      // forget it, and so `push_test.dart` can swap in its own counting
+      // instance by listing its override AFTER these.
+      pushTokenSourceProvider.overrideWithValue(FakePushTokenSource()),
     ];
 
 /// A criteria notifier that starts with text already typed, so the golden

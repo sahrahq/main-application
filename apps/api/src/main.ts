@@ -6,6 +6,7 @@ import { AppModule } from "./app.module";
 import { validateSecrets } from "./shared/config/secrets.validation";
 import { corsOptionsFor } from "./shared/config/cors.options";
 import { resolveTrustProxy } from "./shared/config/trust-proxy";
+import { PUSH_READINESS, type PushReadiness } from "./modules/notifications/push-readiness";
 
 async function bootstrap(): Promise<void> {
   // Before anything can serve traffic: refuse to start on a weak or
@@ -51,6 +52,25 @@ async function bootstrap(): Promise<void> {
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
   new Logger("bootstrap").log(`SAHRA API on :${port} — docs at /api/docs`);
+
+  // ── AND SAY IT AGAIN, LAST ────────────────────────────────────────────
+  //
+  // The push banner is already emitted while the module graph is built, which
+  // is roughly two hundred lines earlier in a cold boot — where nobody reads
+  // it. This repeats the one fact that matters, immediately under the "API is
+  // up" line, which is the line a human actually looks at.
+  //
+  // Deliberately not the whole banner: a repeated wall of text trains people
+  // to scroll past both copies.
+  const readiness = app.get<PushReadiness>(PUSH_READINESS);
+  const blocked = readiness.platforms.filter((p) => !p.deliverable && p.platform !== 'web');
+  if (blocked.length > 0) {
+    new Logger('bootstrap').warn(
+      `PUSH DEGRADED — cannot reach: ${blocked.map((p) => p.platform).join(', ')}. ` +
+        'Sends to those platforms are refused and recorded, never silently dropped. ' +
+        'GET /health returns 503 and says why.',
+    );
+  }
 }
 
 void bootstrap();

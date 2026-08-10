@@ -346,3 +346,45 @@ date. A number in a document has nobody checking it.
 The `live` suite is the one that walks search → detail → slots → hold → confirm
 over a real socket. It is excluded from CI on purpose; it is your end-to-end
 check, not CI's.
+
+## Push notifications (NOTIFY-1 Stage 2, 2026-08-10)
+
+**Android only.** There is no Apple Developer account, so no APNs key and no
+iOS Firebase app.
+
+**On Flutter Web — which is how this runs locally — there is no push at all**,
+and that is expected. `Firebase.initializeApp()` throws without a native config
+and `main.dart` catches it; you will see one `debugPrint` and the whole app
+works. `PushTokenSource` answers `unavailable`, nothing registers a device, and
+the notification centre behaves exactly as it did before.
+
+To see it actually work you need a real Android device or emulator **with Google
+Play Services**:
+
+```powershell
+cd apps\customer_app
+flutter run -d <android-device>
+```
+
+Then book a table. **The permission prompt appears on the confirmation screen
+and nowhere else** — that is the one place in the app that asks (doc 11 §1), and
+`test/features/push_test.dart` counts every other screen to keep it that way.
+Say yes and the app registers the token with `POST /devices`.
+
+### How to tell whether the server can reach anybody
+
+```powershell
+curl -i http://localhost:3000/health
+```
+
+**503 with `"status": "degraded"` is the normal answer today**, and the
+`reasons` array says why — iOS has no APNs key. The API is healthy; the
+capability is not. It is 200 only when every in-scope platform is deliverable.
+
+The boot log says the same thing twice: a banner while the module graph builds,
+and one line directly under `SAHRA API on :3000`.
+
+If `FIREBASE_PROJECT_ID` and `FIREBASE_SERVICE_ACCOUNT_FILE` are unset the API
+boots on the stub carrier and prints `PUSH IS NOT CONFIGURED`. Setting one
+without the other is a hard boot error, on purpose — half-configured means
+somebody believes push is on.

@@ -12,6 +12,7 @@ import { PublicRestaurantsModule } from "./modules/restaurants/public-restaurant
 import { AvailabilityModule } from "./modules/availability/availability.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { SearchModule } from "./modules/search/search.module";
+import { HealthModule } from './modules/health/health.module';
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { ImagesModule } from './modules/images/images.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
@@ -42,6 +43,9 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
     // Global — the event that causes a notification lives in whichever
     // module it happens in, so this is imported once rather than everywhere.
     NotificationsModule,
+    // Reads PUSH_READINESS off the global module above, so `/health` and the
+    // send path answer "can we reach an iPhone?" from the same function.
+    HealthModule,
     AuthModule,
     RestaurantsModule,
     AvailabilityModule,

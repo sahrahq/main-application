@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/error/failure.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/providers/session_providers.dart';
+import '../../../shared/push/push_registration.dart';
 
 part 'sign_out_notifier.g.dart';
 
@@ -28,11 +29,20 @@ class SignOut extends _$SignOut {
 
     state = true;
     try {
+      // THE PUSH TOKEN GOES FIRST, and it goes even if the sign-out below
+      // fails. A token left attached to a signed-out account sends that
+      // person's next reservation notification to whoever is holding the
+      // handset — on a shared or resold phone that is a privacy incident, not
+      // an annoyance. It was `deviceToken: null` with a note saying "nothing
+      // has one to send" until Stage 2 gave the client a token.
+      await ref.read(pushRegistrarProvider.notifier).revokeOnSignOut();
+
       await ref.read(authRepositoryProvider).signOut(
             refreshToken: session.refreshToken,
-            // No device token yet — push registration is NOTIFY-1 Stage 2 and
-            // nothing has one to send. Passing null is honest; the endpoint
-            // treats it as "revoke the session, no handset to unregister".
+            // Revoked separately above, through `DELETE /devices`, so it is
+            // gone whether or not this call succeeds. Threading it here as
+            // well would revoke it twice on success and not at all on the
+            // failure path that matters.
             deviceToken: null,
           );
     } on Failure {

@@ -65,7 +65,7 @@ class NotificationCopy {
   /// used `x-circle` and `info`, neither of which exists, and the Arabic golden
   /// is where it showed.
   ///
-  /// `notification_copy_test.dart` now checks every kind's icon against
+  /// `test/features/notifications_test.dart` now checks every kind's icon against
   /// `SahraIcon.drawnIcons + SahraIcon.fallbackIcons`, so the next invented
   /// name fails in CI rather than in a picture somebody has to notice.
   final String icon;

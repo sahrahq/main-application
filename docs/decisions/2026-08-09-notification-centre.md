@@ -9,6 +9,17 @@
 
 ## 1. Nobody is told anything, and the app says so
 
+> **SUPERSEDED 2026-08-10 for Android.** The adapter is bound, the client
+> registers a token, and an Android handset rings. The notice described below
+> was deleted in that commit — but **not** at the moment the adapter was bound:
+> push reaches nobody until a handset registers a token, and nothing in the
+> client had ever called `POST /devices`. The client half went in first.
+>
+> **iOS is still unreachable** and is loud about it. `2026-08-10-fcm-stage-2.md`.
+>
+> The section below is left as written because the reasoning is why the notice
+> existed at all, and why it could not be deleted a step early.
+
 Push does not exist. Every notification the system has ever produced records
 `delivery_error = 'no_registered_device'`, because nothing acquires a token and
 nothing can until the Firebase project exists.

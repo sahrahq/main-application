@@ -2276,12 +2276,6 @@ abstract class AppLocalizations {
   /// **'Earlier'**
   String get notificationsEarlier;
 
-  /// SHOWN AT THE TOP OF THE CENTRE while push does not exist. A diner who is never alerted and is never told they will not be alerted concludes the app is broken when they miss a cancellation. Delete this string the day the FCM adapter is bound — docs/decisions/2026-08-09-firebase-handover.md.
-  ///
-  /// In en, this message translates to:
-  /// **'We can\'t alert your phone yet, so check back here.'**
-  String get notificationsNoPushNote;
-
   /// No description provided for @notifCancelledTitle.
   ///
   /// In en, this message translates to:

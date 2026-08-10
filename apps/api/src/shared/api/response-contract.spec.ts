@@ -51,7 +51,27 @@ describe('every declared response type is enforced by the compiler', () => {
         // The handler signature is the first `)` that is followed by `{` —
         // optionally with a return type annotation in between.
         const closing = window.match(/\)\s*(:[^{;]*)?\{/);
-        const annotated = closing?.[1]?.includes('Promise<') ?? false;
+
+        // ── WIDENED 2026-08-10: `Promise<` WAS A PROXY, AND IT CRIED WOLF ──
+        //
+        // This asked for `Promise<`, which every handler happened to satisfy
+        // because every handler happened to be async. `HealthController.check`
+        // is the first SYNCHRONOUS one — it reads an injected value and
+        // returns — and it was reported as unenforced while being fully
+        // annotated (`: HealthResponse`).
+        //
+        // The rule was never about promises. It is "the compiler must be
+        // checking the shape this decorator advertises", and Nest is equally
+        // happy with either. Making a synchronous function async to satisfy a
+        // test would be the test writing the code, and the comment above about
+        // a guard that cries wolf being a guard somebody deletes applies to
+        // this guard too.
+        //
+        // Still refuses `any`, `unknown` and `void`: an annotation the compiler
+        // cannot check is the same as no annotation, which is the actual defect.
+        const annotation = (closing?.[1] ?? '').replace(/^:/, '').trim();
+        const annotated =
+          annotation.length > 0 && !/^(any|unknown|void|Promise<\s*(any|unknown)\s*>)$/.test(annotation);
 
         if (!annotated) {
           unenforced.push(`${short(file)}:${i + 1}`);

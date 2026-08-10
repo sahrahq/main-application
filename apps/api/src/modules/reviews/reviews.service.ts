@@ -85,7 +85,7 @@ export function displayName(fullName: string): string {
  * once a review exists, an owner correcting the reservation to `no_show` would
  * get a foreign-key error from a table they have never heard of.
  *
- * So it is `assertEligible` below, and `reviews.e2e-spec.ts` attempts a review
+ * So it is `assertEligible` below, and `menus-reviews.e2e-spec.ts` attempts a review
  * from every non-eligible status rather than asserting the happy path twice.
  */
 @Injectable()

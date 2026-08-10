@@ -23,20 +23,27 @@ import 'notifications_notifier.dart';
 /// boring — this is a list of rows made of `SahraIcon`, two `Text`s and a
 /// divider. Nothing is drawn here that the app does not draw elsewhere.
 ///
-/// ── AND THE MOST IMPORTANT THING ON IT IS AN APOLOGY ─────────────────────
+/// ── THE APOLOGY IS GONE, AND THAT IS THE POINT ───────────────────────────
 ///
-/// "We can't alert your phone yet, so check back here."
+/// This screen carried a line for one day:
 ///
-/// Push does not exist: the Firebase project has not been created, so every
-/// notification in the system records `no_registered_device` and a diner learns
-/// about a cancelled table only by opening this screen. A diner who is never
-/// alerted, and is never told they will not be alerted, concludes the app is
-/// broken the first time they miss something — and they are right to.
+/// > "We can't alert your phone yet, so check back here."
 ///
-/// **That line is deleted the day the FCM adapter is bound.**
-/// `docs/decisions/2026-08-09-firebase-handover.md` says so, and
-/// `notification_copy_test.dart` fails if the string disappears while the note
-/// is still shown.
+/// **Deleted 2026-08-10, in the commit that bound the FCM adapter** — the
+/// arrangement written down when it was added. It stopped being true: the
+/// Firebase project exists, the adapter is bound, and an Android handset that
+/// has agreed to notifications is registered after its first booking and rings.
+///
+/// It was NOT deleted when the server adapter was bound. Binding the carrier
+/// makes push possible; it delivers nothing until a handset has registered a
+/// token, and until `push_registration.dart` existed nothing in this app ever
+/// called `POST /devices`. Removing the notice at that point would have
+/// replaced a true statement with a false one.
+///
+/// **iOS is still unreachable** — no Apple Developer account, so no APNs key.
+/// That is not hidden either; it is refused at the server before the network
+/// and reported by `GET /health` as a 503. It is not surfaced HERE because no
+/// iOS build exists to show it to.
 ///
 /// ── MARKED READ ON OPEN, AND THE ROWS DO NOT MOVE ────────────────────────
 ///
@@ -130,17 +137,13 @@ class _Feed extends ConsumerWidget {
           SahraSkeleton(height: 64, radius: SahraRadius.md),
         ],
       ),
-      empty: (context) => ListView(
+      empty: (context) => SingleChildScrollView(
         padding: SahraSpace.all(SahraSpace.s5),
-        children: <Widget>[
-          const _NoPushNote(),
-          const SizedBox(height: SahraSpace.s5),
-          SahraEmptyState(
-            icon: 'bell',
-            title: l10n.notificationsEmptyTitle,
-            message: l10n.notificationsEmptyMessage,
-          ),
-        ],
+        child: SahraEmptyState(
+          icon: 'bell',
+          title: l10n.notificationsEmptyTitle,
+          message: l10n.notificationsEmptyMessage,
+        ),
       ),
       content: (context, feed) {
         // Unrenderable kinds are dropped HERE rather than returning a blank
@@ -153,47 +156,14 @@ class _Feed extends ConsumerWidget {
 
         return ListView.separated(
           padding: SahraSpace.all(SahraSpace.s5),
-          itemCount: rows.length + 1,
-          separatorBuilder: (_, i) =>
-              i == 0 ? const SizedBox(height: SahraSpace.s3) : const Divider(height: 1),
+          itemCount: rows.length,
+          separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (context, i) {
-            if (i == 0) return const _NoPushNote();
-            final (notification, copy) = rows[i - 1];
+            final (notification, copy) = rows[i];
             return _Row(notification: notification, copy: copy);
           },
         );
       },
-    );
-  }
-}
-
-/// The line that says why nothing rang.
-class _NoPushNote extends StatelessWidget {
-  const _NoPushNote();
-
-  @override
-  Widget build(BuildContext context) {
-    final s = Theme.of(context).sahra;
-    final text = Theme.of(context).textTheme;
-
-    return Container(
-      padding: SahraSpace.all(SahraSpace.s3),
-      decoration: BoxDecoration(
-        color: s.surfaceSunken,
-        borderRadius: BorderRadius.circular(SahraRadius.md),
-      ),
-      // NO ICON. The first draft had `SahraIcon('info')`, which the set does
-      // not contain — it rendered as a question mark in a circle, turning an
-      // explanation into something that looked like a help link. The panel is
-      // already distinguished by its `surfaceSunken` well; inventing a glyph to
-      // decorate it would have been adding to the design system to garnish one
-      // temporary notice.
-      child: Text(
-        AppLocalizations.of(context).notificationsNoPushNote,
-        // `textSoft`, not `textFaint`. It is the one line on the screen that
-        // explains why the screen exists in this form.
-        style: text.bodySmall?.copyWith(color: s.textSoft),
-      ),
     );
   }
 }

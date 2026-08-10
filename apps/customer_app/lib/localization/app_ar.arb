@@ -372,7 +372,6 @@
   "notificationsUnreadBadge": "{count} جديد",
   "notificationsToday": "النهارده",
   "notificationsEarlier": "قبل كده",
-  "notificationsNoPushNote": "لسه مش بنقدر ننبّه موبايلك، فارجع لهنا من وقت للتاني.",
   "notifCancelledTitle": "{venue} ألغى حجزك",
   "notifCancelledBody": "{date} الساعة {time}",
   "notifConfirmedTitle": "تم حجز ترابيزة في {venue}",

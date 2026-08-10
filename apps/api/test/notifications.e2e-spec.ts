@@ -517,3 +517,44 @@ describe('every notification type can actually be produced', () => {
     expect(row?.sentAt).toBeNull();
   });
 });
+
+describe('THE DATABASE NEVER CLAIMS AN iPHONE WAS REACHED', () => {
+  // The load-bearing negative from `2026-08-10-fcm-stage-2.md` §4, asserted at
+  // the level that actually matters — the row, not the adapter.
+  //
+  // FCM ACCEPTS AN iOS SEND WITH NO APNs KEY and answers with a message id. An
+  // implementation that forwarded it would set `sent_at`, leave
+  // `delivery_error` null, and record a delivery that did not happen. Nothing
+  // downstream could tell the difference.
+  //
+  // This never touches the network, and that IS the property: the refusal
+  // happens before the send.
+  it('an iOS-only diner gets a recorded failure, not a recorded delivery', async () => {
+    await prisma.device.create({
+      data: {
+        userId: other.id,
+        token: `ios-token-${suffix}`,
+        platform: 'ios',
+        locale: 'en',
+      },
+    });
+
+    const id = await notifications.notify({
+      userId: other.id,
+      type: 'reservation_cancelled_by_venue',
+      data: { reservation_id: randomUUID(), venue: 'Centre Venue' },
+    });
+
+    const row = await prisma.notification.findUnique({ where: { id: id! } });
+
+    // Not vacuous — the device really is there, so `no_registered_device` is
+    // not what is being observed.
+    expect(await prisma.device.count({ where: { userId: other.id, revokedAt: null } }))
+      .toBeGreaterThan(0);
+
+    expect(row!.sentAt).toBeNull();
+    expect(row!.deliveryError).toMatch(/ios_not_configured|APNs/);
+
+    await prisma.$executeRaw`DELETE FROM devices WHERE user_id = ${other.id}::uuid`;
+  });
+});

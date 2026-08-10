@@ -57,6 +57,16 @@ dependencies:
   cached_network_image: ^3.4.1
   geolocator: ^14.0.2
 
+  # doc 08 §Option 5 and the stack table: "Push/telemetry — Firebase FCM".
+  # NOT Firestore, NOT Firebase Auth — see doc 08 §88, which rejects both.
+  #
+  # Added 2026-08-10 with NOTIFY-1 Stage 2. Behind `PushTokenSource`, the same
+  # port shape as `LocationSource`: `firebase_messaging` is a platform channel
+  # that does not exist on a test runner, and the whole of the interesting
+  # behaviour is what happens when a diner refuses permission.
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
@@ -9,7 +10,32 @@ import 'shared/providers/app_providers.dart';
 import 'shared/widgets/device_frame.dart';
 import 'shared/providers/locale_override.dart';
 
-void main() => runApp(const ProviderScope(child: SahraApp()));
+/// ── FIREBASE IS INITIALISED, AND ITS FAILURE IS NOT FATAL ────────────────
+///
+/// FCM is the only Firebase service this app uses (doc 08 §88 rejects Firestore
+/// and Firebase Auth outright). `initializeApp` reads `google-services.json` on
+/// Android, which is present; on any other platform, on a handset with no
+/// Google Play Services, or in a test binding, it throws.
+///
+/// **Caught, never rethrown.** A diner on a Huawei phone, or anybody running
+/// this on Flutter Web — which is how it is developed locally — must still get
+/// the whole app. Push is an addition to the notification centre, not a
+/// prerequisite for it, and `PushTokenSource` already answers `unavailable`
+/// for exactly this case.
+///
+/// iOS is deliberately absent: no `GoogleService-Info.plist`, no APNs key, no
+/// Apple Developer account. The SERVER refuses iOS sends and records them
+/// rather than letting FCM accept one silently — see
+/// `apps/api/src/modules/notifications/push-readiness.ts`.
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase unavailable — the app runs without push: $e');
+  }
+  runApp(const ProviderScope(child: SahraApp()));
+}
 
 class SahraApp extends ConsumerWidget {
   const SahraApp({this.localeOverride, super.key});

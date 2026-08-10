@@ -664,6 +664,31 @@ class ErrorDetailResponse {
       };
 }
 
+class HealthResponse {
+  const HealthResponse({
+    required this.push,
+    required this.reasons,
+    required this.status,
+  });
+
+  factory HealthResponse.fromJson(Map<String, dynamic> json) => HealthResponse(
+        push: PushHealthResponse.fromJson(json['push'] as Map<String, dynamic>),
+        reasons: (json['reasons'] as List<dynamic>).map((e) => e as String).toList(),
+        status: json['status'] as String,
+      );
+
+  final PushHealthResponse push;
+  /// One line per degradation, for whoever has to fix it. Empty when ok.
+  final List<String> reasons;
+  final String status;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'push': push.toJson(),
+        'reasons': reasons.map((e) => e).toList(),
+        'status': status,
+      };
+}
+
 class ImageResponse {
   const ImageResponse({
     required this.height,
@@ -1168,6 +1193,37 @@ class OtpChallengeResponse {
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'challengeId': challengeId,
+      };
+}
+
+class PushHealthResponse {
+  const PushHealthResponse({
+    required this.configured,
+    required this.deliverable,
+    this.projectId,
+    required this.unreachable,
+  });
+
+  factory PushHealthResponse.fromJson(Map<String, dynamic> json) => PushHealthResponse(
+        configured: json['configured'] as bool,
+        deliverable: (json['deliverable'] as List<dynamic>).map((e) => e as String).toList(),
+        projectId: json['project_id'] == null ? null : json['project_id'] as String,
+        unreachable: (json['unreachable'] as List<dynamic>).map((e) => e as String).toList(),
+      );
+
+  /// True when a real push carrier is bound at all.
+  final bool configured;
+  /// Platforms a handset would actually be reached on.
+  final List<String> deliverable;
+  final String? projectId;
+  /// Platforms a diner can register a token for and never hear from. Non-empty means the service reports 503.
+  final List<String> unreachable;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'configured': configured,
+        'deliverable': deliverable.map((e) => e).toList(),
+        if (projectId != null) 'project_id': projectId!,
+        'unreachable': unreachable.map((e) => e).toList(),
       };
 }
 

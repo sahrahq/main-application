@@ -108,7 +108,7 @@ export class OwnerReservationActionsController {
           // rest of the API. It was `reservationId` while this was the only
           // type and nothing read it; Group G gave the client a renderer that
           // routes on `reservation_id`, so one spelling had to win.
-          // `notification-payload.spec.ts` pins it for every type.
+          // `notifications.e2e-spec.ts` pins it for every type.
           reservation_id: cancelled.id,
           code: cancelled.code,
           // Both names: the push is rendered per DEVICE locale, and the device

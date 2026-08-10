@@ -1,5 +1,21 @@
 # Firebase handover — exactly what is needed, and from whom
 
+> ## DONE 2026-08-10 — Android. iOS still blocked.
+>
+> Project **`sahra-4881d`** exists, Analytics off, **Android app only**. The
+> service-account key lives outside the repo and is referenced by PATH. The FCM
+> adapter is bound, the client registers a token after a diner's first booking,
+> and `DELETE /devices` is finally called on sign-out.
+>
+> **What is still not true:** there is no Apple Developer account, so no APNs
+> key and no `GoogleService-Info.plist`. Every iOS send is **refused before the
+> network** and recorded as `ios_not_configured`; `GET /health` answers **503**
+> and names it; the boot log says it twice. Nothing about the iOS gap is silent.
+>
+> Two changes to what this page originally asked for, both made before anything
+> read them — see 3.1 and 2.3.
+
+
 **Date:** 2026-08-09
 **Blocks:** NOTIFY-1 Stage 2 (push delivery), C-3.9 reminders reaching anybody,
 C-3.6's waitlist offer reaching anybody, and the second half of C-4.7.
@@ -55,7 +71,17 @@ Console → **Project settings → Service accounts → Generate new private key
 That downloads a JSON file **once**. There is no way to retrieve it again; if
 it is lost, revoke it and generate another.
 
-### 2.3 An APNs auth key (iOS only)
+### 2.3 An APNs auth key (iOS only) — NOT DONE, and deliberately loud
+
+> **Status 2026-08-10:** no Apple Developer account, so this step has not
+> happened. Rather than leave it as a gap somebody has to remember, the system
+> refuses iOS sends and reports itself degraded. When the key is uploaded, set
+> `FIREBASE_IOS_CONFIGURED=1` and iOS starts working with no code change —
+> asserted in `fcm-push.delivery.spec.ts`.
+>
+> The flag is manual because **FCM offers no way to ask whether an APNs key
+> exists.** Inferring it from a send failure means discovering it from a diner's
+> missed booking.
 
 Apple Developer → **Certificates, Identifiers & Profiles → Keys → +**, enable
 **Apple Push Notifications service (APNs)**, download the `.p8`.
@@ -72,31 +98,34 @@ Authentication Key**, with the **Key ID** and your **Team ID**.
 
 ## 3. Where each credential goes
 
-### 3.1 The server
-
-Two variables, **already present and empty** in `apps/api/.env.example`:
+### 3.1 The server — A PATH, changed from the inline JSON this page first asked for
 
 ```
-FIREBASE_PROJECT_ID=
-FIREBASE_SERVICE_ACCOUNT_JSON=
+FIREBASE_PROJECT_ID=sahra-4881d
+FIREBASE_SERVICE_ACCOUNT_FILE=<absolute path to the service-account JSON>
+FIREBASE_IOS_CONFIGURED=
 ```
 
-- `FIREBASE_PROJECT_ID` — the project id string, e.g. `sahra-prod`.
-- `FIREBASE_SERVICE_ACCOUNT_JSON` — the **whole contents** of the service-account
-  JSON, on one line.
+**This page originally specified `FIREBASE_SERVICE_ACCOUNT_JSON`, the whole key
+pasted inline. That was wrong, and it was changed before anything read it.** The
+reasoning it gave — "a path means a mounted secret volume, a second deployment
+concept" — weighed a deployment convenience against a credential, and lost:
 
-**Why the JSON inline rather than a file path.** The app runs in a container;
-a path means a mounted secret volume, which is a second deployment concept for
-one credential. Every other secret in this system is an env var, and the boot
-gate in `apps/api/src/shared/config/secrets.validation.ts` can only check what
-it can read.
+1. **dotenv puts every `.env` value into `process.env`.** One
+   `console.log(process.env)` — a debug session, a crash reporter, a "why is my
+   config wrong" moment — prints the private key. A path is a short, boring
+   string that can appear in a log harmlessly.
+2. **A file you hand-edit is a file you paste** into a diff, a screenshot, a
+   chat message. With a path the key never has to be opened at all.
+3. **The key stays outside the repository**, where no `git add -A` can reach it.
 
-Put the real values in `apps/api/.env` for local work. **`.env` is gitignored;
-`.env.example` is committed and must stay empty.**
+The cost is real and accepted: production mounts the file rather than injecting
+a variable. Every platform doc 10 names supports that, and it is the same shape
+as `GOOGLE_APPLICATION_CREDENTIALS`, which the Google SDKs have always read as a
+path.
 
-In production these are injected by the platform's secret store, never from a
-file — `secrets.validation.ts` already **refuses to boot in production if a
-`.env` file is present**, and that rule covers these two the moment they matter.
+Full reasoning, and the leak the loader is written to prevent:
+`apps/api/src/shared/config/firebase.config.ts`.
 
 ### 3.2 The Android app
 
@@ -110,18 +139,25 @@ file — `secrets.validation.ts` already **refuses to boot in production if a
 
 ## 4. WHAT MUST NEVER BE COMMITTED
 
-| File / value | Status |
-|---|---|
-| The service-account JSON, in any form | **Never.** It can send push to every user of the project and is not scoped to one app. |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` with a real value | **Never.** Only the empty key in `.env.example`. |
-| `apps/api/.env` | **Never.** Already ignored. |
-| The APNs `.p8` | **Never.** Already ignored by the `*.pem` / `*.key` rules — but a `.p8` is neither, so **do not keep it in the repo at all.** Upload it to Firebase and store it in the password manager. |
-| `google-services.json` | **Never.** Already ignored by name. |
-| `GoogleService-Info.plist` | **Never.** Already ignored by name. |
+| File / value | Status | Verified by `git check-ignore` on 2026-08-10 |
+|---|---|---|
+| The service-account JSON, in any form | **Never.** It can push to every user of the project and is not scoped to one app. | ignored — `*-firebase-adminsdk-*.json`, `serviceAccountKey.json`, `secrets/` |
+| `apps/api/.env` | **Never.** | ignored |
+| The APNs `.p8` | **Never.** | ignored — `*.p8`, **added 2026-08-10** |
+| Anything under a `secrets/` directory | **Never.** | ignored — `secrets/`, `**/secrets/`, **added 2026-08-10** |
+| `google-services.json` | **Never.** | ignored |
+| `GoogleService-Info.plist` | **Never.** | ignored |
 
-`.gitignore` already names `google-services.json`, `GoogleService-Info.plist`,
-`.env`, `.env.*`, `*.pem`, `*.key`. **The `.p8` is the one gap** — it is not
-matched by any existing rule, so keep it out of the working tree entirely.
+**Three of those six were NOT ignored** when this page first claimed they were.
+The original §4 said "`.gitignore` already names …" and then listed the rules
+from memory; asking `git check-ignore` instead showed that a `.p8`, a
+`secrets/` path, and a service-account JSON under its own download filename
+would all have been committed by the next `git add -A`. The rules were added
+before any credential was placed.
+
+The lesson is the same one this codebase keeps relearning: **reading the
+patterns is not checking.** `git check-ignore -q <path>` is the only authority,
+and it is now what §4 reports.
 
 **A note on the two config files.** `google-services.json` and
 `GoogleService-Info.plist` contain an API key that Google itself documents as

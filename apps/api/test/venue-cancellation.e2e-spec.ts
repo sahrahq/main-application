@@ -26,6 +26,8 @@ import { randomUUID } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { OTP_DELIVERY } from '../src/modules/auth/otp/otp.ports';
+import { PUSH_DELIVERY } from '../src/modules/notifications/notification.ports';
+import { LoggingPushDelivery } from '../src/modules/notifications/delivery/logging-push.delivery';
 import { RecordingOtpDelivery } from '../src/modules/auth/otp/delivery/recording-otp.delivery';
 import { resetOtpState } from './support/otp-budget';
 
@@ -105,6 +107,24 @@ beforeAll(async () => {
 
   delivery = new RecordingOtpDelivery();
   const mod = await Test.createTestingModule({ imports: [AppModule] })
+    // ── THE STUB CARRIER, DELIBERATELY, AND THIS SUITE FOUND OUT WHY ──────
+    //
+    // On 2026-08-10 the FCM adapter was bound and this suite failed: "delivery
+    // is attempted" registered a handset with a FAKE token, and real FCM
+    // rejected it, so `sent_at` stayed null.
+    //
+    // The test was right to fail and its assertion was right to change — but
+    // what it OWNS is `NotificationsService`'s bookkeeping: does a registered
+    // handset cause a send, and is the outcome recorded? That does not need
+    // Google. Left on the real adapter, this suite would make a network call to
+    // FCM on every run, fail in CI with no egress, and start depending on a
+    // credential to test a cancellation.
+    //
+    // Whether FCM itself works is proved where it belongs:
+    // `fcm-push.delivery.spec.ts` for every branch, and a one-off probe against
+    // the real project recorded in `2026-08-10-fcm-stage-2.md`.
+    .overrideProvider(PUSH_DELIVERY)
+    .useValue(new LoggingPushDelivery('test'))
     .overrideProvider(OTP_DELIVERY)
     .useValue(delivery)
     .compile();
@@ -530,6 +550,10 @@ describe('a cancellation produces a notification record', () => {
       where: { userId: diner.id },
       orderBy: { createdAt: 'desc' },
     });
+    // `sent_at` means "at least one device was reached". With a stub carrier
+    // that is unconditionally true, which is exactly as much as this assertion
+    // claims: the SERVICE looked up the handset, called the carrier, and
+    // recorded the outcome.
     expect(row.sentAt).not.toBeNull();
     expect(row.deliveryError).toBeNull();
 

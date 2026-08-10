@@ -290,7 +290,7 @@ function toRow(r: Row): MyReservationRow {
       r.status === 'cancelled_by_restaurant' && r.cancellation_seen_at === null,
     // ONE DEFINITION of the review rule, and this is not it — it defers to the
     // service that enforces it, so the answer here cannot drift from the
-    // answer `POST /reviews` gives. `reviews-eligibility.spec.ts` asserts the
+    // answer `POST /reviews` gives. `review-eligibility.spec.ts` asserts the
     // two agree on every status.
     can_review:
       r.review_id === null && isReviewable(r.status, r.ends_at),

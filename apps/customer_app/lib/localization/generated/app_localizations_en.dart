@@ -1271,10 +1271,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsEarlier => 'Earlier';
 
   @override
-  String get notificationsNoPushNote =>
-      'We can\'t alert your phone yet, so check back here.';
-
-  @override
   String notifCancelledTitle(String venue) {
     return '$venue cancelled your table';
   }
