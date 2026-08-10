@@ -101,7 +101,7 @@ void main() {
 
   /// Tap the first slot chip, then the confirm button.
   Future<void> chooseAndBook(WidgetTester tester) async {
-    await tester.tap(find.text('18:00'));
+    await tester.tap(find.textContaining('6:00'));
     await tester.pump();
     // `Confirm for 2 at 18:00`, not "Book" — the AppBar title is "Book a
     // table" and a `textContaining('Book')` finder taps that instead, silently
@@ -214,8 +214,8 @@ void main() {
     // board: 18:00 is gone, 19:30 has appeared.
     expect(container.read(bookingFlowProvider(venueId)), isA<BookingSlotTaken>());
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('19:30'), findsOneWidget);
-    expect(find.text('18:00'), findsNothing);
+    expect(find.textContaining('7:30'), findsOneWidget);
+    expect(find.textContaining('6:00'), findsNothing);
   });
 
   testWidgets('4 — backing out of sign-in keeps the selection and attempts nothing',

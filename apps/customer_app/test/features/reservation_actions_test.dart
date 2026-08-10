@@ -369,7 +369,7 @@ void main() {
     );
     expect(before.onPressed, isNull, reason: 'save was live with nothing to save');
 
-    await tester.tap(find.text('20:00'));
+    await tester.tap(find.textContaining('8:00'));
     await tester.pumpAndSettle();
 
     final after = tester.widget<SahraButton>(
@@ -394,7 +394,7 @@ void main() {
     await pumpDetail(tester, transport: transport);
     await tester.tap(find.widgetWithText(SahraButton, 'Change time or party'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('20:00'));
+    await tester.tap(find.textContaining('8:00'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(SahraButton, 'Save changes'));
     await tester.pumpAndSettle();
@@ -424,7 +424,7 @@ void main() {
     await pumpDetail(tester, transport: transport);
     await tester.tap(find.widgetWithText(SahraButton, 'Change time or party'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('20:00'));
+    await tester.tap(find.textContaining('8:00'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(SahraButton, 'Save changes'));
     await tester.pumpAndSettle();
@@ -432,7 +432,7 @@ void main() {
     expect(find.text('Change your booking'), findsOneWidget);
     // The grid is still there, so the next choice is one tap away rather than
     // behind a re-open.
-    expect(find.text('19:00'), findsOneWidget);
+    expect(find.text('⁨7:00 PM⁩'), findsOneWidget);
   });
 
   testWidgets('NO MOVE BUTTON ON A BOOKING THAT HAS ALREADY STARTED', (tester) async {

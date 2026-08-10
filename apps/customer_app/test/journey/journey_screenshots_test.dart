@@ -278,11 +278,17 @@ void main() {
         await tester.pumpAndSettle();
         await capture('slot-picker');
 
-        await tester.tap(find.text('18:00'));
+        await tester.tap(find.textContaining('6:00'));
         await tester.pumpAndSettle();
         await capture('slot-chosen');
 
-        await tester.tap(find.textContaining(l10n.bookConfirmFor(2, '18:00')));
+        // The button's copy embeds the FORMATTED time now, so building the
+        // expected sentence from a raw '18:00' finds nothing. Matched on the
+        // stable prefix instead — the part of the sentence that is not the
+        // time — because this walk-through is about REACHING the button, and
+        // `time_format_test.dart` owns what the time looks like.
+        final String confirmPrefix = l10n.bookConfirmFor(2, ' ').split(' ').first;
+        await tester.tap(find.textContaining(confirmPrefix));
         await tester.pumpAndSettle();
         await capture('sign-in-wall');
 
@@ -329,7 +335,7 @@ void main() {
         await tester.pumpAndSettle();
         await capture('move-sheet');
 
-        await tester.tap(find.text('19:00'));
+        await tester.tap(find.textContaining('7:00'));
         await tester.pumpAndSettle();
         await capture('move-sheet-chosen');
 
