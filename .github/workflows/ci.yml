@@ -19,9 +19,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # PINNED, AND THE PIN IS LOAD-BEARING.
+      #
+      # `channel: stable` with no version meant the goldens were bound to
+      # whatever Flutter shipped most recently — so all 430 could turn red with
+      # no commit of ours, and nothing to bisect. Every committed PNG was
+      # regenerated on 2026-08-10 against exactly this version.
+      #
+      # BUMPING THIS REQUIRES REGENERATING THE GOLDENS in the same commit. See
+      # ENGINEERING-STANDARDS.md §3: 410 of 430 changed on a platform move, and
+      # an engine change is the same class of event.
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.44.7
 
       - name: Design tokens are current
         working-directory: packages/sahra_design_system
@@ -100,10 +111,26 @@ jobs:
           --health-cmd "redis-cli ping" --health-interval 10s
           --health-timeout 5s --health-retries 5
         ports: ['6379:6379']
+      # HEALTH-GATED like the other two. It was the only service without a
+      # check, and the consequence was not a red build — `test/global-setup.ts`
+      # answers an unreachable Meilisearch with a SKIP, so the search suites
+      # would quietly not run and the job would still go green.
+      #
+      # Two independent fixes, because either alone is insufficient: this gate
+      # stops the race happening, and global-setup now THROWS instead of
+      # skipping when `CI` is set, so if it ever happens anyway it is loud.
+      # A gate with no alarm behind it is a gate you stop checking.
+      #
+      # The command is the one the repo's own docker-compose.yml uses and which
+      # reports `healthy` on a running container — not a guess about what is
+      # installed in the image.
       meilisearch:
         image: getmeili/meilisearch:v1.11
         env:
           MEILI_ENV: development
+        options: >-
+          --health-cmd "curl -f http://localhost:7700/health"
+          --health-interval 5s --health-timeout 3s --health-retries 12
         ports: ['7700:7700']
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sahra_test
@@ -119,6 +146,35 @@ jobs:
 
       - working-directory: apps/api
         run: pnpm install --frozen-lockfile
+
+      # ── THE CI DATABASE IS NOT SUPABASE, AND THE MIGRATIONS ASSUME IT IS ──
+      #
+      # `20260801000000_lock_down_data_api` revokes from `anon` and
+      # `authenticated`. Those roles are not ours — SUPABASE creates them, and
+      # they are the whole reason that migration exists: they are the identities
+      # PostgREST authenticates the public publishable key as. The image above
+      # is plain `postgis/postgis`, where they do not exist, and Postgres
+      # answers `REVOKE ... FROM anon` with `42704: role "anon" does not exist`
+      # rather than shrugging.
+      #
+      # Found on 2026-08-10, when this branch went through CI for the first
+      # time at 33 commits. It failed at migration 2 of 14 — meaning the
+      # pipeline had never once applied this schema, on this branch OR on main.
+      #
+      # THE ROLES ARE CREATED HERE, AND THE MIGRATION IS NOT WEAKENED. Guarding
+      # the REVOKE with `IF EXISTS` would make it a no-op wherever the role is
+      # absent — which is exactly the failure `20260809020000_no_silent_lapses`
+      # was written about, where `REVOKE USAGE ON SCHEMA public` reported
+      # success and changed nothing for a week. A lockdown that cannot fail is
+      # not a lockdown. Creating the roles makes the CI database satisfy the
+      # same contract Supabase does, so `rls-coverage.e2e-spec.ts` is asking a
+      # real question instead of a vacuous one.
+      #
+      # NOLOGIN: these exist to be revoked FROM, never connected as.
+      - name: Supabase-shaped roles
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+            "CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;"
 
       - name: Schema and guards
         working-directory: apps/api

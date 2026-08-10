@@ -152,6 +152,87 @@ each test registers; read the files that exist on disk; assert the scanner
 parsed a plausible number of lines. Every "census" in this suite is written
 that way, and each one is there because its absence let something through.
 
+## Reading the patterns is not checking
+
+Named by the product owner on 2026-08-10, after the same mistake had cost three
+incidents in this repo. It is the shortest rule in this document and the one
+with the worst record.
+
+**Ask the system. Never the document that describes it.**
+
+- `git check-ignore -v <path>` — not a read of `.gitignore`.
+- `git check-attr` and `git show :<path>` — the **index bytes**, not a read of
+  `.gitattributes`.
+- `information_schema.role_table_grants` — not a read of the `REVOKE`.
+- `pg_policies`, `pg_class` — not a read of the `CREATE POLICY` or the migration.
+- Running the CI command — not a read of the workflow that runs it.
+
+Five occurrences by 2026-08-10, which is past the point where it reads as bad
+luck. It is the house rule.
+
+The first three:
+
+1. **`REVOKE USAGE ON SCHEMA public FROM anon` reported success and changed
+   nothing.** The schema is owned by `supabase_admin`, and a REVOKE issued by
+   `postgres` can only remove grants `postgres` made. The statement was
+   correct, committed, and inert. Recorded in
+   `20260809020000_no_silent_lapses`.
+2. **RLS silently stopped applying** to rows a later migration reached by
+   another path. The policy was still there to read.
+3. **`.gitignore` looked like it covered `*.p8`** — and my own handover
+   document asserted it, reasoning from `*.pem` and `*.key`. It covered
+   neither. Three of five credential patterns were open, hours before a
+   Firebase service-account key was placed on disk. `git check-ignore` found
+   it in one second; two careful readings had not.
+
+And the fourth and fifth, both on 2026-08-10:
+
+4. **CI itself** — see the subsection below. A workflow file is a document
+   describing what will happen, and it had been describing it inaccurately for
+   33 commits.
+5. **`.gitattributes` said `eol=lf`, and it was even true — but the file on
+   disk had CRLF.** `dart format` on Windows had rewritten all 8 files it
+   touched. The formatting fix was therefore verified against bytes that are
+   not the bytes CI reads. `git check-attr` confirmed the attribute applies and
+   `git show :<path>` confirmed the staged blob holds **0 CRLF lines**, so the
+   change was genuine — but that is a conclusion from asking the index, and
+   reading the attributes file would have produced the same confident answer
+   whether or not it was true.
+
+The mechanism is always the same, and it is worse than being wrong. A
+declaration that *reads as correct* **ends the investigation**. Nobody checks
+twice something they have just satisfied themselves about, so the gap survives
+exactly as long as the wording holds up — which is indefinitely, because
+wording does not rot.
+
+The corollary for reporting: if no command exists that would fail when the rule
+is broken, **say that**, rather than presenting a read as a check. "I read the
+migration and it revokes anon" and "I asked the catalogue and anon holds no
+privileges" are different claims, and only one of them is evidence.
+
+### The same rule, applied to CI
+
+CI is a file that declares things too. On 2026-08-10 this branch was 33 commits
+ahead of `main` and had never been through the pipeline once. Four failures
+were sitting in it, two of them also on `main`:
+
+- `prisma migrate deploy` died at **migration 2 of 14** — the lockdown
+  migration revokes from `anon` and `authenticated`, which exist because
+  *Supabase* creates them, against a workflow that declares a vanilla
+  `postgis/postgis` image where they do not. `role "anon" does not exist`.
+- `JWT_ACCESS_SECRET` is read with `getOrThrow` and was in no workflow `env:`
+  block, so the app could not boot at all.
+- `dart format --set-exit-if-changed` failed on 8 files — one line below
+  `flutter analyze ... No issues found!`. **A green analyze beside a red format
+  is the shape that teaches people to trust the wrong signal**, and it is why
+  "the analyzer is clean" was never the same sentence as "CI would pass".
+- Meilisearch was the only service with no health check, and
+  `test/global-setup.ts` answers an unreachable Meilisearch with a **skip** —
+  so the search suites could silently not run while the job stayed green.
+
+None of it was subtle. All of it was invisible, because reading `ci.yml` is
+reading a pattern.
+
 ## A capability that is never called is indistinguishable from one that does not exist
 
 Twice in two days the lower layer supported a rule and the upper layer never
@@ -482,6 +563,50 @@ regression in font loading fails loudly rather than silently.
 Goldens are generated and compared **on CI's Linux container only** — font
 rasterization differs across platforms, and a macOS-generated golden will fail
 on Linux for reasons that have nothing to do with the design.
+
+#### That claim was measured on 2026-08-10, and here is the demonstration
+
+The Windows-generated baseline was run against a Linux engine (Flutter 3.44.7,
+the exact tarball `subosito/flutter-action` fetches). Of the **430 committed
+PNGs** — 168 design-system, 204 app screens, 58 journey walk-through —
+**410 differed.**
+
+**The twenty that matched, byte for byte, were exactly the five components with
+no text in them:** `Icon_drawn-set`, `Mashrabiya_fade`, `Mashrabiya_tile`,
+`Skeleton_card`, `Skeleton_lines` — drawn paths, a geometric pattern, and grey
+blocks. Every single golden containing a glyph differed. Every single golden
+containing none was identical.
+
+That is not an argument that the delta is rasterization. It is a
+demonstration — the partition is perfect and it falls exactly on the presence
+of text.
+
+Supporting numbers: diffs ran min 0.07%, median 0.26%, p90 0.81%, **max 2.73%**,
+mean 0.42%, with the four worst all being `Review_contrast-audit`, the most
+text-dense screen in the set. **Zero dimension mismatches.** So regenerating on
+another platform cannot conceal a layout or colour regression, because there is
+no layout or colour difference to conceal.
+
+#### Therefore: NO TOLERANCE BUDGET. Ever.
+
+Every one of those 354 failures would pass under a ~1% pixel-difference
+comparator. That is precisely why it is refused.
+
+A comparator sized to absorb today's whole-suite delta is a comparator that
+cannot fail tomorrow. Few-pixel differences are not the noise these tests
+tolerate — **they are the signal these tests exist to catch**: a control off by
+two pixels, a padding token that resolved to the wrong value, a baseline that
+shifted when a `TextTheme` slot fell back. Under a 1% budget every one of those
+is green.
+
+The cost of "one OS owns the goldens" is one regeneration whenever the Flutter
+version moves. The cost of a tolerance budget is every golden in the repo,
+permanently, and you do not find out which ones you lost.
+
+If you are reading this because you are about to propose a tolerance, the thing
+to answer first is the partition above: explain why five text-free components
+matching exactly, and 354 text-bearing ones not, is consistent with a delta a
+budget should absorb.
 
 > **Enforced by:** `test/golden/golden_coverage_test.dart` — reads the
 > component registry (every widget exported from

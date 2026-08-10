@@ -512,9 +512,22 @@ const Set<String> exportedComponents = <String>{
 /// The sixteen from the design package, as distinct from what building the
 /// screens turned up. Kept apart so "16 of 16 done" stays a true statement.
 const Set<String> designPackageComponents = <String>{
-  'Button', 'Icon', 'Mashrabiya', 'Badge', 'Chip', 'Input', 'Avatar',
-  'RatingStars', 'Skeleton', 'EmptyState', 'SearchBar', 'TabBar',
-  'AvatarStack', 'BookingWidget', 'DiningTrail', 'RestaurantCard',
+  'Button',
+  'Icon',
+  'Mashrabiya',
+  'Badge',
+  'Chip',
+  'Input',
+  'Avatar',
+  'RatingStars',
+  'Skeleton',
+  'EmptyState',
+  'SearchBar',
+  'TabBar',
+  'AvatarStack',
+  'BookingWidget',
+  'DiningTrail',
+  'RestaurantCard',
 };
 
 /// Entries with no tap action BY DESIGN — a disabled control, or a purely

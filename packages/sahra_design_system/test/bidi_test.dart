@@ -91,8 +91,7 @@ void main() {
     // scanned for the signature by
     // `apps/customer_app/test/i18n/bidi_neutral_test.dart`, which then checks
     // every call site of every string it finds.
-    testWidgets('an unsigned and a signed figure are different problems',
-        (tester) async {
+    testWidgets('an unsigned and a signed figure are different problems', (tester) async {
       const String plain = '4.0';
       const String signed = '4.0+';
 
@@ -132,8 +131,7 @@ void main() {
     // and applying it blindly would lay an Arabic name out backwards.
     test('Latin content is left-to-right, punctuation and all', () {
       expect(contentDirection('Nour H.'), TextDirection.ltr);
-      expect(contentDirection('Food was excellent. Service slowed.'),
-          TextDirection.ltr);
+      expect(contentDirection('Food was excellent. Service slowed.'), TextDirection.ltr);
       // Leading punctuation and digits are NOT strong — the first LETTER
       // decides, which is bidi rule P2.
       expect(contentDirection('"Great" — 5/5'), TextDirection.ltr);
@@ -156,8 +154,7 @@ void main() {
       expect(contentDirection('...'), isNull);
     });
 
-    testWidgets('and it actually changes the layout of an Arabic page',
-        (tester) async {
+    testWidgets('and it actually changes the layout of an Arabic page', (tester) async {
       // The claim that matters, and a string test cannot see it: the same
       // review laid out with and without its own direction.
       const String review = 'Food was excellent. Service slowed.';
@@ -184,10 +181,8 @@ void main() {
       // Both render; what differs is where the sentence starts. A Rect cannot
       // express glyph order, so the checkable claim is that the two are laid
       // out in DIFFERENT directions rather than identically.
-      final RenderParagraph a =
-          texts.first.findRenderObject()! as RenderParagraph;
-      final RenderParagraph b =
-          texts.last.findRenderObject()! as RenderParagraph;
+      final RenderParagraph a = texts.first.findRenderObject()! as RenderParagraph;
+      final RenderParagraph b = texts.last.findRenderObject()! as RenderParagraph;
       expect(a.textDirection, TextDirection.rtl);
       expect(b.textDirection, TextDirection.ltr);
       expect(tester.takeException(), isNull);
@@ -205,8 +200,11 @@ void main() {
     test('wraps in U+2068 … U+2069', () {
       final wrapped = isolate('Layali Lounge');
       expect(wrapped.codeUnitAt(0), 0x2068, reason: 'missing FIRST STRONG ISOLATE');
-      expect(wrapped.codeUnitAt(wrapped.length - 1), 0x2069,
-          reason: 'missing POP DIRECTIONAL ISOLATE',);
+      expect(
+        wrapped.codeUnitAt(wrapped.length - 1),
+        0x2069,
+        reason: 'missing POP DIRECTIONAL ISOLATE',
+      );
       expect(wrapped.substring(1, wrapped.length - 1), 'Layali Lounge');
     });
 
@@ -252,9 +250,8 @@ void main() {
         ),
       );
       await stabilise(tester);
-      final RenderParagraph p = tester
-          .element(find.textContaining(sentence))
-          .findRenderObject()! as RenderParagraph;
+      final RenderParagraph p =
+          tester.element(find.textContaining(sentence)).findRenderObject()! as RenderParagraph;
       expect(p.textDirection, TextDirection.rtl);
       expect(tester.takeException(), isNull);
     });
