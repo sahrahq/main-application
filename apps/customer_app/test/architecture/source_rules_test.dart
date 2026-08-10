@@ -118,6 +118,49 @@ void main() {
     );
   });
 
+  test('NO RAW HH:MM REACHES A DISPLAY WIDGET — every time goes through timeOfDay', () {
+    /// Dates had a convention and times did not, so thirteen sites each
+    /// interpolated a raw `HH:MM` and every one showed a 24-hour clock nobody
+    /// in Egypt reads. The strings were correct and wrong for humans, and no
+    /// test was going to catch that — so this one exists.
+    ///
+    /// A `time` / `label` / `wallClock` value reaching a rendered position
+    /// without passing through `timeOfDay(...)` is the defect. `ltrRun(...)`
+    /// used to be the idiom and is no longer sufficient on its own: it fixes
+    /// the direction of a 24-hour string, not the fact that it is 24-hour.
+    final List<String> offenders = <String>[];
+    final RegExp carrier = RegExp(r'\b(\w*[Tt]ime|slotLabel|wallClock|\w*\.label)\b');
+    for (final File f in dartSources(lib, excludePathContains: generated)) {
+      final List<String> lines = f.readAsLinesSync();
+      for (int i = 0; i < lines.length; i++) {
+        final String line = lines[i];
+        final String t = line.trimLeft();
+        if (t.startsWith('//') || t.startsWith('///')) continue;
+        // Only lines that put something in a rendered position.
+        if (!RegExp(r'(Text\(|value:|label:|hintText:|title:|subtitle:)').hasMatch(line)) continue;
+        // A repository mapping a DTO into a domain object uses `label:` as a
+        // CONSTRUCTOR argument, not a rendered position. Excluded by path
+        // rather than by name, so a display widget that happens to live under
+        // data/ is still caught.
+        if (f.path.contains('${Platform.pathSeparator}data${Platform.pathSeparator}')) continue;
+        if (!carrier.hasMatch(line)) continue;
+        if (line.contains('timeOfDay(')) continue;
+        // `dayAndMonth` handles dates; `reservationWhen` composes both.
+        if (line.contains('dayAndMonth(') || line.contains('reservationWhen(')) continue;
+        offenders.add('${f.path}:${i + 1}: ${line.trim()}');
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'A time-carrying value reaches a display position without timeOfDay(): '
+          '${offenders.join(' | ')}'
+          '  ——  Route it through timeOfDay(), which follows the device 12/24 '
+          'setting, uses locale ar (never ar_EG, which forces Arabic-Indic '
+          'digits) and bidi-isolates the result. See reservation_copy.dart.',
+    );
+  });
+
   test('AND THE SCAN CATCHES ONE — guards the guard', () {
     // Without this, a regex that silently stopped matching would report a
     // clean bill of health for a tree it never checked.

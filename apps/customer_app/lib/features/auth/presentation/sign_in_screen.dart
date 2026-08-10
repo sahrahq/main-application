@@ -293,7 +293,7 @@ class _PendingSlotNote extends StatelessWidget {
                     // of a sentence reads as a serial number, and this sentence
                     // exists to reassure someone mid-booking.
                     dayAndMonth(selection.date, context),
-                    ltrRun(selection.slotLabel),
+                    timeOfDay(selection.slotLabel, context),
                     // The INT, not a pre-formatted word. `signInSlotHeld` owns
                     // the plural and puts `#` in it. This used to pass
                     // `bookGuestsUnit`, which is the noun alone, and the line

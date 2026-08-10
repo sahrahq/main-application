@@ -27,9 +27,52 @@ import { NOTIFICATION_TYPES, type NotificationType } from './notification.ports'
  */
 type Rendered = { title: string; body: string };
 
+/**
+ * `HH:MM` on the venue's clock -> `8:00 م` / `8:00 PM`.
+ *
+ * ── THE SITE THE LATIN-FIGURES GUARD CANNOT SEE ─────────────────────────
+ *
+ * Push copy is rendered HERE, in TypeScript, so the Dart scanner that keeps
+ * every client-side time going through `timeOfDay()` has no view of it. It is
+ * therefore the site most likely to rot, and the one that shipped raw 24-hour
+ * strings (`الساعة 20:00`) while every client surface was being fixed.
+ *
+ * LOCALE `ar`, NEVER `ar_EG` — the same decision as the client, for the same
+ * reason: `ar_EG` forces Arabic-Indic digits (`٨:٠٠ م`), which collides with
+ * ENGINEERING-STANDARDS §Numerals. `ar` gives the identical `ص`/`م` marker
+ * with Latin figures. Node ships full ICU, so this is `Intl` directly rather
+ * than a hand-rolled table.
+ *
+ * TWELVE-HOUR, ALWAYS, AND THAT IS A DELIBERATE DIVERGENCE FROM THE CLIENT.
+ * The client follows `MediaQuery.alwaysUse24HourFormat` because the phone
+ * knows. **The server does not and cannot** — a push is rendered before it
+ * reaches any device, and the device preference is not in the token registry.
+ * Twelve-hour is the majority reading here, so a diner whose phone is set to
+ * 24-hour sees 12-hour on the lock screen and 24-hour in the app. That is a
+ * known, bounded inconsistency; the alternative is storing the preference
+ * per device, which is not built.
+ */
+function formatTime(hhmm: string | undefined, locale: 'ar' | 'en'): string {
+  if (!hhmm) return '';
+  const m = /^(\d{1,2}):(\d{2})/.exec(hhmm);
+  if (!m) return hhmm; // Unparseable: show it rather than throw or blank it.
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return hhmm;
+  // A wall clock is a time of day. The date is arbitrary and never rendered;
+  // UTC so the runtime's own zone cannot shift the hour.
+  const d = new Date(Date.UTC(2000, 0, 1, h, min));
+  return new Intl.DateTimeFormat(locale, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'UTC',
+  }).format(d);
+}
+
 /** `d.date` and `d.time` as one phrase, with neither leaving a stray dash. */
-function when(d: Record<string, string>): string {
-  return [d.date, d.time].filter(Boolean).join(' ').trim();
+function when(d: Record<string, string>, locale: 'ar' | 'en' = 'en'): string {
+  return [d.date, formatTime(d.time, locale)].filter(Boolean).join(' ').trim();
 }
 
 const COPY: Record<NotificationType, Record<'ar' | 'en', (d: Record<string, string>) => Rendered>> = {
@@ -45,8 +88,8 @@ const COPY: Record<NotificationType, Record<'ar' | 'en', (d: Record<string, stri
     ar: (d) => ({
       title: `${d.venue ?? 'المطعم'} ألغى حجزك`,
       body: d.reason
-        ? `${when(d)} — ${d.reason}`.trim()
-        : `حجزك يوم ${d.date ?? ''} الساعة ${d.time ?? ''} مابقاش محجوز.`.trim(),
+        ? `${when(d, 'ar')} — ${d.reason}`.trim()
+        : `حجزك يوم ${d.date ?? ''} الساعة ${formatTime(d.time, 'ar')} مابقاش محجوز.`.trim(),
     }),
   },
 
@@ -62,7 +105,7 @@ const COPY: Record<NotificationType, Record<'ar' | 'en', (d: Record<string, stri
     }),
     ar: (d) => ({
       title: `تم الحجز — ${d.venue ?? 'مطعمك'}`,
-      body: `${when(d)}${d.party ? ` · ${d.party} أفراد` : ''}${
+      body: `${when(d, 'ar')}${d.party ? ` · ${d.party} أفراد` : ''}${
         d.code ? ` · ${d.code}` : ''
       }`.trim(),
     }),
@@ -78,7 +121,7 @@ const COPY: Record<NotificationType, Record<'ar' | 'en', (d: Record<string, stri
     }),
     ar: (d) => ({
       title: `بكرة: ${d.venue ?? 'حجزك'}`,
-      body: `${when(d)}. مش هتقدر تيجي؟ الغِ الحجز من التطبيق عشان الترابيزة تروح لحد تاني.`,
+      body: `${when(d, 'ar')}. مش هتقدر تيجي؟ الغِ الحجز من التطبيق عشان الترابيزة تروح لحد تاني.`,
     }),
   },
 
@@ -91,7 +134,7 @@ const COPY: Record<NotificationType, Record<'ar' | 'en', (d: Record<string, stri
     }),
     ar: (d) => ({
       title: `بعد ساعتين: ${d.venue ?? 'حجزك'}`,
-      body: `${when(d)}${d.party ? ` · ${d.party} أفراد` : ''}${
+      body: `${when(d, 'ar')}${d.party ? ` · ${d.party} أفراد` : ''}${
         d.code ? ` · ${d.code}` : ''
       }`.trim(),
     }),
@@ -113,7 +156,7 @@ const COPY: Record<NotificationType, Record<'ar' | 'en', (d: Record<string, stri
     }),
     ar: (d) => ({
       title: `فضيت ترابيزة في ${d.venue ?? 'مكان كنت مستنيه'}`,
-      body: `${when(d)}. احجز دلوقتي — اللي يسبق يكسب.`,
+      body: `${when(d, 'ar')}. احجز دلوقتي — اللي يسبق يكسب.`,
     }),
   },
 

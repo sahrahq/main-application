@@ -11,6 +11,7 @@ import '../../../shared/widgets/sahra_async_view.dart';
 import '../domain/booking.dart';
 import 'booking_notifier.dart';
 import 'pending_booking.dart';
+import 'reservation_copy.dart';
 
 /// `docs/design/ui_kits/app/BookingFlowScreen.jsx`.
 ///
@@ -277,7 +278,7 @@ class _Slots extends ConsumerWidget {
               children: <Widget>[
                 for (final slot in board.slots)
                   SahraChip(
-                    label: slot.label,
+                    label: timeOfDay(slot.label, context),
                     active: ref.watch(chosenSlotProvider(restaurantId)) == slot.startsAt,
                     onPressed: () => ref
                         .read(chosenSlotProvider(restaurantId).notifier)
@@ -388,7 +389,8 @@ class _Footer extends ConsumerWidget {
               SahraButton(
                 label: inFlight
                     ? l10n.bookHolding
-                    : l10n.bookConfirmFor(criteria.partySize, slot?.label ?? '—'),
+                    : l10n.bookConfirmFor(criteria.partySize,
+                        slot == null ? '—' : timeOfDay(slot.label, context),),
                 // Disabled until a slot is chosen AND while the hold is in
                 // flight. A second tap during the round trip is the classic
                 // double-booking attempt; the idempotency key would make it

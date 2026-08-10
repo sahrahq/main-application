@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
 
 import '../../../localization/generated/app_localizations.dart';
@@ -56,7 +57,77 @@ String venueName(ReservationVenue v, BuildContext context) {
 /// localises the month while holding the numeral. Same reasoning, and the same
 /// month table, as the confirmation ticket.
 String reservationWhen(MyReservation r, BuildContext context) =>
-    '${dayAndMonth(r.date, context)} · ${ltrRun(r.time)}';
+    '${dayAndMonth(r.date, context)} · ${timeOfDay(r.time, context)}';
+
+/// `20:00` → `8:00 م` / `8:00 PM`, or `20:00` where the phone says 24-hour.
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// THE ACTUAL DEFECT WAS THAT THIS FUNCTION DID NOT EXIST
+/// ─────────────────────────────────────────────────────────────────────────
+///
+/// Dates had a convention — [dayAndMonth] — and times had none, so thirteen
+/// sites each interpolated a raw `HH:MM` and every one of them was wrong in
+/// the same way. Nobody in Egypt reads a booking as "20:00"; they read
+/// "8 مساءً". Every test passed, because the strings were correct and wrong
+/// for humans, and no test was ever going to catch that.
+///
+/// One owner. Thirteen edits would have been the same defect thirteen times.
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// WHY LOCALE `ar` AND NOT `ar_EG`, WHEN THE APP IS FOR EGYPT
+/// ─────────────────────────────────────────────────────────────────────────
+///
+/// The obvious question, and the answer is not obvious. Measured on
+/// 2026-08-10, both produce the IDENTICAL marker — `ص` / `م`, one letter,
+/// after the numeral:
+///
+///     DateFormat('jm', 'ar_EG')  →  ٨:٠٠ م   (U+0668 …)
+///     DateFormat('jm', 'ar')     →  8:00 م   (U+0038 …)
+///
+/// The only difference is the digit family, and **`ar_EG` forces
+/// Arabic-Indic**, including in the 24-hour form (`٢٠:٠٠`). That collides
+/// head-on with ENGINEERING-STANDARDS §Numerals — "Latin digits in both
+/// locales" — a rule already enforced by a guard and already found violated
+/// twice. `ar` gives the Egyptian reading with the required figures.
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// THE SEPARATOR IS NOT OURS TO CHOOSE
+/// ─────────────────────────────────────────────────────────────────────────
+///
+/// English separates the numeral from AM/PM with **U+202F** (narrow no-break
+/// space); Arabic uses a plain **U+0020**. `DateFormat` emits the right one.
+/// Hardcoding either would be subtly wrong in one locale, and
+/// `time_format_test.dart` asserts the two DIFFER so a future tidy-up that
+/// normalises them fails loudly.
+///
+/// 12 vs 24 FOLLOWS THE DEVICE, exactly as theme does —
+/// `MediaQuery.alwaysUse24HourFormat`. No in-app toggle: the phone already
+/// knows, and most phones here are not set to 24-hour.
+///
+/// The whole expression is bidi-ISOLATED, so `8:00 م` cannot reorder inside a
+/// sentence — the marker and the digits are opposite directions in one run.
+///
+/// Falls back to the raw string on anything unparseable, for the same reason
+/// [dayAndMonth] does: a machine time on screen is bad, a screen that throws
+/// because the server sent something unexpected is worse.
+String timeOfDay(String wallClock, BuildContext context) {
+  final List<String> parts = wallClock.split(':');
+  if (parts.length < 2) return wallClock;
+  final int? h = int.tryParse(parts[0]);
+  final int? m = int.tryParse(parts[1]);
+  if (h == null || m == null || h < 0 || h > 23 || m < 0 || m > 59) return wallClock;
+
+  final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+  // `ar`, never `ar_EG` — see above. `en` for the Latin locale.
+  final String locale = ar ? 'ar' : 'en';
+  final bool use24 = MediaQuery.of(context).alwaysUse24HourFormat;
+
+  // A wall clock is a time of day, not an instant. The date is arbitrary and
+  // never rendered; only the hour and minute reach the formatter.
+  final DateTime t = DateTime(2000, 1, 1, h, m);
+  final String out = DateFormat(use24 ? 'Hm' : 'jm', locale).format(t);
+  return isolate(out);
+}
 
 /// `2026-08-05` → `5 August` / `٥ أغسطس`… no: `5 أغسطس`. Latin digit, localised
 /// month.

@@ -5,6 +5,7 @@ import 'package:sahra_design_system/sahra_design_system.dart';
 import '../../../localization/generated/app_localizations.dart';
 import '../../../routes/routes.dart';
 import '../../../shared/push/push_registration.dart';
+import 'reservation_copy.dart';
 
 /// `docs/design/ui_kits/app/ConfirmationScreen.jsx` — the perforated ticket.
 ///
@@ -215,7 +216,7 @@ class _Ticket extends StatelessWidget {
             child: Row(
               children: <Widget>[
                 _Cell(label: l10n.confirmedDate, value: _date(context, when)),
-                _Cell(label: l10n.confirmedTime, value: ltrRun(wallClock)),
+                _Cell(label: l10n.confirmedTime, value: timeOfDay(wallClock, context)),
                 _Cell(label: l10n.confirmedGuests, value: '$partySize'),
               ],
             ),

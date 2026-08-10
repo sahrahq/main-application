@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../reservations/presentation/reservation_copy.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
 
@@ -196,7 +197,7 @@ class _Results extends ConsumerWidget {
               : l10n.resultDistance(venue.distanceKm!.toStringAsFixed(1)),
           availability: venue.nextAvailable.isEmpty
               ? null
-              : l10n.searchNextAvailable(venue.nextAvailable.first),
+              : l10n.searchNextAvailable(timeOfDay(venue.nextAvailable.first, context)),
           semanticLabel: venueSemanticLabel(context, venue),
           onTap: () => VenueRoute(venue.slug).go(context),
         );
