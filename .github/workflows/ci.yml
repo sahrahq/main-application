@@ -137,6 +137,28 @@ jobs:
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/sahra_test
       REDIS_URL: redis://localhost:6379
       MEILISEARCH_HOST: http://localhost:7700
+
+      # ── THROWAWAY, AND IN PLAIN SIGHT ON PURPOSE ────────────────────────
+      #
+      # Without these the API cannot boot at all: `jwt.strategy.ts` reads
+      # JWT_ACCESS_SECRET with `getOrThrow`, which is correct — an HS256 secret
+      # IS the ability to mint a token for any user, so a fallback default
+      # would be a published signing key. Pinned by `jwt.strategy.spec.ts`,
+      # which fails if anyone ever adds one.
+      #
+      # NOT repo secrets, deliberately. A GitHub secret would imply these
+      # matter; they protect an ephemeral database that is destroyed with the
+      # job and is reachable only from inside it. Writing them here means the
+      # next reader can see there is nothing to steal, instead of hunting for
+      # a value they cannot view.
+      #
+      # 64 hex chars = 256 bits, meeting doc 09 §1.1 so `validateSecrets()`
+      # reports OK rather than adding a warning to every CI log. Distinct from
+      # each other, because access and refresh signing keys being equal is a
+      # real bug this pipeline should not model as normal — and not one of
+      # `secrets.validation.ts`'s KNOWN_PLACEHOLDERS.
+      JWT_ACCESS_SECRET: c1a5e0c17e57acce55f0117ecafe0000000000000000000000000000000ac6e5
+      JWT_REFRESH_SECRET: 7ef7e5c1a50cd6e55f0117ecafe1111111111111111111111111111111106e55
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -146,6 +168,29 @@ jobs:
 
       - working-directory: apps/api
         run: pnpm install --frozen-lockfile
+
+      # ── THE GENERATED PRISMA CLIENT IS NOT OPTIONAL AND WAS NOT HAPPENING ──
+      #
+      # `@prisma/client` ships a ~4 KB STUB and is rewritten in place by
+      # `prisma generate`. Its postinstall is supposed to do that, and under
+      # pnpm's store layout it did not — the hook runs inside
+      # `.pnpm/@prisma+client@…/node_modules/@prisma/client` and never finds
+      # `apps/api/prisma/schema.prisma`.
+      #
+      # The stub type-checks as an EMPTY namespace, so the failure does not
+      # look like "the client is missing". It looks like the code is wrong:
+      #
+      #   error TS2694: Namespace 'Prisma' has no exported member 'InputJsonValue'
+      #   error TS2305: Module '@prisma/client' has no exported member 'ReservationStatus'
+      #   error TS7006: Parameter 'r' implicitly has an 'any' type
+      #
+      # Found 2026-08-10. Invisible locally, because a developer's node_modules
+      # has been generated a hundred times by `prisma migrate dev`. `migrate
+      # deploy` does NOT generate, so the schema step passing proves nothing
+      # about this.
+      - name: Generate the Prisma client
+        working-directory: apps/api
+        run: pnpm prisma generate
 
       # ── THE CI DATABASE IS NOT SUPABASE, AND THE MIGRATIONS ASSUME IT IS ──
       #

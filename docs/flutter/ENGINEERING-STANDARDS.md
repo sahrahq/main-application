@@ -152,11 +152,27 @@ each test registers; read the files that exist on disk; assert the scanner
 parsed a plausible number of lines. Every "census" in this suite is written
 that way, and each one is there because its absence let something through.
 
+## NEVER ACCEPT A SIGNAL YOU HAVE NOT SEEN FAIL
+
+**If you cannot make it go red on demand, it is decoration.**
+
+This sits above everything below it, and above most of this document. Six
+separate incidents in this repo reduce to it. A guard, a check, an ignore rule,
+a permission, a CI step and a test harness all failed the same way: each
+reported success, each was believed, and **not one of them had ever been
+observed producing a failure.**
+
+The practical form is one question, asked before the signal is trusted:
+*what would I have to break for this to go red, and have I done it?* If the
+answer is "nothing would" — the check has no failing case, the guard computes
+its own expectation, the ignore rule was read rather than queried, the exit
+code cannot be non-zero — then the signal is not evidence. It is a green light
+wired to nothing.
+
 ## Reading the patterns is not checking
 
-Named by the product owner on 2026-08-10, after the same mistake had cost three
-incidents in this repo. It is the shortest rule in this document and the one
-with the worst record.
+Named by the product owner on 2026-08-10. It is the shortest rule in this
+document and the one with the worst record.
 
 **Ask the system. Never the document that describes it.**
 
@@ -166,9 +182,10 @@ with the worst record.
 - `information_schema.role_table_grants` — not a read of the `REVOKE`.
 - `pg_policies`, `pg_class` — not a read of the `CREATE POLICY` or the migration.
 - Running the CI command — not a read of the workflow that runs it.
+- **The command's own exit status** — not a pipeline's, see incident 6.
 
-Five occurrences by 2026-08-10, which is past the point where it reads as bad
-luck. It is the house rule.
+Six occurrences by 2026-08-10, which is well past the point where it reads as
+bad luck. It is the house rule.
 
 The first three:
 
@@ -198,6 +215,51 @@ And the fourth and fifth, both on 2026-08-10:
    change was genuine — but that is a conclusion from asking the index, and
    reading the attributes file would have produced the same confident answer
    whether or not it was true.
+
+### Incident 6 — the harness that could not report a failure
+
+The worst of the six, because it was the *measuring instrument*, and because it
+was built during the very pass whose subject was checks that cannot fail.
+
+A script was written to run the CI `api` job locally, step by step, so that
+several layers of breakage could be found in one pass instead of one per CI
+round-trip. Each step looked like this:
+
+```bash
+eval "$@"          # where "$@" was:  pnpm openapi:export --check 2>&1 | tail -30
+rc=$?
+```
+
+**A pipeline's exit status is the status of its LAST command.** `tail` succeeds
+on any input. So `rc` was `0` for every step, unconditionally, forever. The
+script printed a summary of nine steps, all `exit 0`, and that summary was
+reported to the product owner as evidence the API job passed.
+
+It had not. `openapi:export --check` had died on a TypeScript compile error, and
+so had `tsc --noEmit`. The output was sitting in the log the whole time,
+directly above a line reading `── openapi:export --check exit=0`.
+
+It was found by re-reading the *text* of a step already recorded as passing —
+which is only a reliable method by accident.
+
+Three things generalise:
+
+1. **`cmd | tail`, `cmd | head`, `cmd | grep`, `cmd | tee` all discard the
+   command's status.** Use `set -o pipefail`, or `${PIPESTATUS[0]}`, or — best,
+   because it also keeps the whole log rather than the last N lines — redirect
+   to a file and read `$?` from the command itself.
+2. **A summary table of all-zeroes deserves the same suspicion as a test suite
+   that has never failed.** Nine green ticks in a row from a brand-new
+   instrument is not reassurance, it is the thing to check first.
+3. **Everything that instrument reported had to be withdrawn**, including the
+   parts that were probably true, because there was no way to tell which. Two
+   results survived only because they had been confirmed by asking something
+   else — `_prisma_migrations` for the schema, `pg_stat_database` for whether
+   the e2e suite executed at all.
+
+The general rule at the top of this section is the one this incident argues
+for: the harness was never once observed producing a red. Nobody made it fail
+on purpose, so nobody learned it could not.
 
 The mechanism is always the same, and it is worse than being wrong. A
 declaration that *reads as correct* **ends the investigation**. Nobody checks
