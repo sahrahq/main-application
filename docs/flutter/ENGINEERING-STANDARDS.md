@@ -261,6 +261,35 @@ The general rule at the top of this section is the one this incident argues
 for: the harness was never once observed producing a red. Nobody made it fail
 on purpose, so nobody learned it could not.
 
+#### Postscript, the same day — knowing the trap does not stop you setting it
+
+Hours after the above was written up, verifying an unrelated fix:
+
+```
+npx tsc -p tsconfig.json --noEmit 2>&1 | tail -6 && echo TSC_CLEAN
+```
+
+It printed `TSC_CLEAN` over a real TypeScript error. `tail` succeeded, so `&&`
+fired. **Identical mechanism, same author, same day, in a throwaway line
+nobody would have reviewed.**
+
+That is the most useful thing about this incident, and the reason it is worth
+more than a rule: understanding a failure mode does not confer immunity to it.
+Vigilance is not a control. The trap lives in a shell idiom so ordinary that it
+is typed without thought, and thought is exactly what is absent when you type
+it.
+
+**The control that replaces the vigilance:**
+
+- Every shell command whose exit code matters begins `set -o pipefail`.
+- Better still where the output is wanted anyway: redirect to a file, read `$?`
+  from the command itself, then read the file.
+  `cmd > /tmp/x.log 2>&1; rc=$?; tail /tmp/x.log; echo "exit=$rc"`
+- **Never** `cmd | tail && echo OK`. The `&&` is reporting on `tail`.
+
+Adopted as a standing habit rather than a thing to remember, because the first
+time it was a thing to remember it lasted about four hours.
+
 ### Incident 7 — a later step that silently undid an earlier one
 
 **This one adds a question the first six do not ask.** They are all "does this
