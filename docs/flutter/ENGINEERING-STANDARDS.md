@@ -290,6 +290,36 @@ it.
 Adopted as a standing habit rather than a thing to remember, because the first
 time it was a thing to remember it lasted about four hours.
 
+#### Postscript 2, 2026-08-11 — a third costume, same week, same author
+
+A new guard was written to catch action-shaped copy with no handler. Its first
+implementation built a regex per key and **matched nothing while reporting
+success**: the pattern printed correctly, the source demonstrably contained the
+string it was looking for, and `allMatches` returned zero anyway. Green, and
+completely inert.
+
+It was caught only because the guard was deliberately broken — the handler was
+removed from the row it was built for — and it *stayed green*. Run only in the
+passing state, it would have shipped as decoration and been trusted for exactly
+as long as nobody tested it.
+
+Two smaller instances the same hour, both mine:
+
+  · the script that removed the handler printed `handler removed` whether or
+    not the replacement matched — a verification step that could not fail,
+    inside a session about checks that cannot fail;
+  · `npx tsc … | tail -6 && echo TSC_CLEAN` — postscript 1, above.
+
+**THREE INSTANCES BY ONE AUTHOR IN ONE WEEK IS THE LESSON, NOT THE MECHANISM.**
+The mechanisms were all different: a pipeline exit code, an unconditional
+`print`, a regex that silently matched nothing. What they share is that each
+was believed on the strength of a green result nobody had tried to turn red.
+
+Knowing the rule does not confer immunity to it. The only thing that does is
+the practice: **break it on purpose, watch it go red, then trust it.** Every
+guard in this repo that has ever caught anything was verified that way.
+
+
 ### Incident 7 — a later step that silently undid an earlier one
 
 **This one adds a question the first six do not ask.** They are all "does this

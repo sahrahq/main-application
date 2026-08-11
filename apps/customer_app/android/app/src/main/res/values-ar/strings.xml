@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Arabic home screen. Android picks this when the DEVICE language is Arabic,
+    which is independent of the in-app language sheet — the launcher is the
+    operating system's surface, not ours.
+
+    "سهرة" is the brand rendered in Arabic script, not a translation: a سهرة is
+    an evening out, which is the word the product is named for.
+-->
+<resources>
+    <string name="app_name">سهرة</string>
+</resources>

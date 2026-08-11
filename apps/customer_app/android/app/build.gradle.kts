@@ -1,3 +1,31 @@
+import java.util.Properties
+
+// ── RELEASE SIGNING, READ FROM A FILE THAT IS NEVER COMMITTED ─────────────
+//
+// `key.properties` sits beside this file and is gitignored (android/.gitignore
+// line 12, verified with `git check-ignore -v`, not by reading the pattern).
+// It names an ABSOLUTE path to a keystore that lives OUTSIDE the repository
+// entirely, and holds the two passwords. Neither the keystore nor the
+// passwords are ever written into a committed file, a log or an error message.
+//
+// ABSENT IS A FIRST-CLASS CASE. CI has no keystore, and neither does a
+// contributor running `flutter run --release` to check a build. Those fall
+// back to debug signing and must keep working — so this is a null, not a
+// throw. What must NOT happen is a release built with debug keys being
+// mistaken for a shippable one, and that is `signing_config_test.dart`'s job:
+// it treats MISSING, EMPTY and MALFORMED identically as unsigned.
+val keystoreProperties = Properties().apply {
+    val f = rootProject.file("key.properties")
+    // `f.length() > 0` on purpose: an empty file parses to zero properties and
+    // would otherwise look like a valid-but-blank config, which is exactly how
+    // a release gets debug-signed while every step reports success.
+    if (f.exists() && f.length() > 0) f.inputStream().use { load(it) }
+}
+
+val hasReleaseSigning: Boolean = listOf("storeFile", "storePassword", "keyPassword", "keyAlias")
+    .all { !keystoreProperties.getProperty(it).isNullOrBlank() } &&
+    file(keystoreProperties.getProperty("storeFile") ?: "").exists()
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -46,11 +74,42 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        // Declared only when the file is present AND complete AND the keystore
+        // it names actually exists on disk. A half-filled `key.properties`
+        // would otherwise produce a config that fails deep inside the signing
+        // task with a message about a password, long after it looked fine.
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Debug keys are the FALLBACK, and the fallback is loud: the
+            // warning below is printed at configuration time, and
+            // `signing_config_test.dart` fails a build that produces a
+            // debug-signed release artefact. An unsignable release that builds
+            // successfully is the "looks fine, cannot ship" shape.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn(
+                    "SAHRA: no usable android/key.properties — the release build will be " +
+                        "signed with DEBUG KEYS and cannot be uploaded to Play. " +
+                        "Expected storeFile/storePassword/keyPassword/keyAlias, and the " +
+                        "keystore file to exist at the path given."
+                )
+                signingConfigs.getByName("debug")
+            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }
