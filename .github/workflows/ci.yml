@@ -6,6 +6,19 @@ on:
   push:
     branches: [main]
   pull_request:
+  # ── THE RELEASE BUILD, ON DEMAND AND WEEKLY ──────────────────────────────
+  #
+  # NOT on every push: it takes ~3–7 minutes and would be disabled the first
+  # sprint it is inconvenient. Weekly is enough for the thing it protects —
+  # "does this still build under R8" — which rots silently rather than
+  # suddenly.
+  #
+  # `workflow_dispatch` is the button: Actions → CI → Run workflow.
+  workflow_dispatch:
+  schedule:
+    # 06:00 UTC every Monday. A slow check only gets run when nobody has to
+    # remember to run it.
+    - cron: '0 6 * * 1'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -241,3 +254,56 @@ jobs:
           pnpm exec nest build
           pnpm exec jest
           pnpm exec jest --config ./test/jest-e2e.json --runInBand
+
+  # ══════════════════════════════════════════════════════════════════════════
+  #  RELEASE BUILD — UNSIGNED, AND THAT IS THE POINT
+  # ══════════════════════════════════════════════════════════════════════════
+  #
+  # The keystore never reaches a runner. Without `key.properties` the Gradle
+  # config falls back to debug keys and prints its warning, which is exactly
+  # the state this job wants: everything except signing is exercised.
+  #
+  # That is where the failures actually were. The first three release builds
+  # ever attempted (2026-08-11) failed on a comment inside a manifest start
+  # tag, and on a `proguard-rules.pro` referenced but never created — both
+  # configuration, neither signing. Red-first covers guards; it does not cover
+  # configuration, and THE ONLY THING THAT PROVES A RELEASE BUILDS IS BUILDING
+  # THE RELEASE.
+  #
+  # The signed build stays local, because the keystore does. `RUNNING.md` has
+  # the two commands and the fingerprint check.
+  release-build:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.7
+
+      - name: The App Bundle is the artefact that ships
+        working-directory: apps/customer_app
+        # `.aab`, not `.apk`: Play has not accepted APKs for new apps since
+        # 2021, and it is a DIFFERENT Gradle task — an apk that builds proves
+        # nothing about a bundle that has to.
+        #
+        # A placeholder API base is supplied because the real one is a LAN
+        # address that means nothing here; this job asks whether it COMPILES
+        # and shrinks, not whether it can reach anything.
+        run: |
+          flutter pub get
+          flutter build appbundle --release             --dart-define=API_BASE_URL=https://api.invalid
+
+      - name: Confirm it is UNSIGNED, so a debug-signed artefact never looks shippable
+        working-directory: apps/customer_app
+        run: |
+          set -o pipefail
+          keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab             | tee /tmp/cert.txt || true
+          if grep -qi "Android Debug" /tmp/cert.txt; then
+            echo "OK: unsigned/debug-signed as expected on CI — the keystore is not here."
+          else
+            echo "::warning::Unexpected signer on a CI build. The keystore must never reach a runner."
+          fi

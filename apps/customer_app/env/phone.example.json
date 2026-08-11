@@ -1,0 +1,8 @@
+{
+  "SUPABASE_URL": "https://jbiycpyhozzrrmulpipt.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_Ny4i0Rcagk7rbHKHg60oow_ZNslOhnV",
+  "API_BASE_URL": "http://YOUR-LAPTOP-LAN-IP:3000",
+  "SENTRY_DSN": "",
+  "ENABLE_LOYALTY": false,
+  "ENABLE_WAITLIST": false
+}

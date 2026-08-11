@@ -4,4 +4,20 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- ── CLEARTEXT HTTP, IN THIS BUILD TYPE ONLY ─────────────────────────
+         Android 9 (API 28) blocks plain HTTP by default. A handset pointed at
+         a laptop's API over the LAN (`http://192.168.x.x:3000`) therefore
+         fails to connect with no useful error — every screen shows a generic
+         network failure and it looks like the product is broken.
+
+         This overlay is merged into DEBUG and PROFILE builds and never into
+         release. `release_cleartext_test.dart` asserts the release manifest
+         has neither this flag nor a network-security-config, so a shipped
+         build can never carry it — the whole point of putting it here rather
+         than in `main/`.
+
+         Use a PROFILE build for handset testing: release-like performance,
+         cleartext allowed, and structurally impossible to upload. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>
