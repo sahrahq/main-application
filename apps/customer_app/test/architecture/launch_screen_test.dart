@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
+import '../support/xml_wellformed.dart';
 
 /// THE NATIVE LAUNCH BACKGROUND MUST BE THE SAME COLOUR AS THE FIRST FLUTTER
 /// FRAME.
@@ -36,6 +37,22 @@ void main() {
     final String h = m.group(1)!;
     return int.parse(h.length == 6 ? 'FF$h' : h, radix: 16);
   }
+
+  test('the XML this guard greps is well-formed — census', () {
+    // Found by sweep on 2026-08-11: this file matches `<color name=...>` with a
+    // regex, so a malformed colours or styles file would still satisfy it while
+    // failing the build.
+    for (final String p in <String>[
+      'values/launch_colors.xml',
+      'values-night/launch_colors.xml',
+      'values/styles.xml',
+      'values-night/styles.xml',
+      'drawable/launch_background.xml',
+      'drawable-night/launch_background.xml',
+    ]) {
+      assertWellFormedXml(File('${res.path}/$p'));
+    }
+  });
 
   test('both launch colour files exist and parse — census', () {
     // An unparsed file yields null, and a null compared to a null would pass

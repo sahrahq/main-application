@@ -465,6 +465,61 @@ whether the code is right.
 Corollary for reporting: "I measured X and it is correct" is not an answer to
 "it looks wrong" unless X is the property that would be wrong.
 
+## A guard that reads a structured file must first assert the file IS that structure
+
+Found 2026-08-11, by the first `flutter build apk --release`.
+
+Both manifest guards — the permission one and the `<queries>` one — passed on an
+`AndroidManifest.xml` that the Android toolchain refuses to parse. A comment had
+been placed between the attributes of the `<application>` start tag, which is
+not well-formed XML. Every regular expression still matched, because the
+attributes were all still there in the text.
+
+```
+Error parsing LocalFile: '…/AndroidManifest.xml'
+Please ensure that the android manifest is a valid XML document
+```
+
+**A guard that greps a file it cannot parse is checking a string, not a
+manifest.** It will report green on a document that does not exist as a
+document.
+
+The rule: **before matching patterns against XML, JSON, YAML, ARB or
+`.properties`, assert it parses.** Where a parser exists, use it — the ARB and
+token guards all `jsonDecode` first, which is why none of them could have this
+defect. Where one does not (Dart ships no XML parser and this repo will not add
+a dependency for a test), a small structural check belongs in ONE place and is
+called by every guard that reads that format:
+`test/support/xml_wellformed.dart`.
+
+### The sweep this produced
+
+Every test reading a structured file was checked, and reported even where the
+answer was "already fine":
+
+| guard | reads | verdict |
+|---|---|---|
+| `arb_test`, `plural_count_test`, `bidi_neutral_test` | ARB | `jsonDecode` first — safe |
+| `tokens_coverage_test`, `arb_and_error_coverage_test` | JSON | `jsonDecode` first — safe |
+| `client_drift_test` | OpenAPI JSON | `jsonDecode` first — safe |
+| `font_assets_test` | pubspec YAML | regex, but asserts an EXACT family count, so a broken parse fails — safe |
+| `support_contact_test` | source files | searches for a literal; not structural — n/a |
+| `signing_config_test` | Gradle Kotlin DSL | no parser exists; mitigated by stripping comments |
+| **`manifest_permissions_test`** | XML | **was grep-only — fixed** |
+| **`manifest_queries_test`** | XML | **was grep-only — fixed** |
+| **`launch_screen_test`** | XML | **was grep-only — fixed** |
+
+Three of eleven. The ones that were safe were safe because a parser was the
+obvious way to read that format, not because anybody decided the rule.
+
+### And the rule one level up
+
+Red-first covers guards. **It does not cover configuration**, and neither of
+the two failures that produced this section involved a guard: one was a comment
+inside a tag, the other a file referenced in Gradle and never created.
+
+**The only thing that proves a release builds is building the release.**
+
 ## A capability that is never called is indistinguishable from one that does not exist
 
 Twice in two days the lower layer supported a rule and the upper layer never

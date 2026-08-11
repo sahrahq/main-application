@@ -13,13 +13,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'This account can\'t be used right now. Please contact support.';
 
   @override
-  String get errBadRequest => 'Something about that request wasn\'t right. Please try again.';
+  String get errBadRequest =>
+      'Something about that request wasn\'t right. Please try again.';
 
   @override
-  String get errAlreadyOnWaitlist => 'You\'re already on the list for that night.';
+  String get errAlreadyOnWaitlist =>
+      'You\'re already on the list for that night.';
 
   @override
-  String get errWaitlistEntryNotFound => 'We could not find that waitlist request.';
+  String get errWaitlistEntryNotFound =>
+      'We could not find that waitlist request.';
 
   @override
   String get errReviewAlreadyExists => 'You\'ve already reviewed this visit.';
@@ -28,7 +31,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errReviewNotEligible => 'Reviews are for visits that happened.';
 
   @override
-  String get errReviewTooEarly => 'You can review this once your table time is over.';
+  String get errReviewTooEarly =>
+      'You can review this once your table time is over.';
 
   @override
   String get errReviewNotFound => 'We could not find that review.';
@@ -37,14 +41,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errCannotReportOwnReview => 'That\'s your own review.';
 
   @override
-  String get errBookingsOutsideNewHours => 'Some confirmed bookings fall outside these hours.';
+  String get errBookingsOutsideNewHours =>
+      'Some confirmed bookings fall outside these hours.';
 
   @override
   String get errCapacityConflictWithReservations =>
       'Upcoming bookings on this table no longer fit the new capacity.';
 
   @override
-  String get errConflict => 'That doesn\'t match the current state. Please refresh and try again.';
+  String get errConflict =>
+      'That doesn\'t match the current state. Please refresh and try again.';
 
   @override
   String get errDuplicateRequest => 'That request was already sent.';
@@ -56,22 +62,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errForbiddenRole => 'Your role doesn\'t allow that.';
 
   @override
-  String get errHoldExpired => 'Your hold expired. Pick a time again — it only takes a moment.';
+  String get errHoldExpired =>
+      'Your hold expired. Pick a time again — it only takes a moment.';
 
   @override
-  String get errInternalError => 'Something went wrong on our side. Please try again.';
+  String get errInternalError =>
+      'Something went wrong on our side. Please try again.';
 
   @override
-  String get errInvalidAvailabilityFilter => 'Choose a date and a party size together.';
+  String get errInvalidAvailabilityFilter =>
+      'Choose a date and a party size together.';
 
   @override
-  String get errInvalidCredentials => 'That phone number or password didn\'t match.';
+  String get errInvalidCredentials =>
+      'That phone number or password didn\'t match.';
 
   @override
   String get errInvalidDate => 'That date doesn\'t look right.';
 
   @override
-  String get errInvalidIdempotencyKey => 'Something went wrong sending that. Please try again.';
+  String get errInvalidIdempotencyKey =>
+      'Something went wrong sending that. Please try again.';
 
   @override
   String get errInvalidOtp => 'That code isn\'t right. Check it and try again.';
@@ -93,22 +104,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errImageNotFound => 'We couldn\'t find that photo.';
 
   @override
-  String get errImageTooLarge => 'That photo is too large. Keep it under 12 MB.';
+  String get errImageTooLarge =>
+      'That photo is too large. Keep it under 12 MB.';
 
   @override
   String get errInvalidImage => 'That file couldn\'t be read as a photo.';
 
   @override
-  String get errStorageUnavailable => 'We couldn\'t store that photo. Please try again.';
+  String get errStorageUnavailable =>
+      'We couldn\'t store that photo. Please try again.';
 
   @override
   String get errUnsupportedImageType => 'Use a JPEG, PNG or WebP photo.';
 
   @override
-  String get errMissingIdempotencyKey => 'Something went wrong sending that. Please try again.';
+  String get errMissingIdempotencyKey =>
+      'Something went wrong sending that. Please try again.';
 
   @override
-  String get errNotAnOwner => 'This account isn\'t registered as a restaurant owner.';
+  String get errNotAnOwner =>
+      'This account isn\'t registered as a restaurant owner.';
 
   @override
   String get errNotFound => 'We couldn\'t find that.';
@@ -145,13 +160,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errRestaurantNotFound => 'We couldn\'t find that restaurant.';
 
   @override
-  String get errSearchUnavailable => 'Search is having a moment. Please try again.';
+  String get errSearchUnavailable =>
+      'Search is having a moment. Please try again.';
 
   @override
-  String get errServiceBusy => 'This restaurant is busy right now. Try again in a moment.';
+  String get errServiceBusy =>
+      'This restaurant is busy right now. Try again in a moment.';
 
   @override
-  String get errServiceUnavailable => 'That service is briefly unavailable. Please try again.';
+  String get errServiceUnavailable =>
+      'That service is briefly unavailable. Please try again.';
 
   @override
   String get errShiftNotFound => 'We couldn\'t find those opening hours.';
@@ -160,7 +178,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errShiftOverlap => 'Those hours overlap a shift you already have.';
 
   @override
-  String get errSlotTaken => 'That time has just been taken. Here are some others.';
+  String get errSlotTaken =>
+      'That time has just been taken. Here are some others.';
 
   @override
   String get errSlugUnavailable => 'That name is already in use.';
@@ -183,13 +202,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errUnauthenticated => 'Please sign in and try again.';
 
   @override
-  String get errUnprocessable => 'We couldn\'t process that. Please check and try again.';
+  String get errUnprocessable =>
+      'We couldn\'t process that. Please check and try again.';
 
   @override
   String get errValidationFailed => 'Some of the details aren\'t right yet.';
 
   @override
-  String get errOffline => 'You\'re offline. We\'ll try again when you\'re back.';
+  String get errOffline =>
+      'You\'re offline. We\'ll try again when you\'re back.';
 
   @override
   String get errUnknown => 'Something went wrong. Please try again.';
@@ -383,7 +404,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get bookCancellationPolicy => 'Free cancellation up to 2 hours before.';
+  String get bookCancellationPolicy =>
+      'Free cancellation up to 2 hours before.';
 
   @override
   String get bookNoSlotsTitle => 'No tables that night';
@@ -397,7 +419,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bookClosedTitle => 'Closed that day';
 
   @override
-  String get bookClosedMessage => 'This venue doesn\'t open on the date you picked.';
+  String get bookClosedMessage =>
+      'This venue doesn\'t open on the date you picked.';
 
   @override
   String get bookHolding => 'Holding your table…';
@@ -473,7 +496,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInTitle => 'Sign in to book';
 
   @override
-  String get signInWhy => 'We hold your table under your name, and tell you if anything changes.';
+  String get signInWhy =>
+      'We hold your table under your name, and tell you if anything changes.';
 
   @override
   String get signInPhoneLabel => 'Phone number';
@@ -536,7 +560,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get signInSlotNote => 'We\'ll finish this booking as soon as you\'re in.';
+  String get signInSlotNote =>
+      'We\'ll finish this booking as soon as you\'re in.';
 
   @override
   String get signInCancel => 'Not now';
@@ -564,13 +589,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bookingsEmptyPastTitle => 'No visits yet';
 
   @override
-  String get bookingsEmptyPastMessage => 'Tables you have been to will be kept here.';
+  String get bookingsEmptyPastMessage =>
+      'Tables you have been to will be kept here.';
 
   @override
   String get bookingsSignedOutTitle => 'Sign in to see your bookings';
 
   @override
-  String get bookingsSignedOutMessage => 'Your reservations are kept under your phone number.';
+  String get bookingsSignedOutMessage =>
+      'Your reservations are kept under your phone number.';
 
   @override
   String get bookingsSignedOutAction => 'Sign in';
@@ -617,7 +644,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reservationCancel => 'Cancel booking';
 
   @override
-  String get reservationCallInstead => 'Something else to change? Call the restaurant.';
+  String get reservationCallInstead =>
+      'Something else to change? Call the restaurant.';
 
   @override
   String get cancelSheetTitle => 'Cancel this booking?';
@@ -630,7 +658,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancelSheetReasonLabel => 'Reason (optional)';
 
   @override
-  String get cancelSheetReasonHint => 'Anything you\'d like the restaurant to know';
+  String get cancelSheetReasonHint =>
+      'Anything you\'d like the restaurant to know';
 
   @override
   String get cancelSheetConfirm => 'Cancel booking';
@@ -657,7 +686,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountEditNameTitle => 'Your name';
 
   @override
-  String get accountEditNameWhy => 'This is the name the restaurant looks for at the door.';
+  String get accountEditNameWhy =>
+      'This is the name the restaurant looks for at the door.';
 
   @override
   String get accountEditNameSave => 'Save';
@@ -831,7 +861,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoverNothingTonightTitle => 'Nothing free tonight';
 
   @override
-  String get discoverNothingTonightMessage => 'Every table we can see is taken. Try another night.';
+  String get discoverNothingTonightMessage =>
+      'Every table we can see is taken. Try another night.';
 
   @override
   String get discoverNothingTonightAction => 'Search';
@@ -840,7 +871,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabDiscoverHome => 'Discover';
 
   @override
-  String get savedFailed => 'That did not save. Check your connection and try again.';
+  String get savedFailed =>
+      'That did not save. Check your connection and try again.';
 
   @override
   String get savedEmptyTitle => 'Nothing saved yet';
@@ -910,7 +942,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInNameTitle => 'What should we call you?';
 
   @override
-  String get signInNameWhy => 'The restaurant needs a name for the table. Nothing else is needed.';
+  String get signInNameWhy =>
+      'The restaurant needs a name for the table. Nothing else is needed.';
 
   @override
   String get signInNameSubmit => 'Finish';
@@ -925,7 +958,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInEmailSupport => 'Email SAHRA support';
 
   @override
-  String get contactCannotOpen => 'Couldn\'t open an app for this — copy it instead.';
+  String get contactCannotOpen =>
+      'Couldn\'t open an app for this — copy it instead.';
 
   @override
   String get reservationCallVenue => 'Call the restaurant';
@@ -950,7 +984,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuPdfOpen => 'Open the menu';
 
   @override
-  String get menuPdfNote => 'This venue\'s menu is a document. It opens outside the app.';
+  String get menuPdfNote =>
+      'This venue\'s menu is a document. It opens outside the app.';
 
   @override
   String menuItemCount(int count) {
@@ -1076,7 +1111,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get writeReviewBodyLabel => 'Anything you\'d tell a friend?';
 
   @override
-  String get writeReviewBodyHint => 'What you ate, where you sat, whether you\'d go back.';
+  String get writeReviewBodyHint =>
+      'What you ate, where you sat, whether you\'d go back.';
 
   @override
   String get writeReviewSubmit => 'Post review';
@@ -1099,7 +1135,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reviewAlreadyWritten => 'You reviewed this visit';
 
   @override
-  String get reviewPublicNote => 'Your first name and the initial of your surname will be shown.';
+  String get reviewPublicNote =>
+      'Your first name and the initial of your surname will be shown.';
 
   @override
   String venueGalleryLabel(int index, int total) {
@@ -1133,17 +1170,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationAsking => 'Finding you…';
 
   @override
-  String get locationDenied => 'We can\'t sort by distance without your location.';
+  String get locationDenied =>
+      'We can\'t sort by distance without your location.';
 
   @override
   String get locationDeniedForever =>
       'Location is off for SAHRA. Turn it on in your phone\'s settings to sort by distance.';
 
   @override
-  String get locationServiceDisabled => 'Location is switched off on this phone.';
+  String get locationServiceDisabled =>
+      'Location is switched off on this phone.';
 
   @override
-  String get locationUnavailable => 'We couldn\'t find you. Search a neighbourhood instead.';
+  String get locationUnavailable =>
+      'We couldn\'t find you. Search a neighbourhood instead.';
 
   @override
   String resultDistance(String km) {
@@ -1178,7 +1218,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reviewReportNoteLabel => 'Anything to add?';
 
   @override
-  String get reviewReportNoteHint => 'Optional. It goes to whoever reviews this.';
+  String get reviewReportNoteHint =>
+      'Optional. It goes to whoever reviews this.';
 
   @override
   String get reviewReportSubmit => 'Send report';
@@ -1245,7 +1286,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String notifConfirmedBody(String date, String time, String party, String code) {
+  String notifConfirmedBody(
+      String date, String time, String party, String code) {
     return '$date at $time · $party people · $code';
   }
 

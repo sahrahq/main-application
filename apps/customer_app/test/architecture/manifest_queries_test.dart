@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sahra_lints/sahra_lints.dart';
+import '../support/xml_wellformed.dart';
 
 /// EVERY URI SCHEME THE APP LAUNCHES MUST BE DECLARED IN `<queries>`.
 ///
@@ -83,7 +84,8 @@ void main() {
     // An empty source scan or an unparsed manifest would make the assertion
     // below vacuous, which is how a census fails in this repo.
     expect(dartSources(lib).length, greaterThan(15));
-    expect(manifest.existsSync(), isTrue);
+    // Same file, same blindness: every check here is a regex.
+    assertWellFormedXml(manifest);
     expect(
       schemesInSource(),
       isNotEmpty,

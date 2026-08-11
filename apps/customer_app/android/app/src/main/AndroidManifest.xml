@@ -25,10 +25,16 @@
          would drift; the source is the catalogue. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- `android:label` was the scaffold's "sahra_customer_app", which is
+         literally what a diner would have read under the icon. It is a string
+         RESOURCE now so `values-ar/` can give it an Arabic name — a hardcoded
+         label has no locale.
+
+         This comment sits ABOVE the tag, not between its attributes: a comment
+         inside a start tag is not well-formed XML, and the Android manifest
+         parser rejects the whole file. Which it did, on the first release
+         build. -->
     <application
-        <!-- The scaffold default was "sahra_customer_app", which is what a
-             diner would have read under the icon. Now a string resource, so
-             values-ar/ can give it an Arabic name. -->
         android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sahra_lints/sahra_lints.dart';
+import '../support/xml_wellformed.dart';
 
 /// EVERY PERMISSION THE APP ASKS FOR AT RUNTIME MUST BE DECLARED.
 ///
@@ -62,6 +63,12 @@ void main() {
   }
 
   String allSource() => dartSources(lib).map((File f) => f.readAsStringSync()).join('\n');
+
+  test('THE MANIFEST IS WELL-FORMED XML — the guards below only grep it', () {
+    // Every check in this file is a regular expression, so it happily passed a
+    // manifest the Android toolchain refuses to parse. See `assertWellFormedXml`.
+    assertWellFormedXml(manifest);
+  });
 
   test('the scan read the app and the manifest — census', () {
     // Both halves. An empty source scan makes every check below vacuous, and
