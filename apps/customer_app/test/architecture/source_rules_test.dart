@@ -175,6 +175,101 @@ void main() {
     expect(RegExp(r'(startsAt|endsAt|starts_at|ends_at)').hasMatch(allowed), isFalse);
   });
 
+  test('NO DOCBLOCK CLAIMS A CALLER IT DOES NOT NAME', () {
+    /// `PushRegistrar.syncExistingToken` said "Called on sign-in and at launch
+    /// for a signed-in diner". Nothing called it on sign-in. Nothing called it
+    /// at launch. Its only caller was `askAfterBooking`, so the two-minute
+    /// token retry built underneath it could never run on a later launch —
+    /// which was the whole reason for building it.
+    ///
+    /// The obvious rule, *verify every named caller*, would have walked past
+    /// that sentence: it named NOBODY. "On sign-in" and "at launch" are
+    /// situations, not symbols. So this rule bans the unverifiable claim
+    /// instead of trying to check it, and the ban fails on SHAPE before any
+    /// lookup happens.
+    ///
+    /// It forbids a sentence people naturally write, and that cost is real.
+    /// It is paid because four of five stale-prose findings in this repo were
+    /// prose asserting something about code, and prose that fails to compile
+    /// costs one rewrite where prose that survives misleads for a month.
+    ///
+    /// Proved against the original text in
+    /// `packages/sahra_lints/test/caller_claims_test.dart`.
+    final v = docblockCallerClaims(lib, excludePathContains: generated);
+    expect(
+      v,
+      isEmpty,
+      reason: '${describe(v, 'caller-claim')}\n\n'
+          'A docblock says something is "called by/from/on/at" without naming a '
+          'symbol in backticks, or names one that contains no such call. Name '
+          'the caller — ``Called from `PushTapListener` `` — or, if the caller '
+          'is Android or a platform channel, write `callers-exempt: <reason>` '
+          'in the docblock.',
+    );
+  });
+
+  test('no public method in lib/ is mentioned nowhere else — USEFUL, AND UNRELATED', () {
+    /// This is the OTHER rule, and it is important that it is not counted
+    /// toward the one above. It could not have caught `syncExistingToken`:
+    /// that method HAD a caller and was never dead. It was reachable from one
+    /// situation while its docblock described two others — a different defect
+    /// with a different shape.
+    ///
+    /// It found one real thing on the day it was written: `clearFilters()`,
+    /// declared and called by nothing, not even a test.
+    ///
+    /// FALSE POSITIVES ON PORTS ARE EXPECTED and the exemptions below are the
+    /// evidence. A test double lives in `lib/` so the app can be assembled with
+    /// it, and is used only from `test/` by design. Each entry names why, so
+    /// the list growing is visible rather than quiet.
+    final v = publicMethodsWithNoCaller(
+      lib,
+      excludePathContains: generated,
+      exemptNames: <String>{
+        // FakePushTaps.emit — the only way a test can push a payload through
+        // the tap channel. A caller in lib/ would mean production code faking
+        // notification taps.
+        'emit',
+      },
+    );
+    expect(
+      v,
+      isEmpty,
+      reason: '${describe(v, 'no-caller')}\n\n'
+          'A public method nothing mentions is indistinguishable from one that '
+          'does not exist. Delete it, wire it, or — if it is a test double or a '
+          'port implementation called only through its interface — add it to '
+          'exemptNames above WITH A REASON.',
+    );
+  });
+
+  test('AND BOTH SCANNERS CATCH ONE — positive control', () {
+    /// Two rules that assert a list is empty, on a tree that satisfies them.
+    /// That is the same shape as a scanner pointed at the wrong directory, so
+    /// each is run once over a tree built to violate it.
+    final Directory tmp = Directory.systemTemp.createTempSync('sahra_arch');
+    try {
+      File('${tmp.path}/planted.dart').writeAsStringSync('''
+class Planted {
+  /// Called at launch, by nothing in particular.
+  void neverCalledByAnyone() {}
+}
+''');
+      expect(
+        docblockCallerClaims(tmp).map((v) => v.rule),
+        contains('caller-claim-unnamed'),
+        reason: 'the caller-claim scanner did not catch a planted violation',
+      );
+      expect(
+        publicMethodsWithNoCaller(tmp).map((v) => v.rule),
+        contains('no-caller'),
+        reason: 'the no-caller scanner did not catch a planted violation',
+      );
+    } finally {
+      tmp.deleteSync(recursive: true);
+    }
+  });
+
   test('AsyncValue is unwrapped ONLY inside SahraAsyncView', () {
     // A screen with its own `.when(` is a screen with its own loading and
     // error handling, which is how a product ends up with three different

@@ -83,7 +83,8 @@ class PushRegistrar extends _$PushRegistrar {
   /// could never run on a later launch. Found 2026-08-11 while wiring that
   /// retry; the sentence describing two callers had outlived having any. It is
   /// now called from `PushTapListener`, which is the one widget that runs once
-  /// per launch above every screen.
+  /// per launch above every screen — and `docblockCallerClaims` now refuses a
+  /// docblock that claims a caller without naming one that really calls it.
   ///
   /// FCM rotates tokens
   /// — on reinstall, on restore-from-backup, occasionally on its own — and a

@@ -2,6 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Written 2026-08-11, the day an empty `key.properties` was seen parsing to a
+// present config. Dates live in comments here, never in a string literal —
+// `fixture_dates_test` strips comments and scans literals, because a date
+// pinned in code drifts into the past and quietly changes what its test covers.
+
 /// A RELEASE BUILD SIGNED WITH DEBUG KEYS MUST NOT LOOK SHIPPABLE.
 ///
 /// ─────────────────────────────────────────────────────────────────────────
@@ -108,8 +113,12 @@ void main() {
     expect(
       g().contains('f.length() > 0'),
       isTrue,
+      // The date this was seen for real is in the docblock at the top of this
+      // file, not in this string: `fixture_dates_test` strips comments and
+      // scans string literals, because a date pinned in code drifts into the
+      // past and silently changes what its test covers.
       reason: 'A 0-byte key.properties would parse to zero properties and be '
-          'mistaken for a present config. Seen for real on 2026-08-11.',
+          'mistaken for a present config. Seen for real, once.',
     );
   });
 

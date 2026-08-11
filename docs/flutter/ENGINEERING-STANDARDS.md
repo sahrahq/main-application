@@ -46,6 +46,8 @@ Everything below runs in one command — `melos run verify`, or the CI job in §
 | 7 | Every backend code has a message | scan API source ⇄ ARB | **total** |
 | 7 | Offline handled | **sealed class exhaustiveness** | **compiler** |
 | 8 | analyze clean, tests green | CI, fatal-infos | **total** |
+| — | No docblock claims a caller it does not name | source scan test | strong |
+| — | No public method nothing in `lib/` mentions | source scan test | weak — false-positives on ports, exemptions carry reasons |
 
 "Strong" means a source scan that catches the shape people actually write.
 "Total" means it cannot be evaded without deleting the test.
@@ -428,6 +430,94 @@ were sitting in it, two of them also on `main`:
 
 None of it was subtle. All of it was invisible, because reading `ci.yml` is
 reading a pattern.
+
+## Prose that asserts something about code — three of five are checkable, two are not
+
+By 2026-08-11 this repo had five findings with one silhouette: **a sentence
+that describes the system, is wrong, and reads exactly like a sentence that is
+right.** The product owner's instruction was to stop collecting them and make
+the class enumerable — *"if a check is expressible, build it; if it is not, say
+so plainly and we carry it as a named blind spot rather than pretending."*
+
+| # | the finding | catchable | by what |
+|---|---|---|---|
+| 1 | a comment asserting a feature was unbuilt, months after it shipped | **no** | semantic — nothing distinguishes it from a true one |
+| 2 | a handover doc claiming `.gitignore` covered `*.p8` | **yes** | `git check-ignore -v` — ask the system, never the document |
+| 3 | a comment quoting the code its own test grepped for, satisfying that test | **yes** | strip comments before the guard reads the file |
+| 4 | `RUNNING.md` listing shipped features as missing | **no** | semantic |
+| 5 | a docblock naming callers that do not exist | **yes** | `docblockCallerClaims`, below |
+
+**Three of five. Two are carried.** That table is the deliverable. A claim that
+all five were closed would itself be an instance of the class it describes.
+
+### The rule that catches #5, and why it is inverted
+
+`PushRegistrar.syncExistingToken` carried this:
+
+> Called on sign-in and at launch for a signed-in diner.
+
+Nothing called it on sign-in. Nothing called it at launch. Its only caller was
+`askAfterBooking`, so the two-minute token retry built underneath it could
+never run on a later launch — which was the entire reason for building it.
+
+Two rules suggest themselves and **neither catches that sentence**:
+
+- *"a public method with no non-test caller"* — it HAD a caller. Never dead.
+- *"a docblock naming a caller that does not call it"* — it named **nobody**.
+  "On sign-in" and "at launch" are SITUATIONS, not symbols, and no static rule
+  resolves a situation against a call graph.
+
+So the rule is inverted. **Do not verify the claim — forbid the unverifiable
+claim.** A docblock saying "called by/from/on/at" must name a symbol in
+backticks; if it names none it fails on SHAPE, before any lookup is attempted.
+That is exactly how it catches a sentence that named none. When a symbol *is*
+named and resolves in-tree, stage 2 then checks that its source really contains
+the call — with comments stripped, because a guard satisfiable by a comment
+about itself is not a guard (finding #3, again).
+
+**The cost, accepted on purpose: it forbids a sentence people naturally write,
+and someone will find that annoying.** "Called at launch" is ordinary English
+and is usually true when written. It is paid anyway, because four of the five
+findings above were prose asserting something about code, and *unfalsifiable
+prose that fails to compile costs one rewrite, where unfalsifiable prose that
+survives misleads the next person for a month* — here, by silently disabling
+push registration for every diner who had already said yes.
+
+Proved red-first against the original text, verbatim, in
+`packages/sahra_lints/test/caller_claims_test.dart`, and end-to-end by putting
+that sentence back into `push_registration.dart` and watching the app's
+architecture suite name the line.
+
+### The named blind spot
+
+**A docblock naming a symbol that DOES call the method, but from the wrong
+situation, passes both stages.** ``Called at launch by `X` `` where `X` only
+runs after a booking is a true statement about the call graph and a false one
+about when it happens — which is within one word of the original defect. It is
+semantic. It is not expressible. It is carried here rather than pretended away.
+
+Two smaller limits: stage 2 runs only for methods and functions, and a named
+symbol that resolves to nothing in-tree (`FirebaseMessaging`, the Android
+framework) is accepted, because the claim is about something this repo cannot
+read.
+
+### The other rule, built and deliberately not counted
+
+`publicMethodsWithNoCaller` was built too, and it is **useful, unrelated, and
+must not be counted toward closing this class.** It finds the literal dead
+capability — on the day it was written it found `clearFilters()`, declared and
+called by nothing, not even a test, now deleted. It could not have found
+`syncExistingToken`, which was never dead.
+
+It is prone to false positives on ports: a test double lives in `lib/` so the
+app can be assembled with it and is used only from `test/` by design. Its
+exemption list carries a reason per entry so growth is visible.
+
+Its first run is also a small lesson in positive controls. `void foo() {}` ends
+with `}`, not `{`, so the scanner silently skipped every single-line body — it
+reported two findings and looked entirely healthy doing it. The planted-
+violation test caught that on the first execution, before any number it
+produced could be believed.
 
 ## A measurement can be true, precise, and about the wrong thing
 
