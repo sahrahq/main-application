@@ -234,6 +234,43 @@ describe('availability (doc 06 §3)', () => {
 
 // ──────────────────────────────────────────────── hold → confirm (§3) ──
 
+describe('a booking in the past is refused — BOTH doors, not one', () => {
+  /**
+   * `modifyOwn` has refused a past `startsAt` since it was written.
+   * `createHold` never checked, and on 2026-08-11 a real handset created and
+   * CONFIRMED a booking nine days in the past. The rule existed, was correct,
+   * and was enforced at one of the two entrances to the same room.
+   *
+   * Both are asserted here together, deliberately: the defect was not that
+   * either check was wrong, it was that nobody knew they were the same rule.
+   */
+  it('createHold refuses a time that has already passed', async () => {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    await expect(
+      reservations.createHold({
+        restaurantId,
+        userId: dinerUserId,
+        partySize: 2,
+        startsAt: yesterday,
+        idempotencyKey: randomUUID(),
+      }),
+    ).rejects.toMatchObject({ response: { code: 'starts_at_in_past' } });
+  });
+
+  it('and still accepts a time a few seconds old, so clock skew does not lose a booking', async () => {
+    // The tolerance is real, not incidental: a diner tapping the last slot of
+    // the evening as it starts must not be refused because their handset is a
+    // second ahead of this process.
+    const justNow = new Date(Date.now() - 5_000);
+    const hold = await reservations.createHold({
+      restaurantId, userId: dinerUserId, partySize: 2, startsAt: justNow, idempotencyKey: randomUUID(),
+    });
+    expect(hold.status).toBe('held');
+    await prisma.$executeRaw`DELETE FROM reservation_tables WHERE reservation_id = ${hold.id}::uuid`;
+    await prisma.$executeRaw`DELETE FROM reservations WHERE id = ${hold.id}::uuid`;
+  });
+});
+
 describe('hold → confirm (doc 06 §3, doc 05 §4)', () => {
   it('confirms a live hold and clears the expiry', async () => {
     const hold = await reservations.createHold({

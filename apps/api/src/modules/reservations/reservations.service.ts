@@ -155,6 +155,38 @@ export class ReservationsService {
       });
     }
 
+    // ── A BOOKING IN THE PAST IS NOT A BOOKING ──────────────────────────────
+    //
+    // `modifyOwn` has refused a past `startsAt` since it was written — "a
+    // booking whose time has passed is not a thing to move". THIS DOOR NEVER
+    // CHECKED. The rule existed, was correct, and was enforced at one of the
+    // two entrances to the same room, which is the exact pattern
+    // ENGINEERING-STANDARDS.md records under "a second door to an existing
+    // room must be checked against the first".
+    //
+    // Found on 2026-08-11 on a real handset: a booking was created and
+    // confirmed for a time NINE DAYS EARLIER, and the server accepted it
+    // without complaint. Whatever the client sent — a wrong device clock, a
+    // stale date chip, a replayed request — the server is the thing that has
+    // to say no, because it is the only participant that knows what time it
+    // actually is.
+    //
+    // A SMALL TOLERANCE, not zero. A diner tapping the last slot of the
+    // evening at the moment it starts should not lose the booking to a second
+    // of clock skew between their handset and this process; being strict to
+    // the millisecond would reject legitimate bookings at the boundary. One
+    // minute is comfortably inside "the table is still yours" and nowhere near
+    // "yesterday".
+    const PAST_TOLERANCE_MS = 60_000;
+    if (input.startsAt.getTime() < Date.now() - PAST_TOLERANCE_MS) {
+      throw new BadRequestException({
+        code: 'starts_at_in_past',
+        message: 'That time has already passed. Please choose a later slot.',
+        message_ar: 'الوقت ده عدّى خلاص. من فضلك اختار ميعاد بعدين.',
+        details: [{ field: 'startsAt', issue: 'past' }],
+      });
+    }
+
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: input.restaurantId },
       select: { id: true, pacingLimit: true, slotIntervalMin: true, status: true },

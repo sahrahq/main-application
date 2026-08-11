@@ -465,6 +465,44 @@ whether the code is right.
 Corollary for reporting: "I measured X and it is correct" is not an answer to
 "it looks wrong" unless X is the property that would be wrong.
 
+## Open questions — what we do NOT know, kept separate from what we do
+
+Added 2026-08-11. A risk written down as resolved is worse than one written
+down as unknown, because nobody revisits it.
+
+**CERTAIN, measured on a real handset:**
+
+  · FCM's first token fetch returned `SERVICE_NOT_AVAILABLE`, and the app tried
+    exactly once. Google documents that error as TRANSIENT with retry-and-
+    backoff guidance, so a single attempt turns a temporary condition into a
+    permanent one for that install — and the failure is invisible from both the
+    handset and the server, because the request never arrives.
+  · A booking was created and confirmed nine days in the past. `modifyOwn`
+    refused past times; `createHold` never checked.
+
+**CERTAIN, and not inferred:** Huawei devices sold without Google Play Services
+cannot receive FCM at all. That is not a configuration problem and no in-app
+guidance can fix it.
+
+**NOT KNOWN — open, not resolved:**
+
+  · Whether Xiaomi/MIUI, Oppo/ColorOS or Samsung One UI battery and autostart
+    policies actually affect SAHRA's delivery. The general behaviour of those
+    ROMs is documented widely; **this app has never delivered a single push to
+    any of them**, so we have no observation of our own. The counter-evidence
+    is direct: the test handset receives notifications from other apps
+    normally.
+  · Whether the past-dated booking came from a wrong device clock, a stale date
+    chip, or something else. The server-side gap was real either way and is
+    fixed; the client-side cause is unestablished.
+
+**THE RULE THIS RECORDS:** do not build a fix for a failure that has not been
+observed in this product. A manufacturer-settings tutorial was proposed and
+REJECTED on exactly that ground — it carries a certain cost (a screen telling a
+diner the app needs system settings changed reads as "this is broken") against
+an unmeasured benefit. Measure first: deliver one push, observe it closed,
+idle, and force-stopped. Only a real failure earns a fix.
+
 ## A guard that reads a structured file must first assert the file IS that structure
 
 Found 2026-08-11, by the first `flutter build apk --release`.
