@@ -9,8 +9,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get errAccountUnavailable =>
-      'الحساب ده مش متاح دلوقتي. كلّم خدمة العملاء لو سمحت.';
+  String get errAccountUnavailable => 'الحساب ده مش متاح دلوقتي. كلّم خدمة العملاء لو سمحت.';
 
   @override
   String get errBadRequest => 'فيه حاجة في الطلب مش مظبوطة. حاول تاني.';
@@ -37,8 +36,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errCannotReportOwnReview => 'ده تقييمك إنت.';
 
   @override
-  String get errBookingsOutsideNewHours =>
-      'فيه حجوزات مؤكدة هتقع بره المواعيد دي.';
+  String get errBookingsOutsideNewHours => 'فيه حجوزات مؤكدة هتقع بره المواعيد دي.';
 
   @override
   String get errCapacityConflictWithReservations =>
@@ -57,15 +55,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errForbiddenRole => 'دورك مايسمحش بده.';
 
   @override
-  String get errHoldExpired =>
-      'الحجز المؤقت انتهى. اختار الميعاد تاني — مش هياخد لحظة.';
+  String get errHoldExpired => 'الحجز المؤقت انتهى. اختار الميعاد تاني — مش هياخد لحظة.';
 
   @override
   String get errInternalError => 'حصل خطأ عندنا. حاول تاني لو سمحت.';
 
   @override
-  String get errInvalidAvailabilityFilter =>
-      'اختار التاريخ وعدد الأفراد مع بعض.';
+  String get errInvalidAvailabilityFilter => 'اختار التاريخ وعدد الأفراد مع بعض.';
 
   @override
   String get errInvalidCredentials => 'رقم التليفون أو كلمة السر مش مظبوطة.';
@@ -89,8 +85,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errInvalidSort => 'طريقة الترتيب دي مش متاحة.';
 
   @override
-  String get errInvalidStatusTransition =>
-      'الحجز ده اتغيّر بالفعل. حدّث عشان تشوف حالته.';
+  String get errInvalidStatusTransition => 'الحجز ده اتغيّر بالفعل. حدّث عشان تشوف حالته.';
 
   @override
   String get errImageNotFound => 'مالقيناش الصورة دي.';
@@ -123,12 +118,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errOtpRateLimited => 'طلبت أكواد كتير. حاول تاني بعد كام دقيقة.';
 
   @override
-  String get errOtpSendingUnavailable =>
-      'مش قادرين نبعت أكواد دلوقتي. حاول تاني بعد شوية.';
+  String get errOtpSendingUnavailable => 'مش قادرين نبعت أكواد دلوقتي. حاول تاني بعد شوية.';
 
   @override
-  String get errPacingLimitReached =>
-      'المطبخ مزحوم في الميعاد ده. جرّب ميعاد قريب منه.';
+  String get errPacingLimitReached => 'المطبخ مزحوم في الميعاد ده. جرّب ميعاد قريب منه.';
 
   @override
   String get errPayloadTooLarge => 'حجم الملف كبير أوي.';
@@ -140,8 +133,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errReservationNotFound => 'مالقيناش الحجز ده.';
 
   @override
-  String get errReservationNotModifiable =>
-      'الحجز ده بدأ خلاص، فمش ممكن يتعدّل. لسه تقدر تلغيه.';
+  String get errReservationNotModifiable => 'الحجز ده بدأ خلاص، فمش ممكن يتعدّل. لسه تقدر تلغيه.';
 
   @override
   String get errRestaurantNotFound => 'مالقيناش المطعم ده.';
@@ -153,8 +145,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errServiceBusy => 'المطعم مزحوم دلوقتي. حاول تاني بعد لحظات.';
 
   @override
-  String get errServiceUnavailable =>
-      'الخدمة مش متاحة دلوقتي. حاول تاني لو سمحت.';
+  String get errServiceUnavailable => 'الخدمة مش متاحة دلوقتي. حاول تاني لو سمحت.';
 
   @override
   String get errShiftNotFound => 'مالقيناش المواعيد دي.';
@@ -294,8 +285,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchOfflineTitle => 'إنت أوفلاين';
 
   @override
-  String get searchOfflineMessage =>
-      'مش قادرين نوصل لسهرة دلوقتي. النت رجع قبل كده وهيرجع تاني.';
+  String get searchOfflineMessage => 'مش قادرين نوصل لسهرة دلوقتي. النت رجع قبل كده وهيرجع تاني.';
 
   @override
   String get venueBack => 'رجوع';
@@ -339,8 +329,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get venueNotFoundTitle => 'المكان ده مش متاح';
 
   @override
-  String get venueNotFoundMessage =>
-      'المكان ده مش بياخد حجوزات دلوقتي. شوف إيه اللي مفتوح غيره.';
+  String get venueNotFoundMessage => 'المكان ده مش بياخد حجوزات دلوقتي. شوف إيه اللي مفتوح غيره.';
 
   @override
   String get venueNotFoundAction => 'ارجع للبحث';
@@ -413,15 +402,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get bookSlotTakenTitle => 'حد حجزها قبلك';
 
   @override
-  String get bookSlotTakenMessage =>
-      'الوقت ده راح وإنت بتختار. دول الأوقات اللي لسه فاضية.';
+  String get bookSlotTakenMessage => 'الوقت ده راح وإنت بتختار. دول الأوقات اللي لسه فاضية.';
 
   @override
   String get bookHoldExpiredTitle => 'الحجز المؤقت خلص';
 
   @override
-  String get bookHoldExpiredMessage =>
-      'بنحجز الطاولة دقايق بس. اختار وقت تاني — مش هياخد وقت.';
+  String get bookHoldExpiredMessage => 'بنحجز الطاولة دقايق بس. اختار وقت تاني — مش هياخد وقت.';
 
   @override
   String get bookPickAgain => 'اختار وقت تاني';
@@ -667,8 +654,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get accountEditNameTitle => 'اسمك';
 
   @override
-  String get accountEditNameWhy =>
-      'ده الاسم اللي المطعم هيدوّر عليه على الباب.';
+  String get accountEditNameWhy => 'ده الاسم اللي المطعم هيدوّر عليه على الباب.';
 
   @override
   String get accountEditNameSave => 'احفظ';
@@ -688,8 +674,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reservationNotFoundTitle => 'مش لاقيين الحجز ده';
 
   @override
-  String get reservationNotFoundMessage =>
-      'يمكن يكون اتلغى، أو بيخص حساب تاني.';
+  String get reservationNotFoundMessage => 'يمكن يكون اتلغى، أو بيخص حساب تاني.';
 
   @override
   String get statusPending => 'في انتظار التأكيد';
@@ -780,8 +765,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get onboardTitle3 => 'من الإفطار لعشاء رومانسي';
 
   @override
-  String get onboardBody3 =>
-      'مختارة لرمضان، أعياد الميلاد، أو حتى يوم تلات يستاهل أحسن.';
+  String get onboardBody3 => 'مختارة لرمضان، أعياد الميلاد، أو حتى يوم تلات يستاهل أحسن.';
 
   @override
   String get onboardNext => 'التالي';
@@ -857,8 +841,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get savedEmptyTitle => 'لسه مافيش حاجة محفوظة';
 
   @override
-  String get savedEmptyMessage =>
-      'دوس على القلب في أي مكان يعجبك وهتلاقيه مستنيك هنا.';
+  String get savedEmptyMessage => 'دوس على القلب في أي مكان يعجبك وهتلاقيه مستنيك هنا.';
 
   @override
   String get savedEmptyAction => 'دوّر على مكان';
@@ -923,8 +906,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get signInNameTitle => 'نناديك إيه؟';
 
   @override
-  String get signInNameWhy =>
-      'المطعم محتاج اسم للطاولة. مش محتاجين حاجة تانية.';
+  String get signInNameWhy => 'المطعم محتاج اسم للطاولة. مش محتاجين حاجة تانية.';
 
   @override
   String get signInNameSubmit => 'خلّصنا';
@@ -1027,8 +1009,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reviewsEmptyTitle => 'مفيش تقييمات لسه';
 
   @override
-  String get reviewsEmptyMessage =>
-      'التقييم بيكتبه بس اللي حجز وجه فعلاً، فأول واحد بياخد وقت.';
+  String get reviewsEmptyMessage => 'التقييم بيكتبه بس اللي حجز وجه فعلاً، فأول واحد بياخد وقت.';
 
   @override
   String reviewsCount(int count) {
@@ -1225,8 +1206,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get notificationsEmptyTitle => 'مفيش حاجة لسه';
 
   @override
-  String get notificationsEmptyMessage =>
-      'لما مطعم يغيّر حاجة، أو ترابيزة تفضى، هتلاقيها هنا.';
+  String get notificationsEmptyMessage => 'لما مطعم يغيّر حاجة، أو ترابيزة تفضى، هتلاقيها هنا.';
 
   @override
   String get notificationsSignedOutTitle => 'سجّل دخولك عشان تشوف إشعاراتك';
@@ -1261,8 +1241,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String notifConfirmedBody(
-      String date, String time, String party, String code) {
+  String notifConfirmedBody(String date, String time, String party, String code) {
     return '$date الساعة $time · $party أفراد · $code';
   }
 

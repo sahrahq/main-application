@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
@@ -91,8 +92,90 @@ abstract class PushTokenSource {
 }
 
 /// The real one. The only importer of `firebase_messaging`.
+/// Retryable FCM failures, by the substring their message carries.
+///
+/// ── WHY A SINGLE ATTEMPT WAS A DEFECT ────────────────────────────────────
+///
+/// Measured on a real Xiaomi handset, 2026-08-11:
+///
+///     Push token read failed: [firebase_messaging/unknown]
+///     java.io.IOException: SERVICE_NOT_AVAILABLE
+///
+/// Google documents `SERVICE_NOT_AVAILABLE` as TRANSIENT and prescribes retry
+/// with exponential backoff. We tried exactly once and gave up, which turns a
+/// temporary condition into a PERMANENT one for that install: a diner whose
+/// first token fetch lands on a bad moment never registers, ever, and nothing
+/// tells anyone — the request never reaches the server, so there is no row to
+/// be missing and no error to count.
+///
+/// Matched on the message rather than a code because the plugin surfaces the
+/// platform exception as `[firebase_messaging/unknown]` with the real cause in
+/// the text; there is no typed error to switch on.
+const List<String> _retryableFcm = <String>[
+  'SERVICE_NOT_AVAILABLE',
+  'INTERNAL_SERVER_ERROR',
+  'TOO_MANY_REGISTRATIONS',
+  'AUTHENTICATION_FAILED', // transient at the GCM layer, not a config error
+  'Unable to resolve host',
+  'timeout',
+  'timed out',
+];
+
+/// Exported so the classification can be asserted directly. The BACKOFF is a
+/// judgement call; WHICH failures are retried is a contract, and the two
+/// belong in different places for that reason.
+bool isRetryableFcmError(Object e) {
+  final String m = e.toString();
+  return _retryableFcm.any((String s) => m.toLowerCase().contains(s.toLowerCase()));
+}
+
+/// BOUNDED, JITTERED, AND SHORT.
+///
+/// Four attempts over about two minutes. `SERVICE_NOT_AVAILABLE` normally
+/// clears in seconds; anything still failing at two minutes will not clear at
+/// five, and a longer loop only spends a diner's battery restating the same
+/// fact. The NEXT APP LAUNCH is what covers the longer horizon — see
+/// `PushRegistrar.syncExistingToken`.
+///
+/// Jittered so a venue's worth of handsets rejoining wifi do not retry in
+/// lockstep and make the transient condition worse.
+const List<Duration> _backoff = <Duration>[
+  Duration(seconds: 2),
+  Duration(seconds: 8),
+  Duration(seconds: 30),
+  Duration(seconds: 90),
+];
+
 class FirebasePushTokenSource implements PushTokenSource {
   const FirebasePushTokenSource();
+
+  /// `getToken()` with backoff, for the retryable failures only.
+  ///
+  /// A permanent error — a missing Play Services, a broken configuration —
+  /// returns immediately. Retrying it burns battery describing a fact that
+  /// will not change without a different device or a different build.
+  Future<String?> _tokenWithRetry() async {
+    Object? last;
+    for (var attempt = 0; attempt <= _backoff.length; attempt++) {
+      try {
+        return await FirebaseMessaging.instance.getToken();
+      } catch (e) {
+        last = e;
+        if (!isRetryableFcmError(e) || attempt == _backoff.length) break;
+        final Duration base = _backoff[attempt];
+        // +/-25% jitter.
+        final int ms = base.inMilliseconds;
+        final int jittered = ms - (ms ~/ 4) + Random().nextInt(ms ~/ 2 + 1);
+        debugPrint(
+          'Push token attempt ${attempt + 1} failed (${isRetryableFcmError(e) ? "retryable" : "permanent"}); '
+          'retrying in ${jittered}ms: $e',
+        );
+        await Future<void>.delayed(Duration(milliseconds: jittered));
+      }
+    }
+    debugPrint('Push token unavailable after ${_backoff.length + 1} attempts: $last');
+    return null;
+  }
 
   @override
   Future<PushPermission> permission() async {
@@ -122,7 +205,9 @@ class FirebasePushTokenSource implements PushTokenSource {
       }
       return PushRegistration(
         permission: permission,
-        token: await FirebaseMessaging.instance.getToken(),
+        // Retried: the first fetch after a permission grant is exactly when
+        // `SERVICE_NOT_AVAILABLE` shows up, and it is transient.
+        token: await _tokenWithRetry(),
       );
     } catch (e) {
       debugPrint('Push registration failed: $e');
@@ -134,7 +219,7 @@ class FirebasePushTokenSource implements PushTokenSource {
   Future<String?> currentToken() async {
     try {
       if (await permission() != PushPermission.granted) return null;
-      return await FirebaseMessaging.instance.getToken();
+      return await _tokenWithRetry();
     } catch (e) {
       debugPrint('Push token read failed: $e');
       return null;

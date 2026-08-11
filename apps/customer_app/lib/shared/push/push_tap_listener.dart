@@ -50,6 +50,19 @@ class _PushTapListenerState extends ConsumerState<PushTapListener> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final Map<String, String>? launch = await taps.initialTap();
       if (launch != null) _handle(launch);
+
+      // ── ONCE PER LAUNCH: RE-REGISTER A TOKEN WE MAY NOT HAVE ──────────────
+      //
+      // `syncExistingToken` is a no-op for a signed-out diner and for one
+      // whose token is already registered, so this is cheap. It exists here
+      // because THIS IS THE ONLY WIDGET THAT RUNS EXACTLY ONCE PER LAUNCH
+      // above every screen — and because its own docblock claimed a launch
+      // caller that did not exist, which is what made a transient FCM failure
+      // permanent for an install.
+      //
+      // Unawaited on purpose: it retries with backoff for up to two minutes
+      // and must never hold up the first frame.
+      unawaited(ref.read(pushRegistrarProvider.notifier).syncExistingToken());
     });
   }
 

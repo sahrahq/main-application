@@ -465,6 +465,24 @@ whether the code is right.
 Corollary for reporting: "I measured X and it is correct" is not an answer to
 "it looks wrong" unless X is the property that would be wrong.
 
+## A filtered test run is never the honest one
+
+2026-08-11. A new past-date assertion was checked with
+`jest --runInBand -t "past"`, and it reported FOUR failures. All four were
+artefacts: the name filter also excluded the setup tests that create the
+restaurant, so the fixtures the surviving tests depend on were never built.
+
+The failures looked exactly like real ones — same output, same stack shape —
+and three of them were in code that was entirely fine.
+
+**The general form: narrowing a test run can change its meaning.** `-t`, `-k`,
+a single-file path, `--tags`, `.only` — each of them silently drops the setup
+that the remaining tests assume, and every assertion downstream then measures
+the absence of a fixture rather than the presence of a defect.
+
+Use a filter to find a test quickly. **Never report from one.** The honest run
+is the whole file at minimum, and the whole suite before a claim.
+
 ## Open questions — what we do NOT know, kept separate from what we do
 
 Added 2026-08-11. A risk written down as resolved is worse than one written

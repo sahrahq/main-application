@@ -77,14 +77,44 @@ class PushRegistrar extends _$PushRegistrar {
 
   /// Register a token the diner has already agreed to, without asking anything.
   ///
-  /// Called on sign-in and at launch for a signed-in diner. FCM rotates tokens
+  /// **This docblock claimed "called on sign-in and at launch" and NOTHING
+  /// CALLED IT** — the only caller was `askAfterBooking`, so a diner who had
+  /// already granted permission was never re-registered, and the retry below
+  /// could never run on a later launch. Found 2026-08-11 while wiring that
+  /// retry; the sentence describing two callers had outlived having any. It is
+  /// now called from `PushTapListener`, which is the one widget that runs once
+  /// per launch above every screen.
+  ///
+  /// FCM rotates tokens
   /// — on reinstall, on restore-from-backup, occasionally on its own — and a
   /// rotated token that nobody re-registers is a diner who silently stops
   /// receiving anything. The server upsert makes this cheap to repeat.
   Future<void> syncExistingToken() async {
     if (ref.read(currentSessionProvider) == null) return;
     final token = await ref.read(pushTokenSourceProvider).currentToken();
-    if (token == null || token.isEmpty) return;
+
+    // ── A DEVICE WITH NO TOKEN KEEPS TRYING, QUIETLY ────────────────────────
+    //
+    // This early return is what turned a transient failure into a permanent
+    // one. `currentToken()` now retries with backoff for about two minutes,
+    // but a handset that was offline for the whole of that window still ends
+    // the run with nothing — and before today, nothing ever asked again.
+    //
+    // So the failure is REMEMBERED. `_tokenPending` is set here and read by
+    // the account screen, which is the only place a diner (or the product
+    // owner, without a cable) can see that notifications are on and this phone
+    // is still not registered. The next launch calls this again and the state
+    // clears itself the moment a token arrives.
+    //
+    // Deliberately NOT an error surfaced over a screen they did not ask about:
+    // a diner who just booked a table should not be told about a background
+    // registration problem they cannot act on.
+    if (token == null || token.isEmpty) {
+      state = state; // no-op; kept explicit so the branch is not mistaken for dead
+      ref.read(pushTokenPendingProvider.notifier).state = true;
+      return;
+    }
+    ref.read(pushTokenPendingProvider.notifier).state = false;
     await _register(token);
   }
 
@@ -149,3 +179,15 @@ PushTokenSource pushTokenSource(Ref ref) => const FirebasePushTokenSource();
 /// is not there on a test runner.
 @Riverpod(keepAlive: true)
 PushTaps pushTaps(Ref ref) => FirebasePushTaps();
+
+/// TRUE when a signed-in diner has granted permission and this handset still
+/// has no registered token.
+///
+/// The observable half of the retry. Without it, "we stopped trying" and "we
+/// succeeded" are indistinguishable from outside the process — which is the
+/// state that produced a handset looking registered while the `devices` table
+/// was empty.
+///
+/// Read by the account screen. NOT persisted: it is a fact about this run, and
+/// a stale `true` from a previous launch would be worse than no signal.
+final pushTokenPendingProvider = StateProvider<bool>((ref) => false);
