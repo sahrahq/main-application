@@ -3,6 +3,29 @@ description: >
   SAHRA — restaurant reservations for Egypt/MENA. Diner-facing app: discover,
   book, waitlist, reviews, loyalty. Arabic (RTL) is the primary locale.
 publish_to: none
+# ── THE ONE PLACE A VERSION IS SET ───────────────────────────────────────
+#
+# `name+code`. Both platforms read it from here — Android via
+# `flutter.versionName`/`flutter.versionCode`, iOS via `$(FLUTTER_BUILD_NAME)`
+# and `$(FLUTTER_BUILD_NUMBER)` in Info.plist. Editing either platform file
+# directly is how they drift; nothing else should ever carry a version.
+#
+# THE CONVENTION:
+#
+#   NAME (0.1.0)  — what a human reads on the store listing. Semantic:
+#                   major.minor.patch. Bumped by a person, deliberately, when
+#                   the release is worth naming.
+#
+#   CODE (+1)     — what the STORES order releases by. A monotonically
+#                   increasing integer, NEVER reused and NEVER decreased. Play
+#                   rejects an upload whose code is <= one already uploaded,
+#                   and the rejection happens after the whole build.
+#
+#   BUMP THE CODE ON EVERY UPLOAD, including a re-upload of the same name
+#   after a rejected review. Two artefacts must never share a code.
+#
+# The name may repeat across builds; the code may not. `0.1.0+7` is the
+# seventh artefact of version 0.1.0, which is ordinary and correct.
 version: 0.1.0+1
 
 environment:

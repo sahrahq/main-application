@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    THE COLOUR THE OS PAINTS BEFORE FLUTTER EXISTS.
+
+    `surface-page` from tokens.json, the same value the Dart splash uses for
+    its `Scaffold.backgroundColor`. Duplicated here because Android needs it
+    before any Dart has run — there is no way to read a token at that moment —
+    and pinned by `launch_screen_test.dart`, which parses BOTH this file and
+    the generated Dart token and fails if they drift.
+
+    It was `@android:color/white`, so the app opened on a white flash and then
+    snapped to cream on Flutter's first frame.
+-->
+<resources>
+    <color name="launch_background">#FBF7F0</color>
+</resources>

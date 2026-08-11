@@ -310,6 +310,12 @@ Two smaller instances the same hour, both mine:
     inside a session about checks that cannot fail;
   · `npx tsc … | tail -6 && echo TSC_CLEAN` — postscript 1, above.
 
+A fourth, the sharpest of them: a guard that greps a config file for a
+construct was satisfied by **its own comment quoting that construct**. The
+deliberate break removed the code and the test stayed green, because the prose
+explaining the code still matched. **A guard satisfiable by a comment about
+itself is not a guard.** Fixed by stripping comment lines before matching.
+
 **THREE INSTANCES BY ONE AUTHOR IN ONE WEEK IS THE LESSON, NOT THE MECHANISM.**
 The mechanisms were all different: a pipeline exit code, an unconditional
 `print`, a regex that silently matched nothing. What they share is that each
@@ -318,6 +324,27 @@ was believed on the strength of a green result nobody had tried to turn red.
 Knowing the rule does not confer immunity to it. The only thing that does is
 the practice: **break it on purpose, watch it go red, then trust it.** Every
 guard in this repo that has ever caught anything was verified that way.
+
+### RED-FIRST IS A RULE, NOT A HABIT
+
+Made mandatory on 2026-08-11, on the strength of the four above.
+
+**No new guard may be reported as working until it has been observed
+failing.** Not "I reasoned it would fail" — observed: break the thing it
+protects, watch the test go red, restore, watch it go green, and say so in the
+report.
+
+Three corollaries learned the hard way, all from the same week:
+
+1. **The break must verify itself.** A script that edits a file and prints
+   "removed" whether or not the replacement matched is a second unfalsifiable
+   signal stacked on the first. Assert the change landed before running the
+   test.
+2. **A green run of a brand-new guard is not evidence.** It is the least
+   informative outcome available: it is what a correct guard and a completely
+   inert one both produce.
+3. **Strip comments before matching source.** Otherwise the documentation of a
+   rule satisfies the test for the rule.
 
 
 ### Incident 7 — a later step that silently undid an earlier one
