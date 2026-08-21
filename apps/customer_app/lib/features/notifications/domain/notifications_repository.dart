@@ -4,7 +4,9 @@ import 'app_notification.dart';
 class NotificationFeed {
   const NotificationFeed({required this.items, required this.unreadCount});
 
-  const NotificationFeed.empty() : items = const <AppNotification>[], unreadCount = 0;
+  const NotificationFeed.empty()
+      : items = const <AppNotification>[],
+        unreadCount = 0;
 
   final List<AppNotification> items;
 

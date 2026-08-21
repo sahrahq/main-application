@@ -46,6 +46,8 @@ Everything below runs in one command — `melos run verify`, or the CI job in §
 | 7 | Every backend code has a message | scan API source ⇄ ARB | **total** |
 | 7 | Offline handled | **sealed class exhaustiveness** | **compiler** |
 | 8 | analyze clean, tests green | CI, fatal-infos | **total** |
+| — | No docblock claims a caller it does not name | source scan test | strong |
+| — | No public method nothing in `lib/` mentions | source scan test | weak — false-positives on ports, exemptions carry reasons |
 
 "Strong" means a source scan that catches the shape people actually write.
 "Total" means it cannot be evaded without deleting the test.
@@ -151,6 +153,518 @@ The rule that follows: count what RAN, not what should have run. Increment as
 each test registers; read the files that exist on disk; assert the scanner
 parsed a plausible number of lines. Every "census" in this suite is written
 that way, and each one is there because its absence let something through.
+
+## NEVER ACCEPT A SIGNAL YOU HAVE NOT SEEN FAIL
+
+**If you cannot make it go red on demand, it is decoration.**
+
+This sits above everything below it, and above most of this document. Six
+separate incidents in this repo reduce to it. A guard, a check, an ignore rule,
+a permission, a CI step and a test harness all failed the same way: each
+reported success, each was believed, and **not one of them had ever been
+observed producing a failure.**
+
+The practical form is one question, asked before the signal is trusted:
+*what would I have to break for this to go red, and have I done it?* If the
+answer is "nothing would" — the check has no failing case, the guard computes
+its own expectation, the ignore rule was read rather than queried, the exit
+code cannot be non-zero — then the signal is not evidence. It is a green light
+wired to nothing.
+
+## Reading the patterns is not checking
+
+Named by the product owner on 2026-08-10. It is the shortest rule in this
+document and the one with the worst record.
+
+**Ask the system. Never the document that describes it.**
+
+- `git check-ignore -v <path>` — not a read of `.gitignore`.
+- `git check-attr` and `git show :<path>` — the **index bytes**, not a read of
+  `.gitattributes`.
+- `information_schema.role_table_grants` — not a read of the `REVOKE`.
+- `pg_policies`, `pg_class` — not a read of the `CREATE POLICY` or the migration.
+- Running the CI command — not a read of the workflow that runs it.
+- **The command's own exit status** — not a pipeline's, see incident 6.
+
+Six occurrences by 2026-08-10, which is well past the point where it reads as
+bad luck. It is the house rule.
+
+The first three:
+
+1. **`REVOKE USAGE ON SCHEMA public FROM anon` reported success and changed
+   nothing.** The schema is owned by `supabase_admin`, and a REVOKE issued by
+   `postgres` can only remove grants `postgres` made. The statement was
+   correct, committed, and inert. Recorded in
+   `20260809020000_no_silent_lapses`.
+2. **RLS silently stopped applying** to rows a later migration reached by
+   another path. The policy was still there to read.
+3. **`.gitignore` looked like it covered `*.p8`** — and my own handover
+   document asserted it, reasoning from `*.pem` and `*.key`. It covered
+   neither. Three of five credential patterns were open, hours before a
+   Firebase service-account key was placed on disk. `git check-ignore` found
+   it in one second; two careful readings had not.
+
+And the fourth and fifth, both on 2026-08-10:
+
+4. **CI itself** — see the subsection below. A workflow file is a document
+   describing what will happen, and it had been describing it inaccurately for
+   33 commits.
+5. **`.gitattributes` said `eol=lf`, and it was even true — but the file on
+   disk had CRLF.** `dart format` on Windows had rewritten all 8 files it
+   touched. The formatting fix was therefore verified against bytes that are
+   not the bytes CI reads. `git check-attr` confirmed the attribute applies and
+   `git show :<path>` confirmed the staged blob holds **0 CRLF lines**, so the
+   change was genuine — but that is a conclusion from asking the index, and
+   reading the attributes file would have produced the same confident answer
+   whether or not it was true.
+
+### Incident 6 — the harness that could not report a failure
+
+The worst of the six, because it was the *measuring instrument*, and because it
+was built during the very pass whose subject was checks that cannot fail.
+
+A script was written to run the CI `api` job locally, step by step, so that
+several layers of breakage could be found in one pass instead of one per CI
+round-trip. Each step looked like this:
+
+```bash
+eval "$@"          # where "$@" was:  pnpm openapi:export --check 2>&1 | tail -30
+rc=$?
+```
+
+**A pipeline's exit status is the status of its LAST command.** `tail` succeeds
+on any input. So `rc` was `0` for every step, unconditionally, forever. The
+script printed a summary of nine steps, all `exit 0`, and that summary was
+reported to the product owner as evidence the API job passed.
+
+It had not. `openapi:export --check` had died on a TypeScript compile error, and
+so had `tsc --noEmit`. The output was sitting in the log the whole time,
+directly above a line reading `── openapi:export --check exit=0`.
+
+It was found by re-reading the *text* of a step already recorded as passing —
+which is only a reliable method by accident.
+
+Three things generalise:
+
+1. **`cmd | tail`, `cmd | head`, `cmd | grep`, `cmd | tee` all discard the
+   command's status.** Use `set -o pipefail`, or `${PIPESTATUS[0]}`, or — best,
+   because it also keeps the whole log rather than the last N lines — redirect
+   to a file and read `$?` from the command itself.
+2. **A summary table of all-zeroes deserves the same suspicion as a test suite
+   that has never failed.** Nine green ticks in a row from a brand-new
+   instrument is not reassurance, it is the thing to check first.
+3. **Everything that instrument reported had to be withdrawn**, including the
+   parts that were probably true, because there was no way to tell which. Two
+   results survived only because they had been confirmed by asking something
+   else — `_prisma_migrations` for the schema, `pg_stat_database` for whether
+   the e2e suite executed at all.
+
+The general rule at the top of this section is the one this incident argues
+for: the harness was never once observed producing a red. Nobody made it fail
+on purpose, so nobody learned it could not.
+
+#### Postscript, the same day — knowing the trap does not stop you setting it
+
+Hours after the above was written up, verifying an unrelated fix:
+
+```
+npx tsc -p tsconfig.json --noEmit 2>&1 | tail -6 && echo TSC_CLEAN
+```
+
+It printed `TSC_CLEAN` over a real TypeScript error. `tail` succeeded, so `&&`
+fired. **Identical mechanism, same author, same day, in a throwaway line
+nobody would have reviewed.**
+
+That is the most useful thing about this incident, and the reason it is worth
+more than a rule: understanding a failure mode does not confer immunity to it.
+Vigilance is not a control. The trap lives in a shell idiom so ordinary that it
+is typed without thought, and thought is exactly what is absent when you type
+it.
+
+**The control that replaces the vigilance:**
+
+- Every shell command whose exit code matters begins `set -o pipefail`.
+- Better still where the output is wanted anyway: redirect to a file, read `$?`
+  from the command itself, then read the file.
+  `cmd > /tmp/x.log 2>&1; rc=$?; tail /tmp/x.log; echo "exit=$rc"`
+- **Never** `cmd | tail && echo OK`. The `&&` is reporting on `tail`.
+
+Adopted as a standing habit rather than a thing to remember, because the first
+time it was a thing to remember it lasted about four hours.
+
+#### Postscript 2, 2026-08-11 — a third costume, same week, same author
+
+A new guard was written to catch action-shaped copy with no handler. Its first
+implementation built a regex per key and **matched nothing while reporting
+success**: the pattern printed correctly, the source demonstrably contained the
+string it was looking for, and `allMatches` returned zero anyway. Green, and
+completely inert.
+
+It was caught only because the guard was deliberately broken — the handler was
+removed from the row it was built for — and it *stayed green*. Run only in the
+passing state, it would have shipped as decoration and been trusted for exactly
+as long as nobody tested it.
+
+Two smaller instances the same hour, both mine:
+
+  · the script that removed the handler printed `handler removed` whether or
+    not the replacement matched — a verification step that could not fail,
+    inside a session about checks that cannot fail;
+  · `npx tsc … | tail -6 && echo TSC_CLEAN` — postscript 1, above.
+
+A fourth, the sharpest of them: a guard that greps a config file for a
+construct was satisfied by **its own comment quoting that construct**. The
+deliberate break removed the code and the test stayed green, because the prose
+explaining the code still matched. **A guard satisfiable by a comment about
+itself is not a guard.** Fixed by stripping comment lines before matching.
+
+**THREE INSTANCES BY ONE AUTHOR IN ONE WEEK IS THE LESSON, NOT THE MECHANISM.**
+The mechanisms were all different: a pipeline exit code, an unconditional
+`print`, a regex that silently matched nothing. What they share is that each
+was believed on the strength of a green result nobody had tried to turn red.
+
+Knowing the rule does not confer immunity to it. The only thing that does is
+the practice: **break it on purpose, watch it go red, then trust it.** Every
+guard in this repo that has ever caught anything was verified that way.
+
+### RED-FIRST IS A RULE, NOT A HABIT
+
+Made mandatory on 2026-08-11, on the strength of the four above.
+
+**No new guard may be reported as working until it has been observed
+failing.** Not "I reasoned it would fail" — observed: break the thing it
+protects, watch the test go red, restore, watch it go green, and say so in the
+report.
+
+Three corollaries learned the hard way, all from the same week:
+
+1. **The break must verify itself.** A script that edits a file and prints
+   "removed" whether or not the replacement matched is a second unfalsifiable
+   signal stacked on the first. Assert the change landed before running the
+   test.
+2. **A green run of a brand-new guard is not evidence.** It is the least
+   informative outcome available: it is what a correct guard and a completely
+   inert one both produce.
+3. **Strip comments before matching source.** Otherwise the documentation of a
+   rule satisfies the test for the rule.
+
+
+### Incident 7 — a later step that silently undid an earlier one
+
+**This one adds a question the first six do not ask.** They are all "does this
+do what it says". This one did exactly what it said, and something that ran
+afterwards took it back.
+
+`20260801000000_lock_down_data_api` pins `search_path = ''` on both reservation
+trigger functions, closing the advisor's "Function Search Path Mutable"
+finding — without it, a role able to create objects in an earlier schema can
+shadow `tstzrange` or the table names and hijack the trigger.
+
+`prisma/sql/01_guards.sql` carried its own copies of those two functions,
+inherited from `20260731000000_init`, and CI runs it **immediately after**
+`prisma migrate deploy`. `CREATE OR REPLACE FUNCTION` replaces the *entire*
+definition, SET clauses included. So the guards file silently un-pinned both
+functions every single time it ran.
+
+**Any environment provisioned in the documented order — `migrate deploy`, then
+the guards file — shipped with mutable `search_path` on both reservation
+triggers. That includes production.** The dev database passes only by an
+accident of the order its own history happened to run in: the guards were
+applied there *before* the lockdown migration, so the pin survived on top.
+
+`schema-invariants.e2e-spec.ts` has asserted this correctly for weeks. It had
+simply never run against a database built in the documented order, because the
+pipeline had never run at all. **A correct assertion against the wrong
+starting state is not a check.**
+
+Two rules:
+
+1. **Ask what runs AFTER.** "Does this statement do what it says" is not
+   sufficient for anything whose effect can be overwritten — a function
+   definition, a grant, a config value, a generated file. The full question is
+   *does anything later in the documented sequence undo it*, and the only
+   reliable way to answer it is to run the whole sequence from zero and look at
+   the end state.
+2. **One definition, one owner.** The fix was to DELETE the duplicates, not to
+   synchronise them. Two files owning one definition IS the defect; making the
+   copies match repairs today and guarantees the identical divergence the first
+   time somebody edits one and not the other. `01_guards.sql` now *asserts* the
+   functions exist and are pinned, and refuses with a named error if they are
+   not — verified by un-pinning one on purpose and watching `psql` exit 3.
+
+And the thing that closes it permanently: **CI now builds the schema in the
+documented order on every PR**, so this invariant is tested against a
+from-zero database rather than against whatever a long-lived development
+database has accumulated.
+
+The mechanism is always the same, and it is worse than being wrong. A
+declaration that *reads as correct* **ends the investigation**. Nobody checks
+twice something they have just satisfied themselves about, so the gap survives
+exactly as long as the wording holds up — which is indefinitely, because
+wording does not rot.
+
+The corollary for reporting: if no command exists that would fail when the rule
+is broken, **say that**, rather than presenting a read as a check. "I read the
+migration and it revokes anon" and "I asked the catalogue and anon holds no
+privileges" are different claims, and only one of them is evidence.
+
+### The same rule, applied to CI
+
+CI is a file that declares things too. On 2026-08-10 this branch was 33 commits
+ahead of `main` and had never been through the pipeline once. Four failures
+were sitting in it, two of them also on `main`:
+
+- `prisma migrate deploy` died at **migration 2 of 14** — the lockdown
+  migration revokes from `anon` and `authenticated`, which exist because
+  *Supabase* creates them, against a workflow that declares a vanilla
+  `postgis/postgis` image where they do not. `role "anon" does not exist`.
+- `JWT_ACCESS_SECRET` is read with `getOrThrow` and was in no workflow `env:`
+  block, so the app could not boot at all.
+- `dart format --set-exit-if-changed` failed on 8 files — one line below
+  `flutter analyze ... No issues found!`. **A green analyze beside a red format
+  is the shape that teaches people to trust the wrong signal**, and it is why
+  "the analyzer is clean" was never the same sentence as "CI would pass".
+- Meilisearch was the only service with no health check, and
+  `test/global-setup.ts` answers an unreachable Meilisearch with a **skip** —
+  so the search suites could silently not run while the job stayed green.
+
+None of it was subtle. All of it was invisible, because reading `ci.yml` is
+reading a pattern.
+
+## Prose that asserts something about code — three of five are checkable, two are not
+
+By 2026-08-11 this repo had five findings with one silhouette: **a sentence
+that describes the system, is wrong, and reads exactly like a sentence that is
+right.** The product owner's instruction was to stop collecting them and make
+the class enumerable — *"if a check is expressible, build it; if it is not, say
+so plainly and we carry it as a named blind spot rather than pretending."*
+
+| # | the finding | catchable | by what |
+|---|---|---|---|
+| 1 | a comment asserting a feature was unbuilt, months after it shipped | **no** | semantic — nothing distinguishes it from a true one |
+| 2 | a handover doc claiming `.gitignore` covered `*.p8` | **yes** | `git check-ignore -v` — ask the system, never the document |
+| 3 | a comment quoting the code its own test grepped for, satisfying that test | **yes** | strip comments before the guard reads the file |
+| 4 | `RUNNING.md` listing shipped features as missing | **no** | semantic |
+| 5 | a docblock naming callers that do not exist | **yes** | `docblockCallerClaims`, below |
+
+**Three of five. Two are carried.** That table is the deliverable. A claim that
+all five were closed would itself be an instance of the class it describes.
+
+### The rule that catches #5, and why it is inverted
+
+`PushRegistrar.syncExistingToken` carried this:
+
+> Called on sign-in and at launch for a signed-in diner.
+
+Nothing called it on sign-in. Nothing called it at launch. Its only caller was
+`askAfterBooking`, so the two-minute token retry built underneath it could
+never run on a later launch — which was the entire reason for building it.
+
+Two rules suggest themselves and **neither catches that sentence**:
+
+- *"a public method with no non-test caller"* — it HAD a caller. Never dead.
+- *"a docblock naming a caller that does not call it"* — it named **nobody**.
+  "On sign-in" and "at launch" are SITUATIONS, not symbols, and no static rule
+  resolves a situation against a call graph.
+
+So the rule is inverted. **Do not verify the claim — forbid the unverifiable
+claim.** A docblock saying "called by/from/on/at" must name a symbol in
+backticks; if it names none it fails on SHAPE, before any lookup is attempted.
+That is exactly how it catches a sentence that named none. When a symbol *is*
+named and resolves in-tree, stage 2 then checks that its source really contains
+the call — with comments stripped, because a guard satisfiable by a comment
+about itself is not a guard (finding #3, again).
+
+**The cost, accepted on purpose: it forbids a sentence people naturally write,
+and someone will find that annoying.** "Called at launch" is ordinary English
+and is usually true when written. It is paid anyway, because four of the five
+findings above were prose asserting something about code, and *unfalsifiable
+prose that fails to compile costs one rewrite, where unfalsifiable prose that
+survives misleads the next person for a month* — here, by silently disabling
+push registration for every diner who had already said yes.
+
+Proved red-first against the original text, verbatim, in
+`packages/sahra_lints/test/caller_claims_test.dart`, and end-to-end by putting
+that sentence back into `push_registration.dart` and watching the app's
+architecture suite name the line.
+
+### The named blind spot
+
+**A docblock naming a symbol that DOES call the method, but from the wrong
+situation, passes both stages.** ``Called at launch by `X` `` where `X` only
+runs after a booking is a true statement about the call graph and a false one
+about when it happens — which is within one word of the original defect. It is
+semantic. It is not expressible. It is carried here rather than pretended away.
+
+Two smaller limits: stage 2 runs only for methods and functions, and a named
+symbol that resolves to nothing in-tree (`FirebaseMessaging`, the Android
+framework) is accepted, because the claim is about something this repo cannot
+read.
+
+### The other rule, built and deliberately not counted
+
+`publicMethodsWithNoCaller` was built too, and it is **useful, unrelated, and
+must not be counted toward closing this class.** It finds the literal dead
+capability — on the day it was written it found `clearFilters()`, declared and
+called by nothing, not even a test, now deleted. It could not have found
+`syncExistingToken`, which was never dead.
+
+It is prone to false positives on ports: a test double lives in `lib/` so the
+app can be assembled with it and is used only from `test/` by design. Its
+exemption list carries a reason per entry so growth is visible.
+
+Its first run is also a small lesson in positive controls. `void foo() {}` ends
+with `}`, not `{`, so the scanner silently skipped every single-line body — it
+reported two findings and looked entirely healthy doing it. The planted-
+violation test caught that on the first execution, before any number it
+produced could be believed.
+
+## A measurement can be true, precise, and about the wrong thing
+
+Found 2026-08-10, on a defect reported as "the search bar is misaligned — the
+thing drawn around the field is smaller than the field".
+
+A probe measured every rect in the component, in all four cells, focused and
+unfocused. Everything nested correctly: pill 768x48, Row inset by the padding
+and the border, TextField centred inside it, nothing overflowing, RTL mirrored
+properly. **Every number was correct.** The obvious conclusion was that the
+component was fine and the report was mistaken.
+
+It was not. The bar really did draw two outlines. The `TextField` was painting
+its own rounded rectangle inside the pill, because `InputDecoration.border` is
+only a FALLBACK and the theme's `enabledBorder` / `focusedBorder` win — a fact
+about *painting*, which a probe that measures *layout* cannot see. The rects
+were true, precise, and answered a question nobody had asked.
+
+What located it was rendering the component enlarged and **looking at the
+picture**: four horizontal lines where there should have been two.
+
+**THE RULE: when a report says "it looks wrong" and the numbers say "it is
+fine", render it and look before concluding the report is mistaken.** The
+numbers are evidence about whatever they measure. A human looking at a screen
+is evidence about the screen. When they disagree, the numbers are usually
+measuring the wrong property, because the human is looking at the actual
+artefact and the instrument is looking at a model of it.
+
+This is a sibling of the standing rule *LOOK at the goldens at the end of every
+wave*, and it is why that rule survives every attempt to automate it away. It
+is also why `--update-goldens` is never the end of a golden change: the
+regenerated file is guaranteed to match the code and guarantees nothing about
+whether the code is right.
+
+Corollary for reporting: "I measured X and it is correct" is not an answer to
+"it looks wrong" unless X is the property that would be wrong.
+
+## A filtered test run is never the honest one
+
+2026-08-11. A new past-date assertion was checked with
+`jest --runInBand -t "past"`, and it reported FOUR failures. All four were
+artefacts: the name filter also excluded the setup tests that create the
+restaurant, so the fixtures the surviving tests depend on were never built.
+
+The failures looked exactly like real ones — same output, same stack shape —
+and three of them were in code that was entirely fine.
+
+**The general form: narrowing a test run can change its meaning.** `-t`, `-k`,
+a single-file path, `--tags`, `.only` — each of them silently drops the setup
+that the remaining tests assume, and every assertion downstream then measures
+the absence of a fixture rather than the presence of a defect.
+
+Use a filter to find a test quickly. **Never report from one.** The honest run
+is the whole file at minimum, and the whole suite before a claim.
+
+## Open questions — what we do NOT know, kept separate from what we do
+
+Added 2026-08-11. A risk written down as resolved is worse than one written
+down as unknown, because nobody revisits it.
+
+**CERTAIN, measured on a real handset:**
+
+  · FCM's first token fetch returned `SERVICE_NOT_AVAILABLE`, and the app tried
+    exactly once. Google documents that error as TRANSIENT with retry-and-
+    backoff guidance, so a single attempt turns a temporary condition into a
+    permanent one for that install — and the failure is invisible from both the
+    handset and the server, because the request never arrives.
+  · A booking was created and confirmed nine days in the past. `modifyOwn`
+    refused past times; `createHold` never checked.
+
+**CERTAIN, and not inferred:** Huawei devices sold without Google Play Services
+cannot receive FCM at all. That is not a configuration problem and no in-app
+guidance can fix it.
+
+**NOT KNOWN — open, not resolved:**
+
+  · Whether Xiaomi/MIUI, Oppo/ColorOS or Samsung One UI battery and autostart
+    policies actually affect SAHRA's delivery. The general behaviour of those
+    ROMs is documented widely; **this app has never delivered a single push to
+    any of them**, so we have no observation of our own. The counter-evidence
+    is direct: the test handset receives notifications from other apps
+    normally.
+  · Whether the past-dated booking came from a wrong device clock, a stale date
+    chip, or something else. The server-side gap was real either way and is
+    fixed; the client-side cause is unestablished.
+
+**THE RULE THIS RECORDS:** do not build a fix for a failure that has not been
+observed in this product. A manufacturer-settings tutorial was proposed and
+REJECTED on exactly that ground — it carries a certain cost (a screen telling a
+diner the app needs system settings changed reads as "this is broken") against
+an unmeasured benefit. Measure first: deliver one push, observe it closed,
+idle, and force-stopped. Only a real failure earns a fix.
+
+## A guard that reads a structured file must first assert the file IS that structure
+
+Found 2026-08-11, by the first `flutter build apk --release`.
+
+Both manifest guards — the permission one and the `<queries>` one — passed on an
+`AndroidManifest.xml` that the Android toolchain refuses to parse. A comment had
+been placed between the attributes of the `<application>` start tag, which is
+not well-formed XML. Every regular expression still matched, because the
+attributes were all still there in the text.
+
+```
+Error parsing LocalFile: '…/AndroidManifest.xml'
+Please ensure that the android manifest is a valid XML document
+```
+
+**A guard that greps a file it cannot parse is checking a string, not a
+manifest.** It will report green on a document that does not exist as a
+document.
+
+The rule: **before matching patterns against XML, JSON, YAML, ARB or
+`.properties`, assert it parses.** Where a parser exists, use it — the ARB and
+token guards all `jsonDecode` first, which is why none of them could have this
+defect. Where one does not (Dart ships no XML parser and this repo will not add
+a dependency for a test), a small structural check belongs in ONE place and is
+called by every guard that reads that format:
+`test/support/xml_wellformed.dart`.
+
+### The sweep this produced
+
+Every test reading a structured file was checked, and reported even where the
+answer was "already fine":
+
+| guard | reads | verdict |
+|---|---|---|
+| `arb_test`, `plural_count_test`, `bidi_neutral_test` | ARB | `jsonDecode` first — safe |
+| `tokens_coverage_test`, `arb_and_error_coverage_test` | JSON | `jsonDecode` first — safe |
+| `client_drift_test` | OpenAPI JSON | `jsonDecode` first — safe |
+| `font_assets_test` | pubspec YAML | regex, but asserts an EXACT family count, so a broken parse fails — safe |
+| `support_contact_test` | source files | searches for a literal; not structural — n/a |
+| `signing_config_test` | Gradle Kotlin DSL | no parser exists; mitigated by stripping comments |
+| **`manifest_permissions_test`** | XML | **was grep-only — fixed** |
+| **`manifest_queries_test`** | XML | **was grep-only — fixed** |
+| **`launch_screen_test`** | XML | **was grep-only — fixed** |
+
+Three of eleven. The ones that were safe were safe because a parser was the
+obvious way to read that format, not because anybody decided the rule.
+
+### And the rule one level up
+
+Red-first covers guards. **It does not cover configuration**, and neither of
+the two failures that produced this section involved a guard: one was a comment
+inside a tag, the other a file referenced in Gradle and never created.
+
+**The only thing that proves a release builds is building the release.**
 
 ## A capability that is never called is indistinguishable from one that does not exist
 
@@ -482,6 +996,50 @@ regression in font loading fails loudly rather than silently.
 Goldens are generated and compared **on CI's Linux container only** — font
 rasterization differs across platforms, and a macOS-generated golden will fail
 on Linux for reasons that have nothing to do with the design.
+
+#### That claim was measured on 2026-08-10, and here is the demonstration
+
+The Windows-generated baseline was run against a Linux engine (Flutter 3.44.7,
+the exact tarball `subosito/flutter-action` fetches). Of the **430 committed
+PNGs** — 168 design-system, 204 app screens, 58 journey walk-through —
+**410 differed.**
+
+**The twenty that matched, byte for byte, were exactly the five components with
+no text in them:** `Icon_drawn-set`, `Mashrabiya_fade`, `Mashrabiya_tile`,
+`Skeleton_card`, `Skeleton_lines` — drawn paths, a geometric pattern, and grey
+blocks. Every single golden containing a glyph differed. Every single golden
+containing none was identical.
+
+That is not an argument that the delta is rasterization. It is a
+demonstration — the partition is perfect and it falls exactly on the presence
+of text.
+
+Supporting numbers: diffs ran min 0.07%, median 0.26%, p90 0.81%, **max 2.73%**,
+mean 0.42%, with the four worst all being `Review_contrast-audit`, the most
+text-dense screen in the set. **Zero dimension mismatches.** So regenerating on
+another platform cannot conceal a layout or colour regression, because there is
+no layout or colour difference to conceal.
+
+#### Therefore: NO TOLERANCE BUDGET. Ever.
+
+Every one of those 354 failures would pass under a ~1% pixel-difference
+comparator. That is precisely why it is refused.
+
+A comparator sized to absorb today's whole-suite delta is a comparator that
+cannot fail tomorrow. Few-pixel differences are not the noise these tests
+tolerate — **they are the signal these tests exist to catch**: a control off by
+two pixels, a padding token that resolved to the wrong value, a baseline that
+shifted when a `TextTheme` slot fell back. Under a 1% budget every one of those
+is green.
+
+The cost of "one OS owns the goldens" is one regeneration whenever the Flutter
+version moves. The cost of a tolerance budget is every golden in the repo,
+permanently, and you do not find out which ones you lost.
+
+If you are reading this because you are about to propose a tolerance, the thing
+to answer first is the partition above: explain why five text-free components
+matching exactly, and 354 text-bearing ones not, is consistent with a delta a
+budget should absorb.
 
 > **Enforced by:** `test/golden/golden_coverage_test.dart` — reads the
 > component registry (every widget exported from

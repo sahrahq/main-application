@@ -86,8 +86,7 @@ NotificationCopy? notificationCopy(AppNotification n, BuildContext context) {
   // backwards. U+2068 lets the run pick its own direction and keeps its
   // punctuation from escaping into our sentence.
   final String venue = isolate(
-    _pick(n.data, ar ? 'venue_ar' : 'venue', ar ? 'venue' : 'venue_ar') ??
-        l10n.notifFallbackVenue,
+    _pick(n.data, ar ? 'venue_ar' : 'venue', ar ? 'venue' : 'venue_ar') ?? l10n.notifFallbackVenue,
   );
 
   final String date = _date(n.data['date'], context);

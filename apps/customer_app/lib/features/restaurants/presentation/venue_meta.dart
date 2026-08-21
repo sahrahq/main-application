@@ -7,6 +7,7 @@
 library;
 
 import 'package:flutter/widgets.dart';
+import '../../reservations/presentation/reservation_copy.dart';
 
 import '../../../localization/generated/app_localizations.dart';
 import '../domain/venue.dart';
@@ -58,7 +59,7 @@ String venueSemanticLabel(BuildContext context, VenueSummary venue) {
   final l10n = AppLocalizations.of(context);
   final next = venue.nextAvailable.isEmpty
       ? ''
-      : ', ${l10n.searchNextAvailable(venue.nextAvailable.first)}';
+      : ', ${l10n.searchNextAvailable(timeOfDay(venue.nextAvailable.first, context))}';
   return '${venue.name}, '
       '${venue.rating} (${venue.ratingCount}), '
       '${venueMeta(l10n, venue.cuisines, venue.priceBand, venue.neighborhood)}$next';

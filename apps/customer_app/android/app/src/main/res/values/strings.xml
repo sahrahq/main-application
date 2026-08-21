@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    THE NAME UNDER THE ICON.
+
+    It read `sahra_customer_app` — the Flutter scaffold default, and literally
+    what a diner would have seen on their home screen. Moved out of the
+    manifest into a string resource so it can be translated at all: a
+    hardcoded `android:label` has no locale.
+-->
+<resources>
+    <string name="app_name">SAHRA</string>
+</resources>

@@ -31,6 +31,29 @@ abstract class ReservationRepository {
     String? guestName,
     String? guestPhone,
     String? specialRequests,
+
+    /// ── DELIBERATELY UNCOLLECTED BY THIS APP, 2026-08-11 ──────────────────
+    ///
+    /// The API accepts it (free text, max 40, no enum), `MyReservation` reads
+    /// it back, and **nothing in the client ever sets it.** That is a decision,
+    /// not a gap, and it is recorded here rather than in a doc because here is
+    /// where the next reader meets the parameter.
+    ///
+    /// There is NO DESIGN for capturing an occasion on a booking. Searched
+    /// every reference: `BookingFlowScreen.jsx` and `ConfirmationScreen.jsx`
+    /// have no such input, and `OccasionScreen.jsx` — which sounds like the
+    /// picker and is not — is a Ramadan/Iftar seasonal LANDING PAGE reached
+    /// from a Discover banner, part of the deferred offers/events family.
+    ///
+    /// Inventing a picker would mean designing a vocabulary with no reference,
+    /// and it would be thrown away. Worse, it would be designed from one side:
+    /// **whether asking a diner is worth it depends on what a venue does with
+    /// the answer**, and the venue's view does not exist until
+    /// `management_app` is built. Both sides get designed together, then.
+    ///
+    /// The parameter stays because the API and the management app will want
+    /// it, and because removing it from the port would mean re-adding it
+    /// later to the same signature.
     String? occasion,
   });
 

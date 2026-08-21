@@ -128,24 +128,13 @@ class SearchQuery {
         sort: sort,
       );
 
-  /// Text and Tonight survive; every filter goes.
-  /// Text and Tonight survive; every filter goes — INCLUDING the distance one,
-  /// and including a distance SORT, which cannot outlive the filter that gave
-  /// it a position to sort against.
-  SearchQuery get cleared => SearchQuery(
-        text: text,
-        tonightOnly: tonightOnly,
-        partySize: partySize,
-      );
-
   /// A search with nothing asked for. The screen shows its "start here" state
   /// rather than firing a bare query, because an unfiltered list of every
   /// venue in Cairo is not discovery.
   /// A FILTER COUNTS AS ASKING FOR SOMETHING. Without this, picking "Levantine
   /// · $$" and no text would render the "where are you eating tonight?" start
   /// state — a screen that ignored the filters the diner had just set.
-  bool get isBlank =>
-      text.trim().isEmpty && !tonightOnly && activeFilterCount == 0;
+  bool get isBlank => text.trim().isEmpty && !tonightOnly && activeFilterCount == 0;
 }
 
 @riverpod
@@ -174,7 +163,13 @@ class SearchCriteria extends _$SearchCriteria {
         sort: sort,
       );
 
-  void clearFilters() => state = state.cleared;
+  // `clearFilters()` and `SearchQuery.cleared` were deleted here on 2026-08-11,
+  // found by `publicMethodsWithNoCaller`: declared, never called, not even by a
+  // test. The Clear button in `filter_sheet.dart` clears the DRAFT and leaves
+  // the applied search alone — that is deliberate, so a diner can back out of
+  // a sheet without changing what they are looking at. A public method that
+  // would have cleared the applied search was an invitation to undo that
+  // decision by accident.
 }
 
 /// The results. One notifier per screen (doc 07 §5), side-effects only here.
@@ -211,9 +206,7 @@ Future<SearchPage> searchResults(Ref ref) async {
   // position — the honest response is an unfiltered, relevance-ordered list
   // plus a line on the screen saying why, not a 400.
   final SearchSort sort =
-      criteria.sort == SearchSort.distance && !positioned
-          ? SearchSort.relevance
-          : criteria.sort;
+      criteria.sort == SearchSort.distance && !positioned ? SearchSort.relevance : criteria.sort;
 
   return ref.watch(restaurantRepositoryProvider).search(
         query: criteria.text.trim().isEmpty ? null : criteria.text.trim(),

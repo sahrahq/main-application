@@ -28,9 +28,12 @@ void main() {
   );
 
   test('the server\'s type list is where we think it is', () {
-    expect(ports.existsSync(), isTrue,
-        reason: 'notification.ports.ts not found at ${ports.path} — this file '
-            'is now vacuous. It was moved, or the relative path is wrong.',);
+    expect(
+      ports.existsSync(),
+      isTrue,
+      reason: 'notification.ports.ts not found at ${ports.path} — this file '
+          'is now vacuous. It was moved, or the relative path is wrong.',
+    );
   });
 
   /// The values inside `export const NOTIFICATION_TYPES = [ … ] as const;`.
@@ -41,18 +44,18 @@ void main() {
     );
     final RegExpMatch? m = block.firstMatch(ports.readAsStringSync());
     if (m == null) return <String>[];
-    return RegExp("'([a-z0-9_]+)'")
-        .allMatches(m.group(1)!)
-        .map((x) => x.group(1)!)
-        .toList();
+    return RegExp("'([a-z0-9_]+)'").allMatches(m.group(1)!).map((x) => x.group(1)!).toList();
   }
 
   test('the list was found and is not empty', () {
     final List<String> found = typesFromServer();
-    expect(found, isNotEmpty,
-        reason: 'NOTIFICATION_TYPES did not match — it was renamed or its shape '
-            'changed, and until this scan is fixed nothing is comparing the '
-            'two lists.',);
+    expect(
+      found,
+      isNotEmpty,
+      reason: 'NOTIFICATION_TYPES did not match — it was renamed or its shape '
+          'changed, and until this scan is fixed nothing is comparing the '
+          'two lists.',
+    );
     expect(found.length, greaterThanOrEqualTo(5));
   });
 

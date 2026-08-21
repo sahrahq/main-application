@@ -123,8 +123,7 @@ class SahraFailureView extends StatelessWidget {
                     // `body-s` at weight 700, not the 11px overline: a coloured
                     // micro-label fails contrast at 11px and fails in Arabic
                     // first (ENGINEERING-STANDARDS, "Small COLOURED text").
-                    style:
-                        Theme.of(context).textTheme.bodySmall?.copyWith(color: sahra.textSoft),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: sahra.textSoft),
                     textAlign: TextAlign.center,
                   ),
                 ],

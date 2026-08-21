@@ -209,8 +209,7 @@ class _Row extends StatelessWidget {
                   copy.title,
                   style: text.bodyLarge?.copyWith(
                     color: s.textBody,
-                    fontWeight:
-                        notification.isUnread ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: notification.isUnread ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
                 if (copy.body.isNotEmpty) ...<Widget>[

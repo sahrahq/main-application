@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    `terracotta-dark` from docs/design/tokens.json, and NOT the plain accent.
+
+    Cream measures 6.14:1 on #A5391F and only 4.46:1 on #C64A2B — under AA. The
+    design system already switches to terracotta-dark wherever cream has to
+    carry on terracotta (`accentOnSurface`, sahra_semantics.dart), and a mark
+    at 48px is the strongest case for the darker one.
+
+    A colour rather than five flat PNGs: the background layer is masked and
+    holds no detail, so a drawable would be five files saying one hex.
+-->
+<resources>
+    <color name="ic_launcher_background">#A5391F</color>
+</resources>

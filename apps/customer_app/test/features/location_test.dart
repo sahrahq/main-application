@@ -117,12 +117,15 @@ void main() {
   }
 
   group('the prompt does not appear until the diner asks for it', () {
-    testWidgets('not on the search screen, and not when the sheet opens',
-        (tester) async {
+    testWidgets('not on the search screen, and not when the sheet opens', (tester) async {
       final _CountingSource location = _CountingSource(const FixedLocationSource.zamalek());
-      await pump(tester, location: location, transport: recordingTransport(<Object>[
-        venue('v1', 'layali', 'Layali Lounge'),
-      ]),);
+      await pump(
+        tester,
+        location: location,
+        transport: recordingTransport(<Object>[
+          venue('v1', 'layali', 'Layali Lounge'),
+        ]),
+      );
 
       // A search has run. If the counter is still zero AFTER a real query, the
       // capability is genuinely dormant rather than merely slow.
@@ -152,8 +155,7 @@ void main() {
   });
 
   group('tapping "near me"', () {
-    testWidgets('asks once, and the next search carries the position',
-        (tester) async {
+    testWidgets('asks once, and the next search carries the position', (tester) async {
       final _CountingSource location = _CountingSource(const FixedLocationSource.zamalek());
       await pump(tester, location: location, transport: recordingTransport(<Object>[]));
       await openFilters(tester);
@@ -198,8 +200,7 @@ void main() {
       expect(find.text(l10n.locationDenied), findsOneWidget);
     });
 
-    testWidgets('a permanent refusal says something different, because it is',
-        (tester) async {
+    testWidgets('a permanent refusal says something different, because it is', (tester) async {
       // "Try again" is an instruction that cannot work once the OS has stopped
       // showing the dialog. Four outcomes, four sentences.
       final _CountingSource location = _CountingSource(
@@ -255,8 +256,7 @@ void main() {
       expect(queries.last['sort'], 'distance');
     });
 
-    testWidgets('and relevance is NOT sent — it is the server default',
-        (tester) async {
+    testWidgets('and relevance is NOT sent — it is the server default', (tester) async {
       final _CountingSource location = _CountingSource(const FixedLocationSource.zamalek());
       await pump(tester, location: location, transport: recordingTransport(<Object>[]));
       await openFilters(tester);
@@ -287,8 +287,7 @@ void main() {
     );
   });
 
-  testWidgets('and a row shows no distance when the server sent none',
-      (tester) async {
+  testWidgets('and a row shows no distance when the server sent none', (tester) async {
     // The ordinary case. A row that invented a distance from a position we do
     // not have would be the screen confidently saying something false.
     final _CountingSource location = _CountingSource(const FixedLocationSource.zamalek());

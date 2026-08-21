@@ -32,8 +32,7 @@ class Review {
   final String? ownerReply;
   final DateTime? ownerRepliedAt;
 
-  bool get hasSubRatings =>
-      foodRating != null || serviceRating != null || ambienceRating != null;
+  bool get hasSubRatings => foodRating != null || serviceRating != null || ambienceRating != null;
 }
 
 /// The headline figure and the histogram under it.
@@ -58,8 +57,7 @@ class ReviewSummary {
 
   /// 0..1 for the bar next to [stars]. Zero reviews is a flat row, not a
   /// division by zero.
-  double share(int stars) =>
-      ratingCount == 0 ? 0 : (breakdown[stars] ?? 0) / ratingCount;
+  double share(int stars) => ratingCount == 0 ? 0 : (breakdown[stars] ?? 0) / ratingCount;
 }
 
 class ReviewPage {

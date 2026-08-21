@@ -22,13 +22,11 @@ String _$myReservationsHash() => r'ef2fc10a84ffd7ab79f582e3ded5e2abf00554f5';
 ///
 /// Copied from [myReservations].
 @ProviderFor(myReservations)
-final myReservationsProvider =
-    AutoDisposeFutureProvider<List<MyReservation>>.internal(
+final myReservationsProvider = AutoDisposeFutureProvider<List<MyReservation>>.internal(
   myReservations,
   name: r'myReservationsProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$myReservationsHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$myReservationsHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -102,8 +100,7 @@ class ReservationDetailFamily extends Family<AsyncValue<MyReservation>> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'reservationDetailProvider';
@@ -112,8 +109,7 @@ class ReservationDetailFamily extends Family<AsyncValue<MyReservation>> {
 /// One reservation, for the detail screen.
 ///
 /// Copied from [reservationDetail].
-class ReservationDetailProvider
-    extends AutoDisposeFutureProvider<MyReservation> {
+class ReservationDetailProvider extends AutoDisposeFutureProvider<MyReservation> {
   /// One reservation, for the detail screen.
   ///
   /// Copied from [reservationDetail].
@@ -127,12 +123,9 @@ class ReservationDetailProvider
           from: reservationDetailProvider,
           name: r'reservationDetailProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$reservationDetailHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$reservationDetailHash,
           dependencies: ReservationDetailFamily._dependencies,
-          allTransitiveDependencies:
-              ReservationDetailFamily._allTransitiveDependencies,
+          allTransitiveDependencies: ReservationDetailFamily._allTransitiveDependencies,
           id: id,
         );
 
@@ -192,8 +185,7 @@ mixin ReservationDetailRef on AutoDisposeFutureProviderRef<MyReservation> {
   String get id;
 }
 
-class _ReservationDetailProviderElement
-    extends AutoDisposeFutureProviderElement<MyReservation>
+class _ReservationDetailProviderElement extends AutoDisposeFutureProviderElement<MyReservation>
     with ReservationDetailRef {
   _ReservationDetailProviderElement(super.provider);
 
@@ -268,8 +260,7 @@ class MovableSlotsFamily extends Family<AsyncValue<SlotBoard>> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'movableSlotsProvider';
@@ -304,12 +295,9 @@ class MovableSlotsProvider extends AutoDisposeFutureProvider<SlotBoard> {
           from: movableSlotsProvider,
           name: r'movableSlotsProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$movableSlotsHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$movableSlotsHash,
           dependencies: MovableSlotsFamily._dependencies,
-          allTransitiveDependencies:
-              MovableSlotsFamily._allTransitiveDependencies,
+          allTransitiveDependencies: MovableSlotsFamily._allTransitiveDependencies,
           id: id,
           date: date,
           partySize: partySize,
@@ -388,8 +376,8 @@ mixin MovableSlotsRef on AutoDisposeFutureProviderRef<SlotBoard> {
   int get partySize;
 }
 
-class _MovableSlotsProviderElement
-    extends AutoDisposeFutureProviderElement<SlotBoard> with MovableSlotsRef {
+class _MovableSlotsProviderElement extends AutoDisposeFutureProviderElement<SlotBoard>
+    with MovableSlotsRef {
   _MovableSlotsProviderElement(super.provider);
 
   @override
@@ -406,8 +394,7 @@ String _$bookingsViewHash() => r'369a1c7c7790862f66c51d4e5fba53b4be17c48b';
 ///
 /// Copied from [BookingsView].
 @ProviderFor(BookingsView)
-final bookingsViewProvider =
-    AutoDisposeNotifierProvider<BookingsView, String>.internal(
+final bookingsViewProvider = AutoDisposeNotifierProvider<BookingsView, String>.internal(
   BookingsView.new,
   name: r'bookingsViewProvider',
   debugGetCreateSourceHash:
@@ -417,8 +404,7 @@ final bookingsViewProvider =
 );
 
 typedef _$BookingsView = AutoDisposeNotifier<String>;
-String _$acknowledgeCancellationHash() =>
-    r'6f9c2c39f8e474fd6f3e2065ab379d0f60629692';
+String _$acknowledgeCancellationHash() => r'6f9c2c39f8e474fd6f3e2065ab379d0f60629692';
 
 /// "I have seen that the restaurant cancelled."
 ///
@@ -434,9 +420,8 @@ final acknowledgeCancellationProvider =
     AutoDisposeNotifierProvider<AcknowledgeCancellation, bool>.internal(
   AcknowledgeCancellation.new,
   name: r'acknowledgeCancellationProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$acknowledgeCancellationHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$acknowledgeCancellationHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -497,16 +482,14 @@ class MoveDraftFamily extends Family<MoveSelection> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'moveDraftProvider';
 }
 
 /// See also [MoveDraft].
-class MoveDraftProvider
-    extends AutoDisposeNotifierProviderImpl<MoveDraft, MoveSelection> {
+class MoveDraftProvider extends AutoDisposeNotifierProviderImpl<MoveDraft, MoveSelection> {
   /// See also [MoveDraft].
   MoveDraftProvider(
     String id,
@@ -520,9 +503,7 @@ class MoveDraftProvider
           from: moveDraftProvider,
           name: r'moveDraftProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$moveDraftHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$moveDraftHash,
           dependencies: MoveDraftFamily._dependencies,
           allTransitiveDependencies: MoveDraftFamily._allTransitiveDependencies,
           id: id,
@@ -615,8 +596,7 @@ mixin MoveDraftRef on AutoDisposeNotifierProviderRef<MoveSelection> {
   int get partySize;
 }
 
-class _MoveDraftProviderElement
-    extends AutoDisposeNotifierProviderElement<MoveDraft, MoveSelection>
+class _MoveDraftProviderElement extends AutoDisposeNotifierProviderElement<MoveDraft, MoveSelection>
     with MoveDraftRef {
   _MoveDraftProviderElement(super.provider);
 
@@ -630,8 +610,7 @@ class _MoveDraftProviderElement
 
 String _$reservationActionHash() => r'aa4ebe4300133ff11dc782935a763e2bfdc58fa4';
 
-abstract class _$ReservationAction
-    extends BuildlessAutoDisposeNotifier<ReservationActionState> {
+abstract class _$ReservationAction extends BuildlessAutoDisposeNotifier<ReservationActionState> {
   late final String id;
 
   ReservationActionState build(
@@ -718,8 +697,7 @@ class ReservationActionFamily extends Family<ReservationActionState> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'reservationActionProvider';
@@ -737,8 +715,8 @@ class ReservationActionFamily extends Family<ReservationActionState> {
 /// just changed, which reads as the change having failed.
 ///
 /// Copied from [ReservationAction].
-class ReservationActionProvider extends AutoDisposeNotifierProviderImpl<
-    ReservationAction, ReservationActionState> {
+class ReservationActionProvider
+    extends AutoDisposeNotifierProviderImpl<ReservationAction, ReservationActionState> {
   /// Cancel and modify for one reservation (C-3.4, C-3.5).
   ///
   /// ONE NOTIFIER FOR BOTH, keyed by reservation id, because they share the
@@ -758,12 +736,9 @@ class ReservationActionProvider extends AutoDisposeNotifierProviderImpl<
           from: reservationActionProvider,
           name: r'reservationActionProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$reservationActionHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$reservationActionHash,
           dependencies: ReservationActionFamily._dependencies,
-          allTransitiveDependencies:
-              ReservationActionFamily._allTransitiveDependencies,
+          allTransitiveDependencies: ReservationActionFamily._allTransitiveDependencies,
           id: id,
         );
 
@@ -805,8 +780,7 @@ class ReservationActionProvider extends AutoDisposeNotifierProviderImpl<
   }
 
   @override
-  AutoDisposeNotifierProviderElement<ReservationAction, ReservationActionState>
-      createElement() {
+  AutoDisposeNotifierProviderElement<ReservationAction, ReservationActionState> createElement() {
     return _ReservationActionProviderElement(this);
   }
 
@@ -826,15 +800,14 @@ class ReservationActionProvider extends AutoDisposeNotifierProviderImpl<
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin ReservationActionRef
-    on AutoDisposeNotifierProviderRef<ReservationActionState> {
+mixin ReservationActionRef on AutoDisposeNotifierProviderRef<ReservationActionState> {
   /// The parameter `id` of this provider.
   String get id;
 }
 
 class _ReservationActionProviderElement
-    extends AutoDisposeNotifierProviderElement<ReservationAction,
-        ReservationActionState> with ReservationActionRef {
+    extends AutoDisposeNotifierProviderElement<ReservationAction, ReservationActionState>
+    with ReservationActionRef {
   _ReservationActionProviderElement(super.provider);
 
   @override

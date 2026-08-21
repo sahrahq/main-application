@@ -186,9 +186,7 @@ class _SignedIn extends ConsumerWidget {
         SahraButton(
           label: signingOut ? l10n.accountSigningOut : l10n.accountSignOut,
           variant: SahraButtonVariant.secondary,
-          onPressed: signingOut
-              ? null
-              : () => ref.read(signOutProvider.notifier).signOut(),
+          onPressed: signingOut ? null : () => ref.read(signOutProvider.notifier).signOut(),
         ),
       ],
     );
@@ -261,8 +259,7 @@ class _Row extends StatelessWidget {
               variant: SahraBadgeVariant.warning,
             ),
           ],
-          if (value != null)
-            Text(value!, style: text.bodySmall?.copyWith(color: s.textFaint)),
+          if (value != null) Text(value!, style: text.bodySmall?.copyWith(color: s.textFaint)),
           if (onTap != null) ...<Widget>[
             const SizedBox(width: SahraSpace.s2),
             SahraIcon('chevron-forward', size: 14, color: s.textFaint),

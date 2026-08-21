@@ -68,8 +68,7 @@ import 'package:sahra_lints/sahra_lints.dart';
 /// remembered.
 void main() {
   final Map<String, dynamic> ar =
-      jsonDecode(File('lib/localization/app_ar.arb').readAsStringSync())
-          as Map<String, dynamic>;
+      jsonDecode(File('lib/localization/app_ar.arb').readAsStringSync()) as Map<String, dynamic>;
 
   // ── the detector ────────────────────────────────────────────────────────
 
@@ -99,9 +98,12 @@ void main() {
   test('the Arabic ARB was actually read — census', () {
     // An empty map makes every check below pass by having nothing to check.
     final int n = copyKeys(ar).length;
-    expect(n, greaterThan(200),
-        reason: 'Only $n Arabic strings — the ARB path is wrong and this '
-            'whole file is vacuous.',);
+    expect(
+      n,
+      greaterThan(200),
+      reason: 'Only $n Arabic strings — the ARB path is wrong and this '
+          'whole file is vacuous.',
+    );
   });
 
   final Map<String, String> atRisk = <String, String>{
@@ -144,10 +146,13 @@ void main() {
       // The at-risk set being empty would make the call-site check below pass
       // without examining a single call site — and it would look like a clean
       // bill of health rather than a broken detector.
-      expect(atRisk, isNotEmpty,
-          reason: 'No Arabic copy matched the risk signature at all. Either '
-              'the pattern broke, or every figure lost its sign — check the '
-              'ARB before believing this.',);
+      expect(
+        atRisk,
+        isNotEmpty,
+        reason: 'No Arabic copy matched the risk signature at all. Either '
+            'the pattern broke, or every figure lost its sign — check the '
+            'ARB before believing this.',
+      );
     });
   });
 
@@ -162,8 +167,11 @@ void main() {
   final List<File> sources = dartSources(Directory('lib'));
 
   test('the source scan opened files — census', () {
-    expect(sources.length, greaterThan(15),
-        reason: 'Only ${sources.length} sources — pointed at the wrong tree.',);
+    expect(
+      sources.length,
+      greaterThan(15),
+      reason: 'Only ${sources.length} sources — pointed at the wrong tree.',
+    );
   });
 
   /// Walks left from [at] to see whether it sits inside the arguments of an
@@ -232,21 +240,30 @@ void main() {
       if (sites == 0) unused.add(entry.key);
     }
 
-    expect(bare, isEmpty,
-        reason: 'These render a sign on the wrong side of its number in '
-            'Arabic — the `+4.0` defect. Wrap the call in `ltrRun(…)`:\n  '
-            '${bare.join('\n  ')}',);
-    expect(unused, isEmpty,
-        reason: 'At-risk copy that nothing in lib/ uses. Delete the key, or '
-            'find the call site this scan cannot see: $unused',);
+    expect(
+      bare,
+      isEmpty,
+      reason: 'These render a sign on the wrong side of its number in '
+          'Arabic — the `+4.0` defect. Wrap the call in `ltrRun(…)`:\n  '
+          '${bare.join('\n  ')}',
+    );
+    expect(
+      unused,
+      isEmpty,
+      reason: 'At-risk copy that nothing in lib/ uses. Delete the key, or '
+          'find the call site this scan cannot see: $unused',
+    );
   });
 
   test('no exemption has gone stale', () {
     for (final String key in unisolatedOnPurpose) {
-      expect(atRisk, contains(key),
-          reason: '$key is exempted from isolation but no longer carries the '
-              'risk signature — the copy changed and the exemption outlived '
-              'its reason.',);
+      expect(
+        atRisk,
+        contains(key),
+        reason: '$key is exempted from isolation but no longer carries the '
+            'risk signature — the copy changed and the exemption outlived '
+            'its reason.',
+      );
     }
   });
 }

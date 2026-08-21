@@ -175,7 +175,5 @@ class _Option extends StatelessWidget {
 
   /// Arabic script reads RTL whatever the app is set to.
   TextDirection _directionOf(String label) =>
-      RegExp(r'[؀-ۿ]').hasMatch(label)
-          ? TextDirection.rtl
-          : TextDirection.ltr;
+      RegExp(r'[؀-ۿ]').hasMatch(label) ? TextDirection.rtl : TextDirection.ltr;
 }

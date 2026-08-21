@@ -24,6 +24,7 @@ class DioTransport implements SahraTransport {
   DioTransport({
     required String baseUrl,
     required String Function() localeCode,
+
     /// The current access token, or null. Read PER REQUEST rather than
     /// captured, because it changes when the diner signs in and a transport
     /// holding a stale copy would keep sending a token that no longer exists.

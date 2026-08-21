@@ -71,7 +71,6 @@ void main() {
     expect(SahraLayout.maxContentWidth, 560);
     expect(SahraLayout.maxContentWidth, lessThan(768));
     // ~1.5x the canvas the screens were actually drawn on.
-    expect(SahraLayout.maxContentWidth / SahraLayout.designCanvas.width,
-        closeTo(1.5, 0.05));
+    expect(SahraLayout.maxContentWidth / SahraLayout.designCanvas.width, closeTo(1.5, 0.05));
   });
 }

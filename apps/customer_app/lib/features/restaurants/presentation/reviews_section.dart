@@ -123,8 +123,7 @@ class _ReviewsSheet extends ConsumerWidget {
     final s = Theme.of(context).sahra;
     final text = Theme.of(context).textTheme;
 
-    final page = ref.watch(reviewFeedProvider(idOrSlug)).valueOrNull ??
-        const ReviewPage.empty();
+    final page = ref.watch(reviewFeedProvider(idOrSlug)).valueOrNull ?? const ReviewPage.empty();
 
     return SahraPageWidth(
       child: Column(
@@ -159,8 +158,7 @@ class _ReviewsSheet extends ConsumerWidget {
                   SahraButton(
                     label: l10n.reviewsShowMore,
                     variant: SahraButtonVariant.ghost,
-                    onPressed: () =>
-                        ref.read(reviewFeedProvider(idOrSlug).notifier).loadMore(),
+                    onPressed: () => ref.read(reviewFeedProvider(idOrSlug).notifier).loadMore(),
                   ),
                 const SizedBox(height: SahraSpace.s3),
                 Text(

@@ -6,17 +6,15 @@ part of 'locale_override.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$localePreferenceStoreHash() =>
-    r'f41c3dd61d740fb4281674e1f7e1d6c71b6618af';
+String _$localePreferenceStoreHash() => r'f41c3dd61d740fb4281674e1f7e1d6c71b6618af';
 
 /// See also [localePreferenceStore].
 @ProviderFor(localePreferenceStore)
 final localePreferenceStoreProvider = Provider<LocalePreferenceStore>.internal(
   localePreferenceStore,
   name: r'localePreferenceStoreProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$localePreferenceStoreHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$localePreferenceStoreHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -54,13 +52,11 @@ String _$localeOverrideHash() => r'9dfb19c75034917bf0165ba41da362c252b10ac6';
 ///
 /// Copied from [LocaleOverride].
 @ProviderFor(LocaleOverride)
-final localeOverrideProvider =
-    NotifierProvider<LocaleOverride, String?>.internal(
+final localeOverrideProvider = NotifierProvider<LocaleOverride, String?>.internal(
   LocaleOverride.new,
   name: r'localeOverrideProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$localeOverrideHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$localeOverrideHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

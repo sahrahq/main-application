@@ -46,8 +46,7 @@ class Menu {
     return out;
   }
 
-  int get itemCount =>
-      categories.fold(0, (total, c) => total + c.items.length);
+  int get itemCount => categories.fold(0, (total, c) => total + c.items.length);
 }
 
 class MenuCategory {

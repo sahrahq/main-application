@@ -84,9 +84,7 @@ void main() {
     // ENUMERATED FROM THE REGISTRY, not from a list beside the test. A screen
     // added tomorrow is covered the moment it exists — the rule this codebase
     // settled on after the `updated_at` sweep.
-    final everythingElse = screenCases.keys
-        .where((k) => !k.startsWith('Confirmed/'))
-        .toList();
+    final everythingElse = screenCases.keys.where((k) => !k.startsWith('Confirmed/')).toList();
 
     test('the registry was read and has plenty in it — census', () {
       // Without this, an empty list would make every assertion below pass by
@@ -121,6 +119,7 @@ void main() {
             venueName: 'Layali Lounge',
             startsAt: '2027-08-05T18:00:00.000Z',
             partySize: 2,
+            wallClock: '20:00',
           ),
           overrides: overrides(<Override>[...signedIn, ...deviceTransport()]),
         ),

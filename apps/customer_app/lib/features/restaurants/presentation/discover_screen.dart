@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../reservations/presentation/reservation_copy.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahra_design_system/sahra_design_system.dart';
 
@@ -291,7 +292,7 @@ class _TonightRow extends ConsumerWidget {
               // follow, so no screen can pass one to a booking call.
               availability: venue.nextAvailable.isEmpty
                   ? null
-                  : l10n.searchNextAvailable(venue.nextAvailable.first),
+                  : l10n.searchNextAvailable(timeOfDay(venue.nextAvailable.first, context)),
               saved: saved,
               saveLabel: saved ? l10n.savedRemoveLabel(venue.name) : l10n.savedAddLabel(venue.name),
               onSave: () => toggleSavedAndReport(context, ref, restaurantId: venue.id),

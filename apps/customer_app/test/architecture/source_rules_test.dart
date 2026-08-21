@@ -20,9 +20,12 @@ void main() {
     // opened is asserted first. This exact failure has happened twice in this
     // repo, both times in a census.
     final files = dartSources(lib, excludePathContains: generated);
-    expect(files.length, greaterThan(15),
-        reason: 'Only ${files.length} sources scanned — the scanner is looking '
-            'in the wrong place, and every check below is vacuous.',);
+    expect(
+      files.length,
+      greaterThan(15),
+      reason: 'Only ${files.length} sources scanned — the scanner is looking '
+          'in the wrong place, and every check below is vacuous.',
+    );
   });
 
   test('no hardcoded colours, spacing, radii or font families', () {
@@ -62,6 +65,209 @@ void main() {
     // where nobody looks.
     final v = noBidiCorruptionSignature(lib);
     expect(v, isEmpty, reason: describeBidi(v));
+  });
+
+  test('NO SHOWN BOOKING TIME IS DERIVED FROM startsAt VIA toLocal()', () {
+    /// The rule existed as prose and was violated anyway.
+    ///
+    /// `my_reservation.dart` has said this since the field was added:
+    ///
+    ///   > USE THESE, not `DateTime.parse(startsAt).toLocal()`. A diner in
+    ///   > Cairo gets the same answer either way; a diner who booked from
+    ///   > Dubai and is reading the list on the plane does not, and the number
+    ///   > they need is the one the restaurant will be looking at.
+    ///
+    /// `confirmed_screen.dart` did exactly that anyway, and carried a comment
+    /// asserting it was "the ONE place a local rendering is right" — the wrong
+    /// belief, written down, sitting three files from the right one. The
+    /// result: the ticket a diner screenshots and shows at the door displayed
+    /// a different hour from the same booking in their bookings list, whenever
+    /// their phone timezone differed from the venue's. Invisible in Egypt,
+    /// because there the two agree.
+    ///
+    /// A RULE IN A COMMENT IS NOT A CONTROL. This is the control.
+    ///
+    /// `startsAt`/`endsAt` are absolute instants and exist for arithmetic —
+    /// "is this in the future", "how long until the hold expires". `date` and
+    /// `time` are the venue's wall clock and are the only things a diner may
+    /// be SHOWN. The distinction is doc 06 §4 and it must not blur.
+    ///
+    /// SCOPED TO BOOKING INSTANTS. `toLocal()` on `createdAt`/`readAt` in the
+    /// notifications repository is correct and stays: "2 hours ago" is a fact
+    /// about the reader, not about a restaurant. The scan therefore keys on
+    /// startsAt/endsAt rather than banning the method outright — a blanket ban
+    /// would have to be exempted immediately, and an exemption list is how a
+    /// rule starts drifting.
+    final List<String> offenders = <String>[];
+    for (final File f in dartSources(lib, excludePathContains: generated)) {
+      final List<String> lines = f.readAsLinesSync();
+      for (int i = 0; i < lines.length; i++) {
+        final String line = lines[i];
+        if (line.trimLeft().startsWith('//') || line.trimLeft().startsWith('///')) continue;
+        if (!line.contains('toLocal()')) continue;
+        if (RegExp(r'(startsAt|endsAt|starts_at|ends_at)').hasMatch(line)) {
+          offenders.add('${f.path}:${i + 1}: ${line.trim()}');
+        }
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'A shown time was derived from an absolute instant via toLocal(): '
+          '${offenders.join(' | ')}'
+          '  ——  Show the wall clock the server computed in the venue timezone '
+          '(date / time / Slot.label), not the device clock of whoever is '
+          'reading. See my_reservation.dart and doc 06 section 4.',
+    );
+  });
+
+  test('NO RAW HH:MM REACHES A DISPLAY WIDGET — every time goes through timeOfDay', () {
+    /// Dates had a convention and times did not, so thirteen sites each
+    /// interpolated a raw `HH:MM` and every one showed a 24-hour clock nobody
+    /// in Egypt reads. The strings were correct and wrong for humans, and no
+    /// test was going to catch that — so this one exists.
+    ///
+    /// A `time` / `label` / `wallClock` value reaching a rendered position
+    /// without passing through `timeOfDay(...)` is the defect. `ltrRun(...)`
+    /// used to be the idiom and is no longer sufficient on its own: it fixes
+    /// the direction of a 24-hour string, not the fact that it is 24-hour.
+    final List<String> offenders = <String>[];
+    final RegExp carrier = RegExp(r'\b(\w*[Tt]ime|slotLabel|wallClock|\w*\.label)\b');
+    for (final File f in dartSources(lib, excludePathContains: generated)) {
+      final List<String> lines = f.readAsLinesSync();
+      for (int i = 0; i < lines.length; i++) {
+        final String line = lines[i];
+        final String t = line.trimLeft();
+        if (t.startsWith('//') || t.startsWith('///')) continue;
+        // Only lines that put something in a rendered position.
+        if (!RegExp(r'(Text\(|value:|label:|hintText:|title:|subtitle:)').hasMatch(line)) continue;
+        // A repository mapping a DTO into a domain object uses `label:` as a
+        // CONSTRUCTOR argument, not a rendered position. Excluded by path
+        // rather than by name, so a display widget that happens to live under
+        // data/ is still caught.
+        if (f.path.contains('${Platform.pathSeparator}data${Platform.pathSeparator}')) continue;
+        if (!carrier.hasMatch(line)) continue;
+        if (line.contains('timeOfDay(')) continue;
+        // `dayAndMonth` handles dates; `reservationWhen` composes both.
+        if (line.contains('dayAndMonth(') || line.contains('reservationWhen(')) continue;
+        offenders.add('${f.path}:${i + 1}: ${line.trim()}');
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'A time-carrying value reaches a display position without timeOfDay(): '
+          '${offenders.join(' | ')}'
+          '  ——  Route it through timeOfDay(), which follows the device 12/24 '
+          'setting, uses locale ar (never ar_EG, which forces Arabic-Indic '
+          'digits) and bidi-isolates the result. See reservation_copy.dart.',
+    );
+  });
+
+  test('AND THE SCAN CATCHES ONE — guards the guard', () {
+    // Without this, a regex that silently stopped matching would report a
+    // clean bill of health for a tree it never checked.
+    const String planted = 'final when = DateTime.parse(startsAt).toLocal();';
+    expect(planted.contains('toLocal()'), isTrue);
+    expect(RegExp(r'(startsAt|endsAt|starts_at|ends_at)').hasMatch(planted), isTrue);
+    // And a legitimate use is NOT caught.
+    const String allowed = 'createdAt: DateTime.parse(r.createdAt).toLocal(),';
+    expect(RegExp(r'(startsAt|endsAt|starts_at|ends_at)').hasMatch(allowed), isFalse);
+  });
+
+  test('NO DOCBLOCK CLAIMS A CALLER IT DOES NOT NAME', () {
+    /// `PushRegistrar.syncExistingToken` said "Called on sign-in and at launch
+    /// for a signed-in diner". Nothing called it on sign-in. Nothing called it
+    /// at launch. Its only caller was `askAfterBooking`, so the two-minute
+    /// token retry built underneath it could never run on a later launch —
+    /// which was the whole reason for building it.
+    ///
+    /// The obvious rule, *verify every named caller*, would have walked past
+    /// that sentence: it named NOBODY. "On sign-in" and "at launch" are
+    /// situations, not symbols. So this rule bans the unverifiable claim
+    /// instead of trying to check it, and the ban fails on SHAPE before any
+    /// lookup happens.
+    ///
+    /// It forbids a sentence people naturally write, and that cost is real.
+    /// It is paid because four of five stale-prose findings in this repo were
+    /// prose asserting something about code, and prose that fails to compile
+    /// costs one rewrite where prose that survives misleads for a month.
+    ///
+    /// Proved against the original text in
+    /// `packages/sahra_lints/test/caller_claims_test.dart`.
+    final v = docblockCallerClaims(lib, excludePathContains: generated);
+    expect(
+      v,
+      isEmpty,
+      reason: '${describe(v, 'caller-claim')}\n\n'
+          'A docblock says something is "called by/from/on/at" without naming a '
+          'symbol in backticks, or names one that contains no such call. Name '
+          'the caller — ``Called from `PushTapListener` `` — or, if the caller '
+          'is Android or a platform channel, write `callers-exempt: <reason>` '
+          'in the docblock.',
+    );
+  });
+
+  test('no public method in lib/ is mentioned nowhere else — USEFUL, AND UNRELATED', () {
+    /// This is the OTHER rule, and it is important that it is not counted
+    /// toward the one above. It could not have caught `syncExistingToken`:
+    /// that method HAD a caller and was never dead. It was reachable from one
+    /// situation while its docblock described two others — a different defect
+    /// with a different shape.
+    ///
+    /// It found one real thing on the day it was written: `clearFilters()`,
+    /// declared and called by nothing, not even a test.
+    ///
+    /// FALSE POSITIVES ON PORTS ARE EXPECTED and the exemptions below are the
+    /// evidence. A test double lives in `lib/` so the app can be assembled with
+    /// it, and is used only from `test/` by design. Each entry names why, so
+    /// the list growing is visible rather than quiet.
+    final v = publicMethodsWithNoCaller(
+      lib,
+      excludePathContains: generated,
+      exemptNames: <String>{
+        // FakePushTaps.emit — the only way a test can push a payload through
+        // the tap channel. A caller in lib/ would mean production code faking
+        // notification taps.
+        'emit',
+      },
+    );
+    expect(
+      v,
+      isEmpty,
+      reason: '${describe(v, 'no-caller')}\n\n'
+          'A public method nothing mentions is indistinguishable from one that '
+          'does not exist. Delete it, wire it, or — if it is a test double or a '
+          'port implementation called only through its interface — add it to '
+          'exemptNames above WITH A REASON.',
+    );
+  });
+
+  test('AND BOTH SCANNERS CATCH ONE — positive control', () {
+    /// Two rules that assert a list is empty, on a tree that satisfies them.
+    /// That is the same shape as a scanner pointed at the wrong directory, so
+    /// each is run once over a tree built to violate it.
+    final Directory tmp = Directory.systemTemp.createTempSync('sahra_arch');
+    try {
+      File('${tmp.path}/planted.dart').writeAsStringSync('''
+class Planted {
+  /// Called at launch, by nothing in particular.
+  void neverCalledByAnyone() {}
+}
+''');
+      expect(
+        docblockCallerClaims(tmp).map((v) => v.rule),
+        contains('caller-claim-unnamed'),
+        reason: 'the caller-claim scanner did not catch a planted violation',
+      );
+      expect(
+        publicMethodsWithNoCaller(tmp).map((v) => v.rule),
+        contains('no-caller'),
+        reason: 'the no-caller scanner did not catch a planted violation',
+      );
+    } finally {
+      tmp.deleteSync(recursive: true);
+    }
   });
 
   test('AsyncValue is unwrapped ONLY inside SahraAsyncView', () {

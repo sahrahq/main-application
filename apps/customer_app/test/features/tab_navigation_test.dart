@@ -103,8 +103,7 @@ void main() {
     return router;
   }
 
-  String where(GoRouter router) =>
-      router.routerDelegate.currentConfiguration.uri.path;
+  String where(GoRouter router) => router.routerDelegate.currentConfiguration.uri.path;
 
   testWidgets('the app opens on Discover, signed out, with no sign-in wall', (tester) async {
     final router = await pumpApp(tester);
@@ -174,8 +173,7 @@ void main() {
     expect(where(router), '/bookings');
   });
 
-  testWidgets('signed out, tapping Account goes to sign-in and RETURNS to Account',
-      (tester) async {
+  testWidgets('signed out, tapping Account goes to sign-in and RETURNS to Account', (tester) async {
     final router = await pumpApp(tester);
 
     await tester.tap(find.text('Account'));

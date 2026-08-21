@@ -38,9 +38,8 @@ void main() {
   final RegExp plural = RegExp(r'\{(\w+),\s*plural\s*,');
 
   test('the census found plural messages at all', () {
-    final found = en.entries
-        .where((e) => e.value is String && plural.hasMatch(e.value as String))
-        .length;
+    final found =
+        en.entries.where((e) => e.value is String && plural.hasMatch(e.value as String)).length;
     // Without this the loop below passes on an ARB with no plurals in it,
     // which is how a copy guard comes to guard nothing.
     expect(found, greaterThanOrEqualTo(3), reason: 'only $found plural messages');

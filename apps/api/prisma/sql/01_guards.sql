@@ -101,23 +101,61 @@ ALTER TABLE reservation_tables
 -- exclusion constraint has something to range over. Application code must
 -- never set them by hand — these triggers own both columns.
 
-CREATE OR REPLACE FUNCTION sahra_resv_table_sync()
-RETURNS TRIGGER AS $$
+-- ═══════════════════════════════════════════════════════════════════════════
+--  THESE TWO FUNCTIONS ARE OWNED BY THE MIGRATIONS. THIS FILE ASSERTS, NEVER
+--  DEFINES.
+--
+--  INCIDENT 7, 2026-08-10. This file used to carry its own
+--  `CREATE OR REPLACE FUNCTION sahra_resv_table_sync()` and
+--  `sahra_resv_propagate()` — copies of the versions in
+--  `20260731000000_init`. `20260801000000_lock_down_data_api` later re-created
+--  both WITH `SET search_path = ''` to close the advisor's "Function Search
+--  Path Mutable" finding. This file runs AFTER `prisma migrate deploy`, and
+--  `CREATE OR REPLACE FUNCTION` replaces the WHOLE definition — including the
+--  SET clause. So the guards file silently un-pinned both functions every
+--  time it ran.
+--
+--  Any environment provisioned in the documented order — `migrate deploy`
+--  then this file — ended up with mutable `search_path` on both reservation
+--  triggers. That includes production. The dev database passes only by an
+--  accident of the order its own history happened to run in: the guards were
+--  applied there BEFORE the lockdown migration, so the pin survived.
+--
+--  `schema-invariants.e2e-spec.ts` has asserted this correctly for weeks and
+--  never once ran against a database built in the documented order.
+--
+--  THE COPIES ARE DELETED RATHER THAN SYNCHRONISED. Two files owning one
+--  definition IS the defect; making them match repairs today and guarantees
+--  the same divergence the first time someone edits one and not the other.
+--  The bodies here were also the pre-lockdown ones, using unqualified
+--  `reservations` — which cannot work under `search_path = ''` anyway.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+DO $guard$
 DECLARE
-  r RECORD;
+  bad text;
 BEGIN
-  SELECT starts_at, ends_at, status INTO r
-  FROM reservations WHERE id = NEW.reservation_id;
+  SELECT string_agg(want.name, ', ' ORDER BY want.name) INTO bad
+    FROM (VALUES ('sahra_resv_table_sync'), ('sahra_resv_propagate')) AS want(name)
+   WHERE NOT EXISTS (
+     SELECT 1
+       FROM pg_proc p
+       JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public'
+        AND p.proname = want.name
+        AND EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, '{}')) c
+                     WHERE c LIKE 'search_path=%')
+   );
 
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'reservation % not found', NEW.reservation_id;
+  IF bad IS NOT NULL THEN
+    RAISE EXCEPTION
+      'Missing or search_path-unpinned trigger function(s): %. They are created by '
+      '20260731000000_init and pinned by 20260801000000_lock_down_data_api. Run '
+      '`prisma migrate deploy` before this file. Do NOT re-add definitions here — '
+      'this file un-pinned them for weeks by doing exactly that (Incident 7).', bad;
   END IF;
-
-  NEW.during := tstzrange(r.starts_at, r.ends_at, '[)');
-  NEW.active := r.status IN ('held', 'pending', 'confirmed', 'seated');
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+END
+$guard$;
 
 DROP TRIGGER IF EXISTS trg_resv_table_sync ON reservation_tables;
 CREATE TRIGGER trg_resv_table_sync
@@ -127,16 +165,10 @@ CREATE TRIGGER trg_resv_table_sync
 -- When a reservation's status or window changes, push it down to its
 -- allocations. Cancelling/expiring flips active=false, which releases the
 -- exclusion slot and frees the table for the next booker.
-CREATE OR REPLACE FUNCTION sahra_resv_propagate()
-RETURNS TRIGGER AS $$
-BEGIN
-  UPDATE reservation_tables
-     SET during = tstzrange(NEW.starts_at, NEW.ends_at, '[)'),
-         active = NEW.status IN ('held', 'pending', 'confirmed', 'seated')
-   WHERE reservation_id = NEW.id;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- (Definition deleted — see the Incident 7 block above. Owned by
+-- 20260731000000_init, pinned by 20260801000000_lock_down_data_api, and
+-- asserted present-and-pinned by the DO block above before either trigger is
+-- attached.)
 
 DROP TRIGGER IF EXISTS trg_resv_propagate ON reservations;
 CREATE TRIGGER trg_resv_propagate

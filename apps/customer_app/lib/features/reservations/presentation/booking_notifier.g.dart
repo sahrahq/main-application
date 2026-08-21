@@ -72,8 +72,7 @@ class AvailableSlotsFamily extends Family<AsyncValue<SlotBoard>> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'availableSlotsProvider';
@@ -96,12 +95,9 @@ class AvailableSlotsProvider extends AutoDisposeFutureProvider<SlotBoard> {
           from: availableSlotsProvider,
           name: r'availableSlotsProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$availableSlotsHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$availableSlotsHash,
           dependencies: AvailableSlotsFamily._dependencies,
-          allTransitiveDependencies:
-              AvailableSlotsFamily._allTransitiveDependencies,
+          allTransitiveDependencies: AvailableSlotsFamily._allTransitiveDependencies,
           restaurantId: restaurantId,
         );
 
@@ -142,8 +138,7 @@ class AvailableSlotsProvider extends AutoDisposeFutureProvider<SlotBoard> {
 
   @override
   bool operator ==(Object other) {
-    return other is AvailableSlotsProvider &&
-        other.restaurantId == restaurantId;
+    return other is AvailableSlotsProvider && other.restaurantId == restaurantId;
   }
 
   @override
@@ -162,8 +157,8 @@ mixin AvailableSlotsRef on AutoDisposeFutureProviderRef<SlotBoard> {
   String get restaurantId;
 }
 
-class _AvailableSlotsProviderElement
-    extends AutoDisposeFutureProviderElement<SlotBoard> with AvailableSlotsRef {
+class _AvailableSlotsProviderElement extends AutoDisposeFutureProviderElement<SlotBoard>
+    with AvailableSlotsRef {
   _AvailableSlotsProviderElement(super.provider);
 
   @override
@@ -172,8 +167,7 @@ class _AvailableSlotsProviderElement
 
 String _$bookingSelectionHash() => r'52c30d7699440bb3108117e52aece287b42ccbe7';
 
-abstract class _$BookingSelection
-    extends BuildlessAutoDisposeNotifier<BookingCriteria> {
+abstract class _$BookingSelection extends BuildlessAutoDisposeNotifier<BookingCriteria> {
   late final String restaurantId;
 
   BookingCriteria build(
@@ -216,8 +210,7 @@ class BookingSelectionFamily extends Family<BookingCriteria> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'bookingSelectionProvider';
@@ -234,12 +227,9 @@ class BookingSelectionProvider
           from: bookingSelectionProvider,
           name: r'bookingSelectionProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$bookingSelectionHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$bookingSelectionHash,
           dependencies: BookingSelectionFamily._dependencies,
-          allTransitiveDependencies:
-              BookingSelectionFamily._allTransitiveDependencies,
+          allTransitiveDependencies: BookingSelectionFamily._allTransitiveDependencies,
           restaurantId: restaurantId,
         );
 
@@ -281,15 +271,13 @@ class BookingSelectionProvider
   }
 
   @override
-  AutoDisposeNotifierProviderElement<BookingSelection, BookingCriteria>
-      createElement() {
+  AutoDisposeNotifierProviderElement<BookingSelection, BookingCriteria> createElement() {
     return _BookingSelectionProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is BookingSelectionProvider &&
-        other.restaurantId == restaurantId;
+    return other is BookingSelectionProvider && other.restaurantId == restaurantId;
   }
 
   @override
@@ -309,18 +297,17 @@ mixin BookingSelectionRef on AutoDisposeNotifierProviderRef<BookingCriteria> {
 }
 
 class _BookingSelectionProviderElement
-    extends AutoDisposeNotifierProviderElement<BookingSelection,
-        BookingCriteria> with BookingSelectionRef {
+    extends AutoDisposeNotifierProviderElement<BookingSelection, BookingCriteria>
+    with BookingSelectionRef {
   _BookingSelectionProviderElement(super.provider);
 
   @override
   String get restaurantId => (origin as BookingSelectionProvider).restaurantId;
 }
 
-String _$bookingFlowHash() => r'c694329f4ceec3c6a872014cb9bff88e090e1736';
+String _$bookingFlowHash() => r'88309ebf3d36320766b530284ddb7645587119e0';
 
-abstract class _$BookingFlow
-    extends BuildlessAutoDisposeNotifier<BookingProgress> {
+abstract class _$BookingFlow extends BuildlessAutoDisposeNotifier<BookingProgress> {
   late final String restaurantId;
 
   BookingProgress build(
@@ -407,8 +394,7 @@ class BookingFlowFamily extends Family<BookingProgress> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'bookingFlowProvider';
@@ -426,8 +412,7 @@ class BookingFlowFamily extends Family<BookingProgress> {
 /// walk away.
 ///
 /// Copied from [BookingFlow].
-class BookingFlowProvider
-    extends AutoDisposeNotifierProviderImpl<BookingFlow, BookingProgress> {
+class BookingFlowProvider extends AutoDisposeNotifierProviderImpl<BookingFlow, BookingProgress> {
   /// The hold → confirm sequence, the highest-risk logic in the product.
   ///
   /// It lives in a notifier and not in a widget, so it can be unit-tested
@@ -447,12 +432,9 @@ class BookingFlowProvider
           from: bookingFlowProvider,
           name: r'bookingFlowProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$bookingFlowHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$bookingFlowHash,
           dependencies: BookingFlowFamily._dependencies,
-          allTransitiveDependencies:
-              BookingFlowFamily._allTransitiveDependencies,
+          allTransitiveDependencies: BookingFlowFamily._allTransitiveDependencies,
           restaurantId: restaurantId,
         );
 
@@ -494,8 +476,7 @@ class BookingFlowProvider
   }
 
   @override
-  AutoDisposeNotifierProviderElement<BookingFlow, BookingProgress>
-      createElement() {
+  AutoDisposeNotifierProviderElement<BookingFlow, BookingProgress> createElement() {
     return _BookingFlowProviderElement(this);
   }
 
@@ -521,8 +502,7 @@ mixin BookingFlowRef on AutoDisposeNotifierProviderRef<BookingProgress> {
 }
 
 class _BookingFlowProviderElement
-    extends AutoDisposeNotifierProviderElement<BookingFlow, BookingProgress>
-    with BookingFlowRef {
+    extends AutoDisposeNotifierProviderElement<BookingFlow, BookingProgress> with BookingFlowRef {
   _BookingFlowProviderElement(super.provider);
 
   @override
@@ -614,8 +594,7 @@ class ChosenSlotFamily extends Family<String?> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'chosenSlotProvider';
@@ -632,8 +611,7 @@ class ChosenSlotFamily extends Family<String?> {
 /// change is how a diner books the wrong night.
 ///
 /// Copied from [ChosenSlot].
-class ChosenSlotProvider
-    extends AutoDisposeNotifierProviderImpl<ChosenSlot, String?> {
+class ChosenSlotProvider extends AutoDisposeNotifierProviderImpl<ChosenSlot, String?> {
   /// Which slot the diner has tapped, as an absolute `startsAt`.
   ///
   /// Keyed by `startsAt` rather than by the `HH:MM` label, so the selection
@@ -652,12 +630,9 @@ class ChosenSlotProvider
           from: chosenSlotProvider,
           name: r'chosenSlotProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$chosenSlotHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$chosenSlotHash,
           dependencies: ChosenSlotFamily._dependencies,
-          allTransitiveDependencies:
-              ChosenSlotFamily._allTransitiveDependencies,
+          allTransitiveDependencies: ChosenSlotFamily._allTransitiveDependencies,
           restaurantId: restaurantId,
         );
 
@@ -724,8 +699,7 @@ mixin ChosenSlotRef on AutoDisposeNotifierProviderRef<String?> {
   String get restaurantId;
 }
 
-class _ChosenSlotProviderElement
-    extends AutoDisposeNotifierProviderElement<ChosenSlot, String?>
+class _ChosenSlotProviderElement extends AutoDisposeNotifierProviderElement<ChosenSlot, String?>
     with ChosenSlotRef {
   _ChosenSlotProviderElement(super.provider);
 

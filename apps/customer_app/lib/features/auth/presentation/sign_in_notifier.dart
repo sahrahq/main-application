@@ -90,9 +90,8 @@ class SignIn extends _$SignIn {
 
     state = SignInVerifying(current.challenge);
     try {
-      final result = await ref
-          .read(authRepositoryProvider)
-          .verify(challenge: current.challenge, code: code);
+      final result =
+          await ref.read(authRepositoryProvider).verify(challenge: current.challenge, code: code);
 
       switch (result) {
         case VerifiedSignedIn(:final session):

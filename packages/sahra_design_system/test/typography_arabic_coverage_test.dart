@@ -77,10 +77,13 @@ void main() {
       }
     }
 
-    expect(wrong, isEmpty,
-        reason: 'These resolve to a font with no Arabic glyphs. Every screen '
-            'using one shows empty boxes to half the market:\n  '
-            '${wrong.join('\n  ')}',);
+    expect(
+      wrong,
+      isEmpty,
+      reason: 'These resolve to a font with no Arabic glyphs. Every screen '
+          'using one shows empty boxes to half the market:\n  '
+          '${wrong.join('\n  ')}',
+    );
   });
 
   test('every slot in the Latin theme uses a SAHRA family', () {

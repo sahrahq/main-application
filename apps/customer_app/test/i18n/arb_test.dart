@@ -12,13 +12,15 @@ void main() {
   final en = arb('lib/localization/app_en.arb');
   final ar = arb('lib/localization/app_ar.arb');
 
-  Set<String> keys(Map<String, dynamic> a) =>
-      a.keys.where((k) => !k.startsWith('@')).toSet();
+  Set<String> keys(Map<String, dynamic> a) => a.keys.where((k) => !k.startsWith('@')).toSet();
 
   test('the merged ARB is not a stub — census', () {
-    expect(keys(en).length, greaterThan(90),
-        reason: 'Only ${keys(en).length} keys — the merge produced a stub and '
-            'every parity check below is comparing two empty sets.',);
+    expect(
+      keys(en).length,
+      greaterThan(90),
+      reason: 'Only ${keys(en).length} keys — the merge produced a stub and '
+          'every parity check below is comparing two empty sets.',
+    );
   });
 
   test('parity: every key exists in both locales', () {
@@ -81,9 +83,12 @@ void main() {
         if (indic.hasMatch(a[k] as String)) offenders.add('$k: ${a[k]}');
       }
     }
-    expect(offenders, isEmpty,
-        reason: 'Arabic-Indic numerals — use Latin figures: '
-            '${offenders.join(' | ')}',);
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'Arabic-Indic numerals — use Latin figures: '
+          '${offenders.join(' | ')}',
+    );
   });
 
   test('no value is empty', () {
@@ -132,9 +137,12 @@ void main() {
         if (en[k] != sharedEn[k]) drifted.add('en.$k');
         if (ar[k] != sharedAr[k]) drifted.add('ar.$k');
       }
-      expect(drifted, isEmpty,
-          reason: 'edited in lib/localization/ instead of the source: $drifted. '
-              'Run: dart run tool/merge_arb.dart',);
+      expect(
+        drifted,
+        isEmpty,
+        reason: 'edited in lib/localization/ instead of the source: $drifted. '
+            'Run: dart run tool/merge_arb.dart',
+      );
     });
 
     test('every screen string survives the merge unchanged', () {
@@ -148,8 +156,11 @@ void main() {
 
     test('the merge is exactly the two sources — nothing invented in between', () {
       final expected = keys(sharedEn).union(keys(sourceEn));
-      expect(keys(en), expected,
-          reason: 'the generated ARB has keys from neither source, or is missing some',);
+      expect(
+        keys(en),
+        expected,
+        reason: 'the generated ARB has keys from neither source, or is missing some',
+      );
     });
 
     test('no key is defined by BOTH sources', () {

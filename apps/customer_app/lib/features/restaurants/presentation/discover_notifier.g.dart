@@ -31,9 +31,8 @@ String _$availableTonightHash() => r'2b525fc9608286b409a543f93f0311327f2c436d';
 final availableTonightProvider = AutoDisposeFutureProvider<SearchPage>.internal(
   availableTonight,
   name: r'availableTonightProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$availableTonightHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$availableTonightHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

@@ -50,8 +50,25 @@ async function bootstrap(): Promise<void> {
   SwaggerModule.setup("api/docs", app, SwaggerModule.createDocument(app, config));
 
   const port = Number(process.env.PORT ?? 3000);
-  await app.listen(port);
+
+  // ── 0.0.0.0, EXPLICITLY, SO A HANDSET ON THE SAME WIFI CAN REACH IT ──────
+  //
+  // Express already defaults to every interface, so this changes no behaviour
+  // — it is written down because the FAILURE it prevents is silent and
+  // expensive: a phone pointed at `http://<laptop-ip>:3000` that gets no
+  // answer shows a generic network error on every screen, and the product
+  // looks broken rather than unreachable. Someone will eventually "fix" this
+  // line to `127.0.0.1` for tidiness; this comment is why they should not.
+  //
+  // It is a DEVELOPMENT convenience, not a deployment posture. A real
+  // deployment sits behind a reverse proxy that terminates TLS (doc 10) — the
+  // client's cleartext permission exists only in debug and profile builds,
+  // asserted by `release_cleartext_test.dart`.
+  await app.listen(port, "0.0.0.0");
   new Logger("bootstrap").log(`SAHRA API on :${port} — docs at /api/docs`);
+  new Logger("bootstrap").log(
+    `Reachable from a handset on the same wifi at http://<this-machine-lan-ip>:${port}`,
+  );
 
   // ── AND SAY IT AGAIN, LAST ────────────────────────────────────────────
   //

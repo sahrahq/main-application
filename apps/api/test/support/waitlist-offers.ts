@@ -1,6 +1,7 @@
 import type { PrismaService } from '../../src/shared/prisma/prisma.service';
 import { NotificationsService } from '../../src/modules/notifications/notifications.service';
 import { LoggingPushDelivery } from '../../src/modules/notifications/delivery/logging-push.delivery';
+import { pushReadiness } from '../../src/modules/notifications/push-readiness';
 import { WaitlistOfferService } from '../../src/modules/favorites/waitlist-offer.service';
 
 /**
@@ -27,6 +28,12 @@ import { WaitlistOfferService } from '../../src/modules/favorites/waitlist-offer
 export function realWaitlistOffers(prisma: PrismaService): WaitlistOfferService {
   return new WaitlistOfferService(
     prisma,
-    new NotificationsService(prisma, new LoggingPushDelivery('test')),
+    // Readiness is passed EXPLICITLY, with no credential — the same answer the
+    // app computes outside production. It is a constructor argument rather
+    // than an ambient default precisely because platform support stopped being
+    // the adapter's business on 2026-08-10: the send path now refuses an
+    // undeliverable platform itself, so a helper that omitted this would be
+    // testing a service that cannot refuse anything.
+    new NotificationsService(prisma, new LoggingPushDelivery('test'), pushReadiness(null)),
   );
 }

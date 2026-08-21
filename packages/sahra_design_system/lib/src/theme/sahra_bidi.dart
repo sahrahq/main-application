@@ -71,8 +71,7 @@ const String _fsi = '\u2068';
 String isolate(String text) => '$_fsi$text$_pdi';
 
 /// The same, tolerant of null and of empty.
-String? isolateOrNull(String? text) =>
-    (text == null || text.isEmpty) ? text : isolate(text);
+String? isolateOrNull(String? text) => (text == null || text.isEmpty) ? text : isolate(text);
 
 /// Wrap [text] so it always lays out left-to-right, whatever paragraph it
 /// lands in.

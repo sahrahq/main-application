@@ -7,8 +7,35 @@
          absent: nothing in this product follows anybody around. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- ANDROID 13+ (API 33) MAKES NOTIFICATIONS A RUNTIME PERMISSION, and
+         without this line the prompt CANNOT BE SHOWN. Not "is denied" —
+         cannot be shown: `requestPermission()` returns denied immediately and
+         no dialog ever appears.
+
+         Everything NOTIFY-1 built and verified would have reached nobody on a
+         modern handset: the FCM adapter, `POST /devices` registration, the
+         send path's platform gate, the ask-after-booking prompt. All correct,
+         all tested, all silent. That is the shape this repo keeps finding — a
+         capability that is never reachable is indistinguishable from one that
+         does not exist.
+
+         Guarded by `test/architecture/manifest_permissions_test.dart`, which
+         reads the runtime requests OUT OF THE DART SOURCE and fails if any of
+         them has no matching `uses-permission`. A list beside the manifest
+         would drift; the source is the catalogue. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- `android:label` was the scaffold's "sahra_customer_app", which is
+         literally what a diner would have read under the icon. It is a string
+         RESOURCE now so `values-ar/` can give it an Arabic name — a hardcoded
+         label has no locale.
+
+         This comment sits ABOVE the tag, not between its attributes: a comment
+         inside a start tag is not well-formed XML, and the Android manifest
+         parser rejects the whole file. Which it did, on the first release
+         build. -->
     <application
-        android:label="sahra_customer_app"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -68,6 +95,14 @@
         <intent>
             <action android:name="android.intent.action.DIAL"/>
             <data android:scheme="tel"/>
+        </intent>
+        <!-- The venue's "get directions" handoff. Same API 30 rule as the two
+             above: without this, `canLaunchUrl(geo:...)` is false on every
+             Android 11+ handset even though every map app registers for it,
+             and the address row silently stops being tappable. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="geo"/>
         </intent>
     </queries>
 </manifest>

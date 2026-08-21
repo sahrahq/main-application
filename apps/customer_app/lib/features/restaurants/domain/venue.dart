@@ -169,8 +169,7 @@ class VenueProfile {
 
   /// The shifts running on [weekday] (0 = Sunday), in order. Empty means the
   /// venue is closed that day, which is information rather than an error.
-  List<OpeningHours> hoursOn(int weekday) =>
-      hours.where((h) => h.dayOfWeek == weekday).toList();
+  List<OpeningHours> hoursOn(int weekday) => hours.where((h) => h.dayOfWeek == weekday).toList();
 }
 
 class OpeningHours {

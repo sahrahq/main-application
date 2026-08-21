@@ -122,7 +122,12 @@ void main() {
       Map<String, String>? sent;
       final transport = _QueryRecordingTransport(
         (q) => sent = q,
-        (_, __, ___) => page(<Map<String, Object?>>[venue(next: <String>['21:00'])], filtered: true),
+        (_, __, ___) => page(
+          <Map<String, Object?>>[
+            venue(next: <String>['21:00']),
+          ],
+          filtered: true,
+        ),
       );
       final c = containerWith(transport);
 
@@ -142,8 +147,14 @@ void main() {
 
     test('next_available survives as strings, never parsed into a time', () async {
       final c = containerWith(
-        FakeTransport((_, __, ___) =>
-            page(<Map<String, Object?>>[venue(next: <String>['21:00', '21:30'])], filtered: true),),
+        FakeTransport(
+          (_, __, ___) => page(
+            <Map<String, Object?>>[
+              venue(next: <String>['21:00', '21:30']),
+            ],
+            filtered: true,
+          ),
+        ),
       );
 
       c.read(searchCriteriaProvider.notifier).toggleTonight();
@@ -188,12 +199,14 @@ void main() {
   group('the page-two caveat is represented, not hidden', () {
     test('a cursor is carried through so the screen can know there is more', () async {
       final c = containerWith(
-        FakeTransport((_, __, ___) => <String, Object?>{
-              'results': <Object>[venue()],
-              'next_cursor': 'cursor-20',
-              'estimated_total': 42,
-              'availability_filtered': true,
-            },),
+        FakeTransport(
+          (_, __, ___) => <String, Object?>{
+            'results': <Object>[venue()],
+            'next_cursor': 'cursor-20',
+            'estimated_total': 42,
+            'availability_filtered': true,
+          },
+        ),
       );
       c.read(searchCriteriaProvider.notifier).setText('a');
 

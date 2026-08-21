@@ -80,20 +80,24 @@ void screenGoldens(
   Size surface = const Size(390, 844),
 }) {
   for (final cell in Cell.values) {
-    testWidgets('golden: $name [${cell.slug}]', (tester) async {
-      tester.view.physicalSize = surface;
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
+    testWidgets(
+      'golden: $name [${cell.slug}]',
+      (tester) async {
+        tester.view.physicalSize = surface;
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(screenHarness(cell, build(cell), overrides: overrides(cell)));
-      await stabilise(tester);
-      if (after != null) await after(tester);
+        await tester.pumpWidget(screenHarness(cell, build(cell), overrides: overrides(cell)));
+        await stabilise(tester);
+        if (after != null) await after(tester);
 
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/${name.replaceAll('/', '_')}.${cell.slug}.png'),
-      );
-    }, tags: 'golden',);
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile('goldens/${name.replaceAll('/', '_')}.${cell.slug}.png'),
+        );
+      },
+      tags: 'golden',
+    );
   }
 }
 
@@ -133,7 +137,7 @@ void screenA11y(
       await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
       await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
       await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-      await expectContrast(tester, '$name [${cell.slug}]');
+      await expectContrast(tester, '$name [${cell.slug}]', brightness: cell.brightness);
       handle.dispose();
     });
   }
@@ -151,7 +155,41 @@ void screenA11y(
 /// lives beside `bestPossibleEdgeContrast`, which is what proves the claim
 /// (`palette_contrast_test.dart`), so the advice and the arithmetic cannot
 /// drift apart.
-Future<void> expectContrast(WidgetTester tester, String where) async {
+Future<void> expectContrast(
+  WidgetTester tester,
+  String where, {
+  required Brightness brightness,
+}) async {
+  // The DECISION lives in `sahra_contrast.dart` — one owner, called from both
+  // harnesses. Only this wrapper is duplicated, and deliberately: the two
+  // packages cannot share test-only code, but they must not each carry their
+  // own idea of when the guideline is meaningful. Full reasoning and the
+  // measured ceilings are in the design system's `test/support/harness.dart`.
+  final SahraSemantics s =
+      brightness == Brightness.dark ? SahraSemantics.dark() : SahraSemantics.light();
+  final List<Color> texts = <Color>[s.textBody, s.textSoft, s.textFaint, s.accentOnSurface];
+  final List<Color> surfaces = <Color>[s.surfacePage, s.surfaceCard, s.surfaceSunken];
+
+  final bool satisfiable =
+      surfaces.every((Color bg) => edgeSampledGuidelineIsSatisfiable(texts, bg));
+
+  if (!satisfiable) {
+    // NOT an absence of checking: the DESIGNED pair is asserted instead, and
+    // the design system's `palette_contrast_test.dart` enforces all 78
+    // combinations with no exemptions.
+    for (final Color bg in surfaces) {
+      for (final Color fg in texts) {
+        expect(
+          sahraContrastRatio(fg, bg),
+          greaterThanOrEqualTo(kBodyTextContrastMin),
+          reason: '$where: sampled guideline unsatisfiable on these surfaces, so the DESIGNED '
+              'pair is asserted — and this one is below AA. A real palette defect.',
+        );
+      }
+    }
+    return;
+  }
+
   try {
     await expectLater(tester, meetsGuideline(textContrastGuideline));
   } on TestFailure catch (e) {

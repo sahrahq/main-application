@@ -242,9 +242,8 @@ class _SahraButtonState extends State<SahraButton> {
       // comment is a number nobody re-checks after a token moves.
       SahraButtonVariant.destructive => _Palette(
           background: s.error,
-          foreground: s.brightness == Brightness.dark
-              ? SahraSemantics.light().textBody
-              : s.accentContrast,
+          foreground:
+              s.brightness == Brightness.dark ? SahraSemantics.light().textBody : s.accentContrast,
         ),
     };
   }

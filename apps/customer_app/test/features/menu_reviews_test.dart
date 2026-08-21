@@ -66,8 +66,7 @@ void main() {
         'images': <Object>[],
       };
 
-  Map<String, Object?> menuItem(String id, String en, String price) =>
-      <String, Object?>{
+  Map<String, Object?> menuItem(String id, String en, String price) => <String, Object?>{
         'id': id,
         'name_en': en,
         'name_ar': en,
@@ -157,8 +156,7 @@ void main() {
       });
 
   group('the menu', () {
-    testWidgets('shows FOUR dishes in the preview, not the whole menu',
-        (tester) async {
+    testWidgets('shows FOUR dishes in the preview, not the whole menu', (tester) async {
       // The reference draws four. A preview that quietly showed everything
       // would make "Full menu" a control that opens nothing new — the failure
       // this project keeps naming.
@@ -176,8 +174,7 @@ void main() {
       expect(find.text('Labneh'), findsNothing);
     });
 
-    testWidgets('the price is the string the API sent, scale and all',
-        (tester) async {
+    testWidgets('the price is the string the API sent, scale and all', (tester) async {
       // `180.50` through a JSON number and back is `180.5`, and a menu that
       // prints 180.5 where the kitchen prints 180.50 has lost the scale
       // CLAUDE.md rule 5 exists to keep. Asserted on the RENDERED text, which
@@ -213,8 +210,7 @@ void main() {
       expect(find.text('Labneh'), findsOneWidget);
     });
 
-    testWidgets('a venue with no menu shows no menu heading at all',
-        (tester) async {
+    testWidgets('a venue with no menu shows no menu heading at all', (tester) async {
       // Not an empty state. A heading over "nothing here yet" on a page that
       // already has content is worse than the absence — and most venues have no
       // menu, because every row of one is typed in by hand.
@@ -254,8 +250,7 @@ void main() {
         tester,
         const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
         overrides: <Override>[
-          transportProvider
-              .overrideWithValue(venueTransport(menuList: menusPdfOnly())),
+          transportProvider.overrideWithValue(venueTransport(menuList: menusPdfOnly())),
           contactLauncherProvider.overrideWithValue(launcher),
         ],
       );
@@ -269,8 +264,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('a platform with no handler says so instead of doing nothing',
-        (tester) async {
+    testWidgets('a platform with no handler says so instead of doing nothing', (tester) async {
       await openPdfSheet(tester, launcher: (_) async => false);
 
       final BuildContext context = tester.element(find.byType(VenueScreen));
@@ -310,8 +304,7 @@ void main() {
   });
 
   group('the reviews', () {
-    testWidgets('a venue with none still gets the section, and the reason why',
-        (tester) async {
+    testWidgets('a venue with none still gets the section, and the reason why', (tester) async {
       // The opposite call from the menu, and the reason is what the absence
       // MEANS: no menu is a gap in our data, no reviews is a fact about the
       // venue. The empty state is also the only place the verified-only rule
@@ -333,8 +326,7 @@ void main() {
       expect(find.text(l10n.venueReviewsAll), findsNothing);
     });
 
-    testWidgets('the author is only ever a first name and an initial',
-        (tester) async {
+    testWidgets('the author is only ever a first name and an initial', (tester) async {
       await _pump(
         tester,
         const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
@@ -389,8 +381,7 @@ void main() {
       expect(find.text(AppLocalizations.of(context).reviewReport), findsNothing);
     });
 
-    testWidgets('the sheet does, and it says what a report will NOT do',
-        (tester) async {
+    testWidgets('the sheet does, and it says what a report will NOT do', (tester) async {
       await openReviewsSheet(tester);
 
       final BuildContext context = tester.element(find.byType(VenueScreen));
@@ -514,8 +505,7 @@ void main() {
           },
         };
 
-    testWidgets('the CTA appears only when the SERVER says it may',
-        (tester) async {
+    testWidgets('the CTA appears only when the SERVER says it may', (tester) async {
       // `can_review` is computed by `review-eligibility.ts` and reported. A
       // client that re-derived it from the status would be a second copy of the
       // one invariant in Group D with no schema behind it.
@@ -555,8 +545,7 @@ void main() {
       expect(find.text(AppLocalizations.of(context).writeReviewCta), findsOneWidget);
     });
 
-    testWidgets('an already-reviewed visit says so rather than showing nothing',
-        (tester) async {
+    testWidgets('an already-reviewed visit says so rather than showing nothing', (tester) async {
       // A diner who remembers writing one and finds no trace assumes it was
       // lost.
       await _pump(
@@ -579,8 +568,7 @@ void main() {
       );
     });
 
-    testWidgets('the submit button is dead until a rating is picked',
-        (tester) async {
+    testWidgets('the submit button is dead until a rating is picked', (tester) async {
       await _pump(
         tester,
         const ReservationScreen(id: reservationId),

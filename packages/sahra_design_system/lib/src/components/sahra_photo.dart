@@ -78,13 +78,10 @@ class SahraPhoto extends StatelessWidget {
                         colors: <Color>[s.photoPlaceholderTop, s.photoPlaceholderBottom],
                       )
                     : null,
-                image: image == null
-                    ? null
-                    : DecorationImage(image: image!, fit: BoxFit.cover),
+                image: image == null ? null : DecorationImage(image: image!, fit: BoxFit.cover),
               ),
             ),
-            if (image == null)
-              SahraMashrabiya(color: s.photoLattice, tile: 40, opacity: 1),
+            if (image == null) SahraMashrabiya(color: s.photoLattice, tile: 40, opacity: 1),
             if (image == null && cue)
               Center(
                 child: SahraIcon(

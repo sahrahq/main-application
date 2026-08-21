@@ -34,8 +34,7 @@ String _$isSignedInHash() => r'3f68e576b8b40b14df4cd2c12eeaa265972fa07e';
 final isSignedInProvider = AutoDisposeProvider<bool>.internal(
   isSignedIn,
   name: r'isSignedInProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$isSignedInHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product') ? null : _$isSignedInHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -60,13 +59,11 @@ String _$currentSessionHash() => r'e7188e8e0da9757696fe77d903a047fbc406c0d6';
 ///
 /// Copied from [CurrentSession].
 @ProviderFor(CurrentSession)
-final currentSessionProvider =
-    NotifierProvider<CurrentSession, Session?>.internal(
+final currentSessionProvider = NotifierProvider<CurrentSession, Session?>.internal(
   CurrentSession.new,
   name: r'currentSessionProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$currentSessionHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$currentSessionHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

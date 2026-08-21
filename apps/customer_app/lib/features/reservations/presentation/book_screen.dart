@@ -11,6 +11,7 @@ import '../../../shared/widgets/sahra_async_view.dart';
 import '../domain/booking.dart';
 import 'booking_notifier.dart';
 import 'pending_booking.dart';
+import 'reservation_copy.dart';
 
 /// `docs/design/ui_kits/app/BookingFlowScreen.jsx`.
 ///
@@ -50,6 +51,10 @@ class BookScreen extends ConsumerWidget {
           venueName,
           next.booking.startsAt,
           next.booking.partySize,
+          // The WALL CLOCK, carried out of the flow rather than recomputed.
+          // `Booking` returns only absolute instants, so deriving it here from
+          // `startsAt` is precisely the defect this argument exists to close.
+          next.wallClock,
         ).go(context);
       }
       if (next is BookingNeedsSignIn) _signInRoundTrip(context, ref, next.selection);
@@ -66,63 +71,64 @@ class BookScreen extends ConsumerWidget {
       ),
       body: SahraPageWidth(
         child: SafeArea(
-        top: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // ONE scroll view over the header AND the slots.
-            //
-            // This was a fixed header above `Expanded(slots)`. At 320x568 with
-            // 200% text the header alone is taller than the body, so Expanded
-            // was handed nothing and the Column overflowed by 101px — on the
-            // smallest phone we support, at the text size a lot of Egyptian
-            // users on mid-range Androids actually run.
-            //
-            // The footer stays OUTSIDE it: the confirm button and the
-            // cancellation policy must not scroll away from the thing they
-            // confirm.
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-            Padding(
-              padding: SahraSpace.all(SahraSpace.s5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  SahraSectionLabel(l10n.bookDate),
-                  const SizedBox(height: SahraSpace.s2),
-                  SahraDateStrip(
-                    days: _nextWeek(context, ref),
-                    selectedId: criteria.date,
-                    onSelected:
-                        ref.read(bookingSelectionProvider(restaurantId).notifier).setDate,
+          top: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              // ONE scroll view over the header AND the slots.
+              //
+              // This was a fixed header above `Expanded(slots)`. At 320x568 with
+              // 200% text the header alone is taller than the body, so Expanded
+              // was handed nothing and the Column overflowed by 101px — on the
+              // smallest phone we support, at the text size a lot of Egyptian
+              // users on mid-range Androids actually run.
+              //
+              // The footer stays OUTSIDE it: the confirm button and the
+              // cancellation policy must not scroll away from the thing they
+              // confirm.
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Padding(
+                        padding: SahraSpace.all(SahraSpace.s5),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            SahraSectionLabel(l10n.bookDate),
+                            const SizedBox(height: SahraSpace.s2),
+                            SahraDateStrip(
+                              days: _nextWeek(context, ref),
+                              selectedId: criteria.date,
+                              onSelected:
+                                  ref.read(bookingSelectionProvider(restaurantId).notifier).setDate,
+                            ),
+                            const SizedBox(height: SahraSpace.s5),
+                            SahraSectionLabel(l10n.bookParty),
+                            const SizedBox(height: SahraSpace.s2),
+                            SahraPartyStepper(
+                              value: criteria.partySize,
+                              onChanged: ref
+                                  .read(bookingSelectionProvider(restaurantId).notifier)
+                                  .setPartySize,
+                              unitLabel: l10n.bookGuestsUnit(criteria.partySize),
+                              decreaseLabel: l10n.bookDecreaseParty,
+                              increaseLabel: l10n.bookIncreaseParty,
+                            ),
+                            const SizedBox(height: SahraSpace.s5),
+                            SahraSectionLabel(l10n.bookTime),
+                          ],
+                        ),
+                      ),
+                      _Slots(restaurantId: restaurantId, progress: progress),
+                    ],
                   ),
-                  const SizedBox(height: SahraSpace.s5),
-                  SahraSectionLabel(l10n.bookParty),
-                  const SizedBox(height: SahraSpace.s2),
-                  SahraPartyStepper(
-                    value: criteria.partySize,
-                    onChanged:
-                        ref.read(bookingSelectionProvider(restaurantId).notifier).setPartySize,
-                    unitLabel: l10n.bookGuestsUnit(criteria.partySize),
-                    decreaseLabel: l10n.bookDecreaseParty,
-                    increaseLabel: l10n.bookIncreaseParty,
-                  ),
-                  const SizedBox(height: SahraSpace.s5),
-                  SahraSectionLabel(l10n.bookTime),
-                ],
-              ),
-            ),
-                    _Slots(restaurantId: restaurantId, progress: progress),
-                  ],
                 ),
               ),
-            ),
-            _Footer(restaurantId: restaurantId, venueName: venueName, progress: progress),
-          ],
-        ),
+              _Footer(restaurantId: restaurantId, venueName: venueName, progress: progress),
+            ],
+          ),
         ),
       ),
     );
@@ -273,11 +279,10 @@ class _Slots extends ConsumerWidget {
               children: <Widget>[
                 for (final slot in board.slots)
                   SahraChip(
-                    label: slot.label,
+                    label: timeOfDay(slot.label, context),
                     active: ref.watch(chosenSlotProvider(restaurantId)) == slot.startsAt,
-                    onPressed: () => ref
-                        .read(chosenSlotProvider(restaurantId).notifier)
-                        .choose(slot.startsAt),
+                    onPressed: () =>
+                        ref.read(chosenSlotProvider(restaurantId).notifier).choose(slot.startsAt),
                   ),
               ],
             ),
@@ -384,7 +389,10 @@ class _Footer extends ConsumerWidget {
               SahraButton(
                 label: inFlight
                     ? l10n.bookHolding
-                    : l10n.bookConfirmFor(criteria.partySize, slot?.label ?? '—'),
+                    : l10n.bookConfirmFor(
+                        criteria.partySize,
+                        slot == null ? '—' : timeOfDay(slot.label, context),
+                      ),
                 // Disabled until a slot is chosen AND while the hold is in
                 // flight. A second tap during the round trip is the classic
                 // double-booking attempt; the idempotency key would make it

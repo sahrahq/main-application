@@ -6,8 +6,7 @@ part of 'venue_image_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$networkImageFactoryHash() =>
-    r'8a1022ecdf819cb76052618c5ae0ce141f567552';
+String _$networkImageFactoryHash() => r'8a1022ecdf819cb76052618c5ae0ce141f567552';
 
 /// URL → something Flutter can draw. THE ONLY LINE THAT TOUCHES THE NETWORK.
 ///
@@ -23,20 +22,17 @@ String _$networkImageFactoryHash() =>
 ///
 /// Copied from [networkImageFactory].
 @ProviderFor(networkImageFactory)
-final networkImageFactoryProvider =
-    Provider<ImageProvider Function(String url)>.internal(
+final networkImageFactoryProvider = Provider<ImageProvider Function(String url)>.internal(
   networkImageFactory,
   name: r'networkImageFactoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$networkImageFactoryHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$networkImageFactoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef NetworkImageFactoryRef
-    = ProviderRef<ImageProvider Function(String url)>;
+typedef NetworkImageFactoryRef = ProviderRef<ImageProvider Function(String url)>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

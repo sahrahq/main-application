@@ -15,6 +15,9 @@ import 'venue_meta.dart';
 import 'venue_notifier.dart';
 import '../../../shared/providers/session_providers.dart';
 import '../../saved/presentation/saved_notifier.dart';
+import 'package:flutter/foundation.dart';
+import '../../../shared/widgets/tappable_contact.dart';
+import '../domain/venue_map.dart';
 
 /// `docs/design/ui_kits/app/VenueDetailScreen.jsx`.
 ///
@@ -52,34 +55,34 @@ class VenueScreen extends ConsumerWidget {
       // SahraPageWidth for why the decision lives in one place.
       body: SahraPageWidth(
         child: SahraAsyncView<VenueProfile>(
-        value: ref.watch(venueProfileProvider(idOrSlug)),
-        onRetry: () => ref.invalidate(venueProfileProvider(idOrSlug)),
-        // A profile is one object; it is never "empty". Required by the
-        // signature anyway, which is the point — the alternative is a screen
-        // silently rendering nothing under a heading.
-        isEmpty: (_) => false,
-        empty: (_) => const SizedBox.shrink(),
-        loading: (_) => const _VenueSkeleton(),
-        error: (context, failure) => Center(
-          child: Padding(
-            padding: SahraSpace.all(SahraSpace.s5),
-            child: failure.code == 'restaurant_not_found'
-                // A venue that has stopped taking bookings is not an error to
-                // retry — it is a fact, and the way forward is elsewhere.
-                ? SahraEmptyState(
-                    icon: 'lantern',
-                    title: l10n.venueNotFoundTitle,
-                    message: l10n.venueNotFoundMessage,
-                    actionLabel: l10n.venueNotFoundAction,
-                    onAction: () => const SearchRoute().go(context),
-                  )
-                : SahraFailureView(
-                    failure: failure,
-                    onRetry: () => ref.invalidate(venueProfileProvider(idOrSlug)),
-                  ),
+          value: ref.watch(venueProfileProvider(idOrSlug)),
+          onRetry: () => ref.invalidate(venueProfileProvider(idOrSlug)),
+          // A profile is one object; it is never "empty". Required by the
+          // signature anyway, which is the point — the alternative is a screen
+          // silently rendering nothing under a heading.
+          isEmpty: (_) => false,
+          empty: (_) => const SizedBox.shrink(),
+          loading: (_) => const _VenueSkeleton(),
+          error: (context, failure) => Center(
+            child: Padding(
+              padding: SahraSpace.all(SahraSpace.s5),
+              child: failure.code == 'restaurant_not_found'
+                  // A venue that has stopped taking bookings is not an error to
+                  // retry — it is a fact, and the way forward is elsewhere.
+                  ? SahraEmptyState(
+                      icon: 'lantern',
+                      title: l10n.venueNotFoundTitle,
+                      message: l10n.venueNotFoundMessage,
+                      actionLabel: l10n.venueNotFoundAction,
+                      onAction: () => const SearchRoute().go(context),
+                    )
+                  : SahraFailureView(
+                      failure: failure,
+                      onRetry: () => ref.invalidate(venueProfileProvider(idOrSlug)),
+                    ),
+            ),
           ),
-        ),
-        content: (context, venue) => _Content(venue: venue),
+          content: (context, venue) => _Content(venue: venue),
         ),
       ),
     );
@@ -248,9 +251,8 @@ class _Hero extends ConsumerWidget {
                   // from the reference. A second way to say "saved" here would
                   // be a fifth heart that drifts from the other four.
                   active: saved,
-                  semanticLabel: saved
-                      ? l10n.savedRemoveLabel(venue.name)
-                      : l10n.savedAddLabel(venue.name),
+                  semanticLabel:
+                      saved ? l10n.savedRemoveLabel(venue.name) : l10n.savedAddLabel(venue.name),
                   onPressed: () => toggleSavedAndReport(context, ref, restaurantId: venue.id),
                 ),
               ),
@@ -318,6 +320,18 @@ class _InfoRows extends StatelessWidget {
     final today = DateTime.now().weekday % 7;
     final todaysHours = venue.hoursOn(today);
 
+    // Decided as a value, not inside the widget — see `venue_map.dart`. The
+    // platform is read here rather than baked into the function so the
+    // function stays testable for both without a platform channel.
+    final mapUri = venueMapUri(
+      platform: defaultTargetPlatform == TargetPlatform.iOS ? MapPlatform.ios : MapPlatform.android,
+      name: venue.name,
+      lat: venue.lat,
+      lng: venue.lng,
+      address: venue.address,
+      city: venue.city,
+    );
+
     return Column(
       children: <Widget>[
         _InfoRow(
@@ -337,29 +351,65 @@ class _InfoRows extends StatelessWidget {
         ),
         if (venue.address != null)
           // The address carries a house number, so it is a mixed run too.
-          _InfoRow(icon: 'map-pin', title: ltrRun(venue.address!), detail: venue.city),
+          //
+          // TAPPABLE ONLY WHEN THERE IS SOMEWHERE TO SEND THEM. `venueMapUri`
+          // returns null for a venue with neither coordinates nor an address,
+          // and the row then renders exactly as it always did. A control that
+          // opens an empty map is the dead-end shape; no control is honest.
+          _InfoRow(
+            icon: 'map-pin',
+            title: ltrRun(venue.address!),
+            detail: mapUri == null ? venue.city : '${venue.city} · ${l10n.venueDirections}',
+            onTap: mapUri == null ? null : () => _open(context, mapUri),
+            semanticLabel: l10n.venueDirections,
+          ),
         if (venue.phone != null)
           // "+20 2 2735 0000" rendered as "0000 2735 2 20+" — a phone number
           // nobody can dial. Same cause, same remedy.
-          _InfoRow(icon: 'phone', title: ltrRun(venue.phone!), detail: l10n.venueCall),
+          //
+          // AND IT DIALS. The detail line has said "Call venue" since this
+          // screen shipped while the row did nothing — a label promising an
+          // action nothing performed, which is exactly the defect this repo
+          // keeps finding. `tel:` was approved with `mailto:` (doc 08 §5) and
+          // the reservation screen has dialled since Group D; this row was
+          // simply never connected to the same door.
+          _InfoRow(
+            icon: 'phone',
+            title: ltrRun(venue.phone!),
+            detail: l10n.venueCall,
+            onTap: () => _open(context, Uri(scheme: 'tel', path: venue.phone!)),
+            semanticLabel: l10n.venueCall,
+          ),
       ],
     );
   }
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.title, required this.detail});
+  const _InfoRow({
+    required this.icon,
+    required this.title,
+    required this.detail,
+    this.onTap,
+    this.semanticLabel,
+  });
 
   final String icon;
   final String title;
   final String detail;
+
+  /// Null means the row is INFORMATION. Non-null makes the whole row the
+  /// target — not the text inside it, which measured 350x19 and would have
+  /// passed the tap-target guideline only by padding a lie.
+  final VoidCallback? onTap;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     final s = Theme.of(context).sahra;
     final text = Theme.of(context).textTheme;
 
-    return Padding(
+    final row = Padding(
       padding: SahraSpace.symmetric(vertical: SahraSpace.s3),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,7 +429,38 @@ class _InfoRow extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap == null) return row;
+
+    // MERGED, so the announced target is the one a finger can hit. Two Texts
+    // inside a tappable row otherwise expose their own nodes and the
+    // guideline measures the wrong thing — the same correction the search
+    // pill needed.
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        label: semanticLabel,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: SahraRules.minTouchTarget),
+            child: row,
+          ),
+        ),
+      ),
+    );
   }
+}
+
+/// Opens [uri] through the SAME door as every other launch in the app.
+///
+/// `kDefaultLauncher` does `canLaunchUrl` first and returns false rather than
+/// throwing, so a handset with no map app leaves the row inert instead of
+/// crashing. Calling `launchUrl` directly here is how a second, slightly worse
+/// launch path starts — it already happened once with the menu PDF.
+Future<void> _open(BuildContext context, Uri uri) async {
+  await kDefaultLauncher(uri);
 }
 
 /// The sticky bar: "From / Free to book" beside the primary action.

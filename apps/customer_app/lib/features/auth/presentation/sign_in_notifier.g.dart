@@ -12,12 +12,10 @@ String _$signInHash() => r'08c63e2c2676c4eed4eb60762f85d07d9cb9b402';
 ///
 /// Copied from [SignIn].
 @ProviderFor(SignIn)
-final signInProvider =
-    AutoDisposeNotifierProvider<SignIn, SignInState>.internal(
+final signInProvider = AutoDisposeNotifierProvider<SignIn, SignInState>.internal(
   SignIn.new,
   name: r'signInProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$signInHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product') ? null : _$signInHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    `night` from tokens.json — what `SahraNightTokens.surfacePage` resolves to.
+    Without this the dark-mode launch flashed WHITE before a near-black app,
+    which is the worst version of the handover and the one nobody tests
+    because most people develop in light mode.
+-->
+<resources>
+    <color name="launch_background">#1A1310</color>
+</resources>

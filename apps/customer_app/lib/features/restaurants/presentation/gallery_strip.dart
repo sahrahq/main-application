@@ -43,9 +43,7 @@ class GalleryStrip extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     // Everything after the hero.
-    final rest = images.length <= 1
-        ? const <VenueImage>[]
-        : images.sublist(1);
+    final rest = images.length <= 1 ? const <VenueImage>[] : images.sublist(1);
     if (rest.isEmpty) return const SizedBox.shrink();
 
     // COMPUTED, not fixed. At 200% text this strip does not itself grow — no

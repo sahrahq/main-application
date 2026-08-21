@@ -45,8 +45,7 @@ void main() {
     return out;
   }
 
-  AppNotification make(NotificationKind kind, [Map<String, String>? data]) =>
-      AppNotification(
+  AppNotification make(NotificationKind kind, [Map<String, String>? data]) => AppNotification(
         id: 'n1',
         kind: kind,
         data: data ??
@@ -63,9 +62,8 @@ void main() {
         readAt: null,
       );
 
-  final List<NotificationKind> real = NotificationKind.values
-      .where((k) => k != NotificationKind.unknown)
-      .toList();
+  final List<NotificationKind> real =
+      NotificationKind.values.where((k) => k != NotificationKind.unknown).toList();
 
   group('every kind renders in both languages', () {
     for (final kind in real) {
@@ -131,8 +129,7 @@ void main() {
     for (final kind in real) {
       for (final locale in <String>['en', 'ar']) {
         testWidgets('${kind.wire} with empty data [$locale]', (tester) async {
-          final copy =
-              await render(tester, make(kind, <String, String>{}), locale: locale);
+          final copy = await render(tester, make(kind, <String, String>{}), locale: locale);
           expect(copy, isNotNull);
           expect(copy!.title.trim(), isNotEmpty);
           expect(copy.title, isNot(contains('{')));
@@ -156,8 +153,11 @@ void main() {
     const String lri = '\u2066';
 
     testWidgets('an Arabic venue name in the Arabic app', (tester) async {
-      final copy = await render(tester, make(NotificationKind.waitlistOffer),
-          locale: 'ar',);
+      final copy = await render(
+        tester,
+        make(NotificationKind.waitlistOffer),
+        locale: 'ar',
+      );
       expect(copy!.title, contains(fsi));
       expect(
         copy.title,
@@ -182,8 +182,7 @@ void main() {
     });
   });
 
-  testWidgets('the cancellation reason is a QUOTE, not part of our sentence',
-      (tester) async {
+  testWidgets('the cancellation reason is a QUOTE, not part of our sentence', (tester) async {
     // A whole clause somebody at the venue typed. Interpolated into an Arabic
     // line it wraps mid-phrase and reads across two edges; on its own line with
     // its own direction it reads.
@@ -218,8 +217,7 @@ void main() {
   });
 
   testWidgets('the clock time is isolated so bidi cannot move it', (tester) async {
-    final copy =
-        await render(tester, make(NotificationKind.reservationReminder2h), locale: 'ar');
+    final copy = await render(tester, make(NotificationKind.reservationReminder2h), locale: 'ar');
     expect(copy!.body, contains('\u206621:00'));
   });
 
@@ -247,8 +245,7 @@ void main() {
     // somebody else already took. If withholding ever lands, this assertion is
     // where the copy has to be revisited.
     for (final locale in <String>['en', 'ar']) {
-      final copy =
-          await render(tester, make(NotificationKind.waitlistOffer), locale: locale);
+      final copy = await render(tester, make(NotificationKind.waitlistOffer), locale: locale);
       expect(copy!.body, isNot(contains('10')));
       expect(copy.body.toLowerCase(), isNot(contains('claim')));
     }

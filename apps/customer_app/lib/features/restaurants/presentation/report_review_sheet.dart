@@ -159,9 +159,7 @@ class _ReportSheetState extends ConsumerState<_ReportSheet> {
               SizedBox(
                 width: double.infinity,
                 child: SahraButton(
-                  label: _sending
-                      ? l10n.reviewReportSubmitting
-                      : l10n.reviewReportSubmit,
+                  label: _sending ? l10n.reviewReportSubmitting : l10n.reviewReportSubmit,
                   // Disabled until a reason is picked, rather than enabled and
                   // then refused by the server.
                   onPressed: _reason == null || _sending ? null : _send,

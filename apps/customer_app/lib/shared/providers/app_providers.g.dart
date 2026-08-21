@@ -13,8 +13,7 @@ String _$transportHash() => r'742439b3285e2d199aed3cdac621afc97802d6a6';
 final transportProvider = Provider<SahraTransport>.internal(
   transport,
   name: r'transportProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$transportHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product') ? null : _$transportHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -29,8 +28,7 @@ String _$apiHash() => r'98b5a14285245530a853ed912d943c4f554bdedc';
 final apiProvider = Provider<SahraApi>.internal(
   api,
   name: r'apiProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$apiHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product') ? null : _$apiHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -59,9 +57,8 @@ String _$contactLauncherHash() => r'18242b7f6c14e6f0f5f38a6325a9b5226f8e50ff';
 final contactLauncherProvider = Provider<ContactLauncher>.internal(
   contactLauncher,
   name: r'contactLauncherProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$contactLauncherHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$contactLauncherHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -69,17 +66,15 @@ final contactLauncherProvider = Provider<ContactLauncher>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ContactLauncherRef = ProviderRef<ContactLauncher>;
-String _$restaurantRepositoryHash() =>
-    r'cb74a0e174d00e7b1bfffb9a29b2ced36374c89b';
+String _$restaurantRepositoryHash() => r'cb74a0e174d00e7b1bfffb9a29b2ced36374c89b';
 
 /// See also [restaurantRepository].
 @ProviderFor(restaurantRepository)
 final restaurantRepositoryProvider = Provider<RestaurantRepository>.internal(
   restaurantRepository,
   name: r'restaurantRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$restaurantRepositoryHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$restaurantRepositoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -87,17 +82,15 @@ final restaurantRepositoryProvider = Provider<RestaurantRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef RestaurantRepositoryRef = ProviderRef<RestaurantRepository>;
-String _$reservationRepositoryHash() =>
-    r'61fa83a8fc4b81d850a289d861af709d08bdf495';
+String _$reservationRepositoryHash() => r'61fa83a8fc4b81d850a289d861af709d08bdf495';
 
 /// See also [reservationRepository].
 @ProviderFor(reservationRepository)
 final reservationRepositoryProvider = Provider<ReservationRepository>.internal(
   reservationRepository,
   name: r'reservationRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$reservationRepositoryHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$reservationRepositoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -112,9 +105,8 @@ String _$authRepositoryHash() => r'e6f240d03549047f8f0b9cb1bab6b84f53e8d57e';
 final authRepositoryProvider = Provider<AuthRepository>.internal(
   authRepository,
   name: r'authRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$authRepositoryHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$authRepositoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -129,9 +121,8 @@ String _$savedRepositoryHash() => r'7155cbe6bafa9c17b7964e0f683df7824e3ce42f';
 final savedRepositoryProvider = Provider<SavedRepository>.internal(
   savedRepository,
   name: r'savedRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$savedRepositoryHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$savedRepositoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -139,8 +130,7 @@ final savedRepositoryProvider = Provider<SavedRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SavedRepositoryRef = ProviderRef<SavedRepository>;
-String _$notificationsRepositoryHash() =>
-    r'7d6937f27b41d2e60811531c6032af1ff2b8914d';
+String _$notificationsRepositoryHash() => r'7d6937f27b41d2e60811531c6032af1ff2b8914d';
 
 /// C-4.7. No locale reader, unlike its neighbours: a notification's copy is
 /// assembled in the WIDGET from `type` + `data`, so the data layer has no name
@@ -148,13 +138,11 @@ String _$notificationsRepositoryHash() =>
 ///
 /// Copied from [notificationsRepository].
 @ProviderFor(notificationsRepository)
-final notificationsRepositoryProvider =
-    Provider<NotificationsRepository>.internal(
+final notificationsRepositoryProvider = Provider<NotificationsRepository>.internal(
   notificationsRepository,
   name: r'notificationsRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$notificationsRepositoryHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$notificationsRepositoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -189,8 +177,7 @@ String _$todayHash() => r'8e8ccdab51e5893dad840fc8792f3e279bb1b541';
 final todayProvider = AutoDisposeProvider<DateTime>.internal(
   today,
   name: r'todayProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$todayHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product') ? null : _$todayHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -213,8 +200,7 @@ String _$localeCodeHash() => r'9d9845147b7afe5c7f5ad2ae0545e0a69164a680';
 final localeCodeProvider = NotifierProvider<LocaleCode, String>.internal(
   LocaleCode.new,
   name: r'localeCodeProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$localeCodeHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product') ? null : _$localeCodeHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

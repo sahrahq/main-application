@@ -104,8 +104,11 @@ void main() {
           .whereType<File>()
           .where((f) => f.path.endsWith('.dart'))
           .length;
-      expect(scanned, greaterThanOrEqualTo(15),
-          reason: 'only $scanned test files found — has the tree moved?',);
+      expect(
+        scanned,
+        greaterThanOrEqualTo(15),
+        reason: 'only $scanned test files found — has the tree moved?',
+      );
     });
 
     test('every fixture date comes from fixture_dates.dart', () {

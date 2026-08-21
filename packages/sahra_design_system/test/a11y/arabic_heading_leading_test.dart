@@ -37,8 +37,7 @@ import 'package:sahra_design_system/sahra_design_system.dart';
 /// same shape as `dietary_vocabulary_test.dart` reading the CHECK constraint
 /// off disk rather than trusting a copy.
 void main() {
-  String guideline(String name) =>
-      File('../../docs/design/guidelines/$name').readAsStringSync();
+  String guideline(String name) => File('../../docs/design/guidelines/$name').readAsStringSync();
 
   /// Every `line-height:` a guideline draws.
   List<double> leadings(String html) => RegExp(r'line-height:\s*([0-9.]+)')

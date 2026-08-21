@@ -189,7 +189,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // ── 5. Pick a time and try to book, as a guest. ────────────────────────
-      await tester.tap(find.text('18:00'));
+      await tester.tap(find.textContaining('6:00'));
       await tester.pumpAndSettle();
       await tester.tap(find.textContaining('Confirm for'));
       await tester.pumpAndSettle();

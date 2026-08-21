@@ -12,6 +12,7 @@ import '../../../shared/widgets/sahra_async_view.dart';
 import '../domain/booking.dart';
 import '../domain/my_reservation.dart';
 import 'my_reservations_notifier.dart';
+import 'reservation_copy.dart';
 
 /// The two things a diner can do to a booking they hold — C-3.4 and C-3.5.
 ///
@@ -229,7 +230,7 @@ class _MoveSheet extends ConsumerWidget {
             children: <Widget>[
               for (final slot in board.slots)
                 SahraChip(
-                  label: slot.label,
+                  label: timeOfDay(slot.label, context),
                   active: draft.startsAt == slot.startsAt,
                   onPressed: busy ? null : () => notifier.choose(slot.startsAt),
                 ),

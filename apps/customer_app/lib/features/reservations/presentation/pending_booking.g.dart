@@ -124,8 +124,7 @@ class PendingBookingFamily extends Family<PendingSelection?> {
   static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
 
   @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies => _allTransitiveDependencies;
 
   @override
   String? get name => r'pendingBookingProvider';
@@ -145,8 +144,7 @@ class PendingBookingFamily extends Family<PendingSelection?> {
 /// restart still loses it, which is still the feature.
 ///
 /// Copied from [PendingBooking].
-class PendingBookingProvider
-    extends NotifierProviderImpl<PendingBooking, PendingSelection?> {
+class PendingBookingProvider extends NotifierProviderImpl<PendingBooking, PendingSelection?> {
   /// Keyed by venue, so a diner who wandered between two restaurants before
   /// signing in comes back to the right one.
   ///
@@ -168,12 +166,9 @@ class PendingBookingProvider
           from: pendingBookingProvider,
           name: r'pendingBookingProvider',
           debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$pendingBookingHash,
+              const bool.fromEnvironment('dart.vm.product') ? null : _$pendingBookingHash,
           dependencies: PendingBookingFamily._dependencies,
-          allTransitiveDependencies:
-              PendingBookingFamily._allTransitiveDependencies,
+          allTransitiveDependencies: PendingBookingFamily._allTransitiveDependencies,
           restaurantId: restaurantId,
         );
 
@@ -221,8 +216,7 @@ class PendingBookingProvider
 
   @override
   bool operator ==(Object other) {
-    return other is PendingBookingProvider &&
-        other.restaurantId == restaurantId;
+    return other is PendingBookingProvider && other.restaurantId == restaurantId;
   }
 
   @override
@@ -242,8 +236,7 @@ mixin PendingBookingRef on NotifierProviderRef<PendingSelection?> {
 }
 
 class _PendingBookingProviderElement
-    extends NotifierProviderElement<PendingBooking, PendingSelection?>
-    with PendingBookingRef {
+    extends NotifierProviderElement<PendingBooking, PendingSelection?> with PendingBookingRef {
   _PendingBookingProviderElement(super.provider);
 
   @override

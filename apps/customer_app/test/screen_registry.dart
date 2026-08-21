@@ -111,6 +111,11 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
       venueName: 'Layali Lounge',
       startsAt: '${kFutureDate}T18:00:00.000Z',
       partySize: 2,
+      // DELIBERATELY NOT what `startsAt.toLocal()` would produce on any
+      // machine. The ticket must show the venue's clock, and a fixture that
+      // happened to agree with the device would make the golden unable to
+      // show the difference.
+      wallClock: '20:00',
     ),
     overrides: (_) => _transport((_, __, ___) => throw offline),
   ),
@@ -248,11 +253,13 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
   // ── review_reports ──────────────────────────────────────────────────────
   'Reviews/report-sheet': ScreenCase(
     build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
-    overrides: (_) => _transport(_venueRoutes(
-      profile: <String, Object?>{..._profile, 'rating': 4.25, 'rating_count': 4},
-      menus: _menusFixture,
-      reviews: _reviewsFixture,
-    ),),
+    overrides: (_) => _transport(
+      _venueRoutes(
+        profile: <String, Object?>{..._profile, 'rating': 4.25, 'rating_count': 4},
+        menus: _menusFixture,
+        reviews: _reviewsFixture,
+      ),
+    ),
     // Reached by tapping "All reviews" and then "Report" on a card — two real
     // controls, in order. A sheet built directly is a sheet whose only route in
     // is the test.
@@ -276,8 +283,7 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
     overrides: (_) => <Override>[
       ..._transport((_, __, ___) => _resultsPage),
       searchCriteriaProvider.overrideWith(() => _TypedQuery('layali')),
-      locationSourceProvider
-          .overrideWithValue(const FixedLocationSource.zamalek()),
+      locationSourceProvider.overrideWithValue(const FixedLocationSource.zamalek()),
     ],
     interactive: true,
     after: (tester) async {
@@ -324,41 +330,49 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
   'Venue/full': ScreenCase(
     build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
     overrides: (_) => <Override>[
-      ..._transport(_venueRoutes(
-        profile: <String, Object?>{
-          ..._profileWithPhotos,
-          'rating': 4.25,
-          'rating_count': 4,
-        },
-        menus: _menusFixture,
-        reviews: _reviewsFixture,
-      ),),
+      ..._transport(
+        _venueRoutes(
+          profile: <String, Object?>{
+            ..._profileWithPhotos,
+            'rating': 4.25,
+            'rating_count': 4,
+          },
+          menus: _menusFixture,
+          reviews: _reviewsFixture,
+        ),
+      ),
       _fixtureImages,
     ],
   ),
   'Venue/menu-pdf-only': ScreenCase(
     build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
-    overrides: (_) => _transport(_venueRoutes(
-      profile: _profileUnrated,
-      menus: _menusPdfOnly,
-      reviews: _reviewsEmpty,
-    ),),
+    overrides: (_) => _transport(
+      _venueRoutes(
+        profile: _profileUnrated,
+        menus: _menusPdfOnly,
+        reviews: _reviewsEmpty,
+      ),
+    ),
   ),
   'Venue/no-reviews': ScreenCase(
     build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
-    overrides: (_) => _transport(_venueRoutes(
-      profile: _profileUnrated,
-      menus: _menusFixture,
-      reviews: _reviewsEmpty,
-    ),),
+    overrides: (_) => _transport(
+      _venueRoutes(
+        profile: _profileUnrated,
+        menus: _menusFixture,
+        reviews: _reviewsEmpty,
+      ),
+    ),
   ),
   'Menu/sheet': ScreenCase(
     build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
-    overrides: (_) => _transport(_venueRoutes(
-      profile: _profileUnrated,
-      menus: _menusFixture,
-      reviews: _reviewsEmpty,
-    ),),
+    overrides: (_) => _transport(
+      _venueRoutes(
+        profile: _profileUnrated,
+        menus: _menusFixture,
+        reviews: _reviewsEmpty,
+      ),
+    ),
     // Opened by TAPPING, not by constructing the sheet. A sheet built directly
     // is a sheet whose only route in is the test — the failure the journey test
     // exists to catch, in miniature.
@@ -376,13 +390,15 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
   ),
   'Reviews/sheet': ScreenCase(
     build: (_) => const VenueScreen(idOrSlug: 'layali-lounge-zamalek'),
-    overrides: (_) => _transport(_venueRoutes(
-      // 4.25 from 4, matching `_reviewsFixture` exactly — the hero and the
-      // histogram are the same fact and must not disagree in a picture.
-      profile: <String, Object?>{..._profile, 'rating': 4.25, 'rating_count': 4},
-      menus: _menusFixture,
-      reviews: _reviewsFixture,
-    ),),
+    overrides: (_) => _transport(
+      _venueRoutes(
+        // 4.25 from 4, matching `_reviewsFixture` exactly — the hero and the
+        // histogram are the same fact and must not disagree in a picture.
+        profile: <String, Object?>{..._profile, 'rating': 4.25, 'rating_count': 4},
+        menus: _menusFixture,
+        reviews: _reviewsFixture,
+      ),
+    ),
     // Same as the menu sheet: a read-only list. "Show more" appears only when
     // there is a next page, and this fixture is one page.
     interactive: false,
@@ -484,19 +500,27 @@ final Map<String, ScreenCase> screenCases = <String, ScreenCase>{
   'Notifications/empty': ScreenCase(
     build: (_) => const NotificationsScreen(),
     overrides: (_) => <Override>[
-      ..._transport(_notificationsHandler(<String, Object?>{
-        'items': <Object>[],
-        'unread_count': 0,
-      },),),
+      ..._transport(
+        _notificationsHandler(
+          <String, Object?>{
+            'items': <Object>[],
+            'unread_count': 0,
+          },
+        ),
+      ),
       ..._signedIn,
     ],
   ),
   'Notifications/signed-out': ScreenCase(
     build: (_) => const NotificationsScreen(),
-    overrides: (_) => _transport(_notificationsHandler(<String, Object?>{
-      'items': <Object>[],
-      'unread_count': 0,
-    },),),
+    overrides: (_) => _transport(
+      _notificationsHandler(
+        <String, Object?>{
+          'items': <Object>[],
+          'unread_count': 0,
+        },
+      ),
+    ),
   ),
   // The Account row carrying the badge. It is the ONLY door to the centre and
   // the only signal a diner gets that anything happened, so a picture of it
@@ -608,10 +632,8 @@ Future<void> _openActionSheet(WidgetTester tester, {required bool first}) async 
   await tester.pumpAndSettle();
 }
 
-
 /// One stored photo, as the API serves it. Three renditions, real dimensions.
-Map<String, Object?> _imageJson({bool cover = true, int position = 0}) =>
-    <String, Object?>{
+Map<String, Object?> _imageJson({bool cover = true, int position = 0}) => <String, Object?>{
       'id': '33333333-3333-4333-8333-33333333330$position',
       'urls': <String, String>{
         '160': 'https://cdn.test/venue/160.webp',
@@ -843,7 +865,6 @@ Map<String, Object?> _savedRow(String id, String en, String ar) => <String, Obje
       'cover': _imageJson(),
       'saved_at': '${kFutureDate}T18:00:00.000Z',
     };
-
 
 /// One notification, as the API serves it.
 Map<String, Object?> _notification(
@@ -1211,6 +1232,7 @@ Map<String, Object?> _reservation({
   String date = kFutureDate,
   String? occasion,
   String? specialRequests,
+
   /// Group D — whether the SERVER says this visit can be reviewed. Named here
   /// so a fixture cannot accidentally assert the review CTA into existence.
   bool canReview = false,

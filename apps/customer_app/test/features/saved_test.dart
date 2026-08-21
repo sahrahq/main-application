@@ -205,7 +205,9 @@ void main() {
       var savePosted = false;
       final transport = FakeTransport((method, path, _) {
         if (path == '/v1/saved' && method == 'GET') {
-          return savePosted ? <Object>[savedRow(venueId, 'Layali Lounge', 'ليالي لاونج')] : <Object>[];
+          return savePosted
+              ? <Object>[savedRow(venueId, 'Layali Lounge', 'ليالي لاونج')]
+              : <Object>[];
         }
         if (path == '/v1/saved' && method == 'POST') {
           savePosted = true;

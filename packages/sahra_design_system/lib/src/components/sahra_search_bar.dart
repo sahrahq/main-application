@@ -135,7 +135,35 @@ class _SahraSearchBarState extends State<SahraSearchBar> {
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: s.textBody),
                     decoration: InputDecoration(
                       isDense: true,
+                      // ── `border: InputBorder.none` IS NOT ENOUGH ──────────
+                      //
+                      // `InputDecoration.border` is only the FALLBACK. When the
+                      // theme sets `enabledBorder` / `focusedBorder` — and
+                      // `SahraTheme.inputDecorationTheme` sets both, as
+                      // `OutlineInputBorder` at radius `md` — those win, and the
+                      // field drew its own rounded rectangle INSIDE the pill.
+                      //
+                      // Two nested outlines with different radii (md inside
+                      // pill) and different heights (the decorator sizes to its
+                      // own 21–24pt content and centres in the 48pt pill), so
+                      // the edges could not line up and it read as two controls
+                      // rather than one. Worse when focused, because
+                      // `focusedBorder` switches to `accent` — a focus ring on a
+                      // control that is not the one the diner sees.
+                      //
+                      // Every state is silenced explicitly. Naming only
+                      // `enabled` and `focused` would leave the error states to
+                      // reappear the first time this field gets validation.
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      // The theme also sets `filled: true` with `surfaceSunken`,
+                      // which is the pill's own colour — invisible today, and a
+                      // second fill to chase the moment either changes.
+                      filled: false,
                       contentPadding: EdgeInsets.zero,
                       hintText: widget.hint,
                       hintStyle:

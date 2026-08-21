@@ -64,7 +64,11 @@ void main() {
       final sentence = tester
           .widgetList<Text>(find.byType(Text))
           .map((t) => t.data ?? '')
-          .firstWhere((d) => d.contains('20:30'), orElse: () => '');
+          // `timeOfDay()` renders 8:30 PM / ٨:٣٠ م rather than 20:30, so the
+          // sentence is located by the HOUR. This test is about the party
+          // size appearing as a figure next to its unit; the time format is
+          // `time_format_test.dart`'s to own.
+          .firstWhere((d) => d.contains('8:30'), orElse: () => '');
       expect(sentence, isNotEmpty, reason: '[${cell.slug}] no slot sentence rendered');
 
       expect(

@@ -28,9 +28,12 @@ void main() {
   test('the migration is where we think it is', () {
     // Without this the extraction below returns an empty list and every
     // comparison passes on two empty sets.
-    expect(migration.existsSync(), isTrue,
-        reason: 'Migration not found at ${migration.path} — this whole file is '
-            'vacuous. It was renamed, or the relative path is wrong.',);
+    expect(
+      migration.existsSync(),
+      isTrue,
+      reason: 'Migration not found at ${migration.path} — this whole file is '
+          'vacuous. It was renamed, or the relative path is wrong.',
+    );
   });
 
   /// The values inside `CHECK (dietary_tags <@ ARRAY[ … ]::TEXT[])`.
@@ -42,18 +45,18 @@ void main() {
     );
     final RegExpMatch? m = block.firstMatch(sql);
     if (m == null) return <String>[];
-    return RegExp("'([a-z_]+)'")
-        .allMatches(m.group(1)!)
-        .map((x) => x.group(1)!)
-        .toList();
+    return RegExp("'([a-z_]+)'").allMatches(m.group(1)!).map((x) => x.group(1)!).toList();
   }
 
   test('the constraint was actually found and is not empty', () {
     final List<String> found = vocabularyFromMigration();
-    expect(found, isNotEmpty,
-        reason: 'The CHECK constraint did not match the pattern. Either it was '
-            'renamed or its shape changed — and until this scan is fixed, '
-            'nothing is comparing the two lists.',);
+    expect(
+      found,
+      isNotEmpty,
+      reason: 'The CHECK constraint did not match the pattern. Either it was '
+          'renamed or its shape changed — and until this scan is fixed, '
+          'nothing is comparing the two lists.',
+    );
     expect(found.length, greaterThanOrEqualTo(5));
   });
 

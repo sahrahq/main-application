@@ -5,6 +5,7 @@ import 'package:sahra_design_system/sahra_design_system.dart';
 import '../../../localization/generated/app_localizations.dart';
 import '../../../routes/routes.dart';
 import '../../../shared/push/push_registration.dart';
+import 'reservation_copy.dart';
 
 /// `docs/design/ui_kits/app/ConfirmationScreen.jsx` — the perforated ticket.
 ///
@@ -47,15 +48,20 @@ class ConfirmedScreen extends ConsumerStatefulWidget {
     required this.venueName,
     required this.startsAt,
     required this.partySize,
+    required this.wallClock,
     super.key,
   });
 
   final String code;
   final String venueName;
 
-  /// ISO-8601 UTC, as the API returned it.
+  /// ISO-8601 UTC, as the API returned it. For the DATE and for arithmetic —
+  /// never for a shown time. See [wallClock].
   final String startsAt;
   final int partySize;
+
+  /// `HH:MM` on the RESTAURANT's clock. The only thing a diner is shown.
+  final String wallClock;
 
   @override
   ConsumerState<ConfirmedScreen> createState() => _ConfirmedScreenState();
@@ -82,49 +88,50 @@ class _ConfirmedScreenState extends ConsumerState<ConfirmedScreen> {
     return Scaffold(
       body: SahraPageWidth(
         child: SafeArea(
-        // Centred when it fits, scrolled when it does not.
-        //
-        // Two Spacers around a fixed ticket overflowed by 191px at 320x568
-        // with 200% text — the single worst of the five, and on the screen a
-        // diner is most likely to show someone at the door.
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Padding(
-          padding: SahraSpace.all(SahraSpace.s5),
-          child: Column(
-            children: <Widget>[
-              const Spacer(),
-              _Sparkle(),
-              const SizedBox(height: SahraSpace.s3),
-              SahraSectionLabel(l10n.confirmedOverline),
-              const SizedBox(height: SahraSpace.s2),
-              Text(
-                l10n.confirmedMessage(widget.venueName),
-                textAlign: TextAlign.center,
-                style: text.bodyMedium?.copyWith(color: s.textSoft),
-              ),
-              const SizedBox(height: SahraSpace.s5),
-              _Ticket(
-                venueName: widget.venueName,
-                code: widget.code,
-                startsAt: widget.startsAt,
-                partySize: widget.partySize,
-              ),
-              const Spacer(),
-              SahraButton(
-                label: l10n.confirmedDone,
-                onPressed: () => const SearchRoute().go(context),
-              ),
-            ],
-          ),
+          // Centred when it fits, scrolled when it does not.
+          //
+          // Two Spacers around a fixed ticket overflowed by 191px at 320x568
+          // with 200% text — the single worst of the five, and on the screen a
+          // diner is most likely to show someone at the door.
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: SahraSpace.all(SahraSpace.s5),
+                    child: Column(
+                      children: <Widget>[
+                        const Spacer(),
+                        _Sparkle(),
+                        const SizedBox(height: SahraSpace.s3),
+                        SahraSectionLabel(l10n.confirmedOverline),
+                        const SizedBox(height: SahraSpace.s2),
+                        Text(
+                          l10n.confirmedMessage(widget.venueName),
+                          textAlign: TextAlign.center,
+                          style: text.bodyMedium?.copyWith(color: s.textSoft),
+                        ),
+                        const SizedBox(height: SahraSpace.s5),
+                        _Ticket(
+                          venueName: widget.venueName,
+                          code: widget.code,
+                          startsAt: widget.startsAt,
+                          wallClock: widget.wallClock,
+                          partySize: widget.partySize,
+                        ),
+                        const Spacer(),
+                        SahraButton(
+                          label: l10n.confirmedDone,
+                          onPressed: () => const SearchRoute().go(context),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
         ),
       ),
     );
@@ -153,12 +160,14 @@ class _Ticket extends StatelessWidget {
     required this.code,
     required this.startsAt,
     required this.partySize,
+    required this.wallClock,
   });
 
   final String venueName;
   final String code;
   final String startsAt;
   final int partySize;
+  final String wallClock;
 
   @override
   Widget build(BuildContext context) {
@@ -166,10 +175,19 @@ class _Ticket extends StatelessWidget {
     final s = Theme.of(context).sahra;
     final text = Theme.of(context).textTheme;
 
-    // The instant comes back UTC; a diner reads it in their own clock. This is
-    // the ONE place a local rendering is right — it is describing a moment
-    // that has already been committed, not asking for one.
-    final when = DateTime.parse(startsAt).toLocal();
+    // THE VENUE'S CLOCK, never the device's.
+    //
+    // This used to be `DateTime.parse(startsAt).toLocal()`, under a comment
+    // claiming it was "the ONE place a local rendering is right". It was the
+    // wrong belief written down: a booking is read AT THE VENUE, and the
+    // ticket is the thing a diner screenshots and shows at the door. A phone
+    // in another timezone showed one hour here and a different one for the
+    // same booking in the bookings list. Invisible in Egypt, where they agree.
+    //
+    // `startsAt` is still parsed — for the DATE, which needs a calendar day
+    // and no arithmetic on the hour. Banned as a source of a shown TIME by
+    // `source_rules_test.dart`.
+    final when = DateTime.parse(startsAt);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -198,7 +216,7 @@ class _Ticket extends StatelessWidget {
             child: Row(
               children: <Widget>[
                 _Cell(label: l10n.confirmedDate, value: _date(context, when)),
-                _Cell(label: l10n.confirmedTime, value: _time(context, when)),
+                _Cell(label: l10n.confirmedTime, value: timeOfDay(wallClock, context)),
                 _Cell(label: l10n.confirmedGuests, value: '$partySize'),
               ],
             ),
@@ -246,21 +264,38 @@ class _Ticket extends StatelessWidget {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     return '${when.day} ${_months[ar ? 'ar' : 'en']![when.month - 1]}';
   }
-
-  String _time(BuildContext context, DateTime when) =>
-      '${when.hour.toString().padLeft(2, '0')}:${when.minute.toString().padLeft(2, '0')}';
 }
 
 /// Month names in both locales. See `_date` above for why these are not read
 /// from `intl`'s CLDR data.
 const Map<String, List<String>> _months = <String, List<String>>{
   'en': <String>[
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ],
   'ar': <String>[
-    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+    'يناير',
+    'فبراير',
+    'مارس',
+    'أبريل',
+    'مايو',
+    'يونيو',
+    'يوليو',
+    'أغسطس',
+    'سبتمبر',
+    'أكتوبر',
+    'نوفمبر',
+    'ديسمبر',
   ],
 };
 

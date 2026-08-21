@@ -293,7 +293,7 @@ class _PendingSlotNote extends StatelessWidget {
                     // of a sentence reads as a serial number, and this sentence
                     // exists to reassure someone mid-booking.
                     dayAndMonth(selection.date, context),
-                    ltrRun(selection.slotLabel),
+                    timeOfDay(selection.slotLabel, context),
                     // The INT, not a pre-formatted word. `signInSlotHeld` owns
                     // the plural and puts `#` in it. This used to pass
                     // `bookGuestsUnit`, which is the noun alone, and the line
@@ -500,12 +500,17 @@ class _CodeStep extends ConsumerWidget {
           const SizedBox(height: SahraSpace.s5),
           // SELECTABLE, so the address can be copied on every platform.
           //
-          // NOT YET TAPPABLE. Opening a mail composer needs `url_launcher`, which
-          // is not in the doc 08 §5 stack table, and CLAUDE.md says stop and ask
-          // before adding one. So this is the fallback half of what was asked
-          // for: readable and copyable everywhere. When the dependency is
-          // approved, wrap this in the tap and use `SupportContact.mailto` — the
-          // address itself does not move.
+          // TAPPABLE, since `url_launcher` was approved for `mailto:` and `tel:`
+          // (doc 08 §5), and `SahraTappableContact` below opens the composer via
+          // `TappableContact`'s seam — `canLaunchUrl` first, a false rather than
+          // a throw, so a handset with no mail client degrades to copyable text
+          // instead of an error.
+          //
+          // This comment previously read "NOT YET TAPPABLE" and described the
+          // fallback. It outlived what it described by two groups, and that is
+          // why the completion audit listed this as outstanding work which had
+          // in fact already shipped. Corrected rather than deleted, so the
+          // reason for the original restraint survives.
           //
           // ISOLATED. A Latin address inside Arabic copy reorders around the `@`
           // and the dot without `ltrRun`, which turns a correct address into one
